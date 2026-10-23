@@ -1,0 +1,14 @@
+{
+  "_note": "Listas iniciais editáveis (IDs do Data Dragon). Revisar a cada patch. A estimativa de dano usa as tags do Data Dragon; os overrides corrigem os casos que as tags erram.",
+  "healers": [
+    "Soraka", "Aatrox", "Vladimir", "Sylas", "Warwick", "DrMundo", "Swain",
+    "Yuumi", "Nami", "Sona", "Seraphine", "Briar", "Olaf", "Illaoi"
+  ],
+  "apOverrides": [
+    "Akali", "Evelynn", "Kayle", "Diana", "Fiddlesticks", "Elise", "Gragas",
+    "Rumble", "Singed", "Mordekaiser", "Nasus", "Ekko", "Katarina", "Teemo"
+  ],
+  "adOverrides": [
+    "Vayne", "Yasuo", "Yone", "Zed", "Talon", "Draven", "Lucian"
+  ]
+}

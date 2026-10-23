@@ -1,0 +1,80 @@
+:root {
+  /* K/DA FIRESTARTER: preto, vinho, carmim e rosa neon */
+  --bg: #08030a; --panel: rgba(26, 8, 17, .9); --line: #531429; --cyan: #ff4d79; --text: #fdeef3;
+  --muted: #bf93a3; --green: #6ee7b7; --red: #ff6b6b; --warn: #ffd166; --gold: #ffb3c7; --accent2: #ff9ab5;
+}
+* { box-sizing: border-box; }
+html, body { -webkit-user-select: none; user-select: none; cursor: default; margin: 0; min-height: 100%; background: radial-gradient(1100px 650px at 75% -10%, #4a0f26 0, #1a0610 45%, var(--bg) 75%); color: var(--text); font: 14px/1.4 "Segoe UI", system-ui, sans-serif; }
+body { padding: 0 20px 24px; }
+h1, h2 { margin: 0 0 10px; font-weight: 700; letter-spacing: .01em; }
+h2 { font-size: 15px; }
+h2.enemy { color: var(--red); margin-top: 18px; }
+b { color: var(--cyan); }
+.muted { color: var(--muted); }
+.spacer { flex: 1; }
+#bar { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+#status { font-size: 12px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.dot.ok { background: var(--green); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--red); }
+.icon-btn { background: none; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 16px; }
+.center { text-align: center; margin-top: 12vh; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+.panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.panel-head h2 { margin: 0; }
+.chip { font-size: 12px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255,255,255,.04); }
+.chip.hot { border-color: var(--cyan); color: var(--cyan); }
+.cols { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+@media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+
+.carousel { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px; }
+.card { position: relative; flex: none; width: 150px; height: 210px; padding: 0; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; background: #1a0710; color: var(--text); text-align: center; }
+.card:hover { border-color: #a3294f; }
+.card.selected { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(255, 77, 121, .3); }
+.card-art { position: absolute; inset: 0; background-size: cover; background-position: center top; }
+.card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 35%, rgba(4, 9, 18, .95) 85%); }
+.card-score, .card-name, .card-why { position: absolute; left: 6px; right: 6px; z-index: 1; }
+.card-score { bottom: 62px; font: 700 26px Consolas, monospace; color: var(--cyan); }
+.card-name { bottom: 40px; font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: .06em; }
+.card-why { bottom: 8px; font-size: 11px; color: var(--muted); line-height: 1.2; max-height: 28px; overflow: hidden; }
+
+.g-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0; }
+.g-label { width: 100%; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.g-item { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--line); }
+.g-rune { width: 34px; height: 34px; border-radius: 50%; background: #1a0710; padding: 2px; }
+.skill { width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: 5px; font: 700 12px Consolas, monospace; color: #1a0710; }
+.s-Q { background: #ff4d79; } .s-W { background: #ff9ab5; } .s-E { background: #c77dff; } .s-R { background: #ffd166; }
+
+.slots { display: grid; gap: 8px; margin-bottom: 10px; }
+.slot { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.03); }
+.slot.me { border-color: var(--cyan); }
+.slot.enemy { border-color: #7a2a3f; }
+.slot.dead { opacity: .5; }
+.slot-name { font-weight: 600; }
+.portrait { width: 40px; height: 40px; border-radius: 8px; background: #1a0710; flex: none; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.btn { background: rgba(255,255,255,.05); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--cyan); }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.primary { background: #7a1636; border-color: var(--cyan); }
+.field, .slider { display: block; margin: 10px 0; }
+.field input[type=text], select { display: block; width: 100%; margin-top: 4px; padding: 7px; background: #1a0710; color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
+.slider { display: grid; grid-template-columns: 200px 1fr 40px; align-items: center; gap: 10px; }
+.notes p { margin: 4px 0; }
+
+.buys { display: grid; gap: 6px; }
+.recall { background: rgba(255,154,181,.13); border: 1px solid rgba(255,154,181,.5); color: var(--gold); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-weight: 600; }
+.alert { margin-top: 6px; padding: 8px 10px; border-left: 3px solid var(--red); background: rgba(248,113,113,.1); border-radius: 0 6px 6px 0; }
+.ban-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+.ban { flex: none; display: flex; gap: 8px; align-items: center; padding: 6px 10px; border: 1px solid #7a2a3f; border-radius: 10px; background: rgba(248,113,113,.07); }
+.tip { margin: 8px 0; padding: 8px 10px; border-left: 3px solid var(--cyan); background: rgba(255,77,121,.08); border-radius: 0 6px 6px 0; }
+.buy { display: flex; gap: 10px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: 10px; }
+.buy.best { border-color: rgba(255, 77, 121, .5); background: rgba(255, 77, 121, .1); }
+.buy-icon { width: 40px; height: 40px; border-radius: 6px; flex: none; background: #1a0710; }
+.buy-body { flex: 1; } .buy-name { font-weight: 600; } .buy-reason, .buy-gold { font-size: 12px; color: var(--muted); }
+.buy.afford .buy-gold { color: var(--green); }
+.buy-score { font: 700 14px Consolas, monospace; color: var(--cyan); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; }
+[hidden] { display: none !important; }
+input, select { -webkit-user-select: text; user-select: text; cursor: auto; }
+button, .card { cursor: pointer; }
+img { -webkit-user-drag: none; }

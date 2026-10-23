@@ -1,0 +1,9 @@
+{
+  "_note": "IDs do Data Dragon, por necessidade e classe do seu campeão (ap, adc, ad, tank). O primeiro item existente e ainda não comprado é usado. Revisar a cada patch.",
+  "antiheal": { "ap": [3165], "adc": [3033, 3123], "ad": [6609, 3123], "tank": [3075] },
+  "armor":    { "ap": [3157], "adc": [3026, 6333], "ad": [6333, 3026], "tank": [3143, 3110] },
+  "mr":       { "ap": [3102], "adc": [3139, 3156], "ad": [3156, 3139], "tank": [4401, 2504] },
+  "pen":      { "ap": [3135], "adc": [3036, 6694], "ad": [6694, 3036], "tank": [] },
+  "bootsArmor": [3047],
+  "bootsMr": [3111]
+}

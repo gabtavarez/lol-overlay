@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; img-src https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
+  <title>LoL Overlay</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header id="bar">
+    <span id="dot" class="dot"></span>
+    <strong>LoL Overlay</strong>
+    <span id="status" class="muted"></span>
+    <span class="spacer"></span>
+    <button id="update-btn" class="btn primary" hidden></button>
+    <span id="clock"></span>
+    <button id="gear" class="icon-btn" title="Configurações">⚙</button>
+  </header>
+
+  <div id="waiting" class="center">
+    <h1 id="waiting-text">Aguardando…</h1>
+    <p class="muted">Abra o cliente do LoL. No champ select aparecem as recomendações; em partida, segure <b>TAB</b> para ver as compras sugeridas.</p>
+  </div>
+
+  <!-- Champ select -->
+  <main id="select" hidden>
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Recomendações de campeões · IA</h2>
+        <span id="selRole" class="chip"></span>
+        <span id="turn" class="chip hot" hidden></span>
+      </div>
+      <div id="picks" class="carousel"></div>
+      <div id="pickNotes" class="muted notes"></div>
+    </section>
+
+    <section class="panel" id="bans" hidden>
+      <h2>Sugestões de ban</h2>
+      <div id="ban-row" class="ban-row"></div>
+    </section>
+
+    <div class="cols">
+      <section class="panel" id="guide">
+        <h2 id="guide-title">Guia do campeão</h2>
+        <p id="guide-why" class="muted"></p>
+        <div id="guide-body"></div>
+        <div class="row">
+          <button id="imp-all" class="btn primary" disabled>Importar tudo (runas, feitiços, itens)</button>
+          <button id="imp-runes" class="btn" disabled>Só runas</button>
+          <button id="imp-spells" class="btn" disabled>Só feitiços</button>
+          <button id="imp-items" class="btn" disabled>Só itens da loja</button>
+          <button id="flash-key" class="btn" title="Em qual tecla o Flash fica ao importar">Flash em: F</button>
+        </div>
+        <p id="imp-msg" class="muted"></p>
+      </section>
+
+      <section class="panel" id="teams">
+        <h2>Sua equipe</h2>
+        <div id="team" class="slots"></div>
+        <button id="opggAllies" class="btn">OP.GG multisearch</button>
+        <h2 class="enemy">Equipe inimiga</h2>
+        <div id="selEnemies" class="slots"></div>
+        <button id="opggEnemies" class="btn" hidden>OP.GG dos inimigos</button>
+      </section>
+    </div>
+  </main>
+
+  <!-- Em partida -->
+  <main id="game" hidden>
+    <section class="panel">
+      <h2>Partida em andamento</h2>
+      <p class="muted">Segure <b>TAB</b> no jogo para ver o overlay. Esta janela pode ficar aberta ao lado (alt-tab).</p>
+      <p><span id="who"></span> <span id="gold" class="muted"></span></p>
+    </section>
+    <section class="panel">
+      <h2>Compras · IA</h2>
+      <div id="recall" class="recall" hidden></div>
+      <div id="buys" class="buys"></div>
+      <p id="matchup" class="muted" hidden></p>
+      <div id="alerts" hidden></div>
+    </section>
+    <section class="panel">
+      <h2>Inimigos</h2>
+      <div id="enemies" class="slots"></div>
+    </section>
+  </main>
+
+  <!-- Configurações -->
+  <section id="settings" class="panel" hidden>
+    <h2>Configurações de pick</h2>
+    <p class="muted">Peso de cada critério (sinais sem dados são ignorados).</p>
+    <label class="slider">Maestria e histórico <input type="range" id="w-mastery" min="0" max="100"><output id="o-mastery"></output></label>
+    <label class="slider">Meta (tier da rota) <input type="range" id="w-meta" min="0" max="100"><output id="o-meta"></output></label>
+    <label class="slider">Counters <input type="range" id="w-counter" min="0" max="100"><output id="o-counter"></output></label>
+    <label class="slider">Sinergia com aliados <input type="range" id="w-synergy" min="0" max="100"><output id="o-synergy"></output></label>
+    <label class="slider">Composição (AD/AP) <input type="range" id="w-comp" min="0" max="100"><output id="o-comp"></output></label>
+
+    <label class="field">Rota
+      <select id="set-role">
+        <option value="top">Topo</option>
+        <option value="jungle">Selva</option>
+        <option value="middle">Meio</option>
+        <option value="bottom">Atirador</option>
+        <option value="utility">Suporte</option>
+      </select>
+    </label>
+    <label class="field">Meu pool nesta rota
+      <input type="text" id="set-pool" placeholder="Jinx, Kai'Sa, Ezreal" maxlength="400">
+    </label>
+    <label class="field">Nunca sugerir
+      <input type="text" id="set-blacklist" placeholder="Yasuo, Teemo" maxlength="400">
+    </label>
+    <label class="field">Flash ao importar feitiços
+      <select id="set-flash"><option value="F">Tecla F</option><option value="D">Tecla D</option></select>
+    </label>
+    <label class="field">Overlay em partida
+      <select id="set-overlay-mode">
+        <option value="tab">Só enquanto seguro TAB</option>
+        <option value="always">Sempre visível</option>
+      </select>
+    </label>
+    <label class="field"><input type="checkbox" id="set-update"> Atualizar o app automaticamente (GitHub Releases)</label>
+    <label class="field"><input type="checkbox" id="set-accept"> Aceitar a partida automaticamente (ready check)</label>
+    <label class="field"><input type="checkbox" id="set-remote"> Buscar tier list, builds, runas e counters no OP.GG (cache de 12 h)</label>
+
+    <div class="row">
+      <button id="set-save" class="btn primary">Salvar</button>
+      <button id="set-move" class="btn">Mover overlay</button>
+      <button id="set-update-now" class="btn">Verificar atualização</button>
+      <button id="set-test" class="btn">Testar overlay (5 s)</button>
+      <button id="set-diag" class="btn">Diagnóstico</button>
+      <button id="set-folder" class="btn">Pasta de dados</button>
+      <button id="set-close" class="btn">Fechar</button>
+    </div>
+    <p id="set-msg" class="muted"></p>
+    <div id="diag" class="tip" hidden></div>
+    <p class="muted">Posição e tamanho: segure TAB em partida e arraste o título do painel (mover) ou o canto (redimensionar). "Mover overlay" abre o modo de edição fora da partida.</p>
+    <p class="muted">Mover overlay: arraste o painel e clique em Concluir (ou Ctrl+Shift+M).</p>
+    <p class="muted">Seu meta.json (pasta de dados) sempre vence os dados da internet.</p>
+  </section>
+
+  <script src="common.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; img-src https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
+  <title>Overlay</title>
+  <link rel="stylesheet" href="overlay.css">
+</head>
+<body>
+  <section id="buys" class="box" data-panel="buys" hidden>
+    <header class="drag"><span>COMPRAS · IA</span><small id="gold"></small></header>
+    <div id="recall" class="recall" hidden></div>
+    <div id="list"></div>
+    <div class="grip" title="Arraste para redimensionar"></div>
+  </section>
+
+  <section id="info" class="box" data-panel="info" hidden>
+    <header class="drag"><span>MATCHUP E ALERTAS</span></header>
+    <div id="matchup" class="note" hidden></div>
+    <div id="alerts" hidden></div>
+    <div class="grip" title="Arraste para redimensionar"></div>
+  </section>
+
+  <div id="edit-bar" hidden>
+    <span>Modo de edição: arraste o título para mover e o canto para redimensionar.</span>
+    <button id="move-done" type="button">Concluir</button>
+  </div>
+  <script src="common.js"></script>
+  <script src="overlay.js"></script>
+</body>
+</html>

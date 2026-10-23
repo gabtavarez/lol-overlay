@@ -1,0 +1,22 @@
+{
+  "_note": "Itens inimigos que mudam a sua partida (IDs do Data Dragon). Revisar a cada patch; ID inexistente é ignorado.",
+  "items": {
+    "3033": "corta a sua cura",
+    "3123": "corta a sua cura",
+    "3165": "corta a sua cura",
+    "6609": "corta a sua cura",
+    "3075": "reflete dano e corta a sua cura",
+    "3916": "corta a sua cura",
+    "3026": "revive uma vez: guarde o burst para depois",
+    "3140": "remove seus CCs",
+    "3139": "remove seus CCs",
+    "3102": "bloqueia a sua próxima habilidade",
+    "3814": "bloqueia a sua próxima habilidade",
+    "3157": "fica invulnerável ao ativar (Zhonya)",
+    "6694": "ignora parte da sua armadura",
+    "3036": "ignora parte da sua armadura (bom contra tanque)",
+    "3135": "ignora parte da sua RM",
+    "3143": "reduz o dano dos ataques básicos",
+    "3110": "reduz a velocidade de ataque de quem acerta nele"
+  }
+}

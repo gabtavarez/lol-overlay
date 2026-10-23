@@ -1,0 +1,24 @@
+/* Paleta inspirada em K/DA FIRESTARTER: preto, vinho, carmim e rosa neon */
+:root { --bg: rgba(14, 4, 10, .93); --line: #5c1630; --accent: #ff4d79; --accent2: #ff9ab5; --text: #fdeef3; --muted: #bf93a3; --green: #6ee7b7; --gold: #ffb3c7; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font: 13px/1.35 "Segoe UI", system-ui, sans-serif; color: var(--text); }
+.box { position: fixed; width: 330px; transform-origin: top left; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 0 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.6), 0 0 18px rgba(255, 77, 121, .12); }
+.box header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; letter-spacing: .1em; color: var(--accent); padding: 9px 0 8px; cursor: grab; user-select: none; touch-action: none; }
+.box header small { color: var(--accent2); font-size: 12px; }
+.box.moving { outline: 2px dashed var(--accent); }
+.grip { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, var(--accent) 50%, var(--accent) 60%, transparent 60%, transparent 72%, var(--accent) 72%, var(--accent) 82%, transparent 82%); opacity: .8; }
+.buy { display: flex; gap: 10px; align-items: center; padding: 7px; border: 1px solid transparent; border-radius: 8px; margin-bottom: 4px; }
+.buy.best { background: rgba(255, 77, 121, .12); border-color: rgba(255, 77, 121, .45); }
+.buy-icon { width: 38px; height: 38px; border-radius: 6px; flex: none; background: #1a0710; }
+.buy-body { flex: 1; min-width: 0; }
+.buy-name { font-weight: 600; }
+.buy-reason { color: var(--muted); font-size: 12px; }
+.buy-gold { font-size: 11px; color: var(--muted); }
+.buy.afford .buy-gold { color: var(--green); }
+.buy-score { font-family: Consolas, monospace; font-weight: 700; color: var(--accent2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+.recall { background: rgba(255, 154, 181, .13); border: 1px solid rgba(255, 154, 181, .5); color: var(--gold); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; font-weight: 600; }
+.note { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.alert { margin-top: 6px; padding: 6px 8px; border-left: 3px solid var(--accent); background: rgba(255, 77, 121, .1); border-radius: 0 6px 6px 0; font-size: 12px; }
+#edit-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; background: var(--bg); border: 1px solid var(--accent); border-radius: 10px; padding: 8px 14px; color: var(--text); }
+#edit-bar button { background: #7a1636; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+.muted { color: var(--muted); }

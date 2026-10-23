@@ -1,0 +1,16 @@
+{
+  "region": "auto",
+  "autoAccept": false,
+  "autoUpdate": true,
+  "remoteData": { "enabled": true },
+  "flashKey": "F",
+  "overlay": { "mode": "tab", "panels": { "buys": null, "info": null } },
+  "picker": {
+    "weights": { "mastery": 0.45, "meta": 0.25, "counter": 0.2, "comp": 0.1, "synergy": 0.1 },
+    "pool": { "top": [], "jungle": [], "middle": [], "bottom": [], "utility": [] },
+    "blacklist": [],
+    "poolBonus": 0.15,
+    "minGamesForRole": 1,
+    "maxResults": 6
+  }
+}

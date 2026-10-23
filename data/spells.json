@@ -1,0 +1,13 @@
+{
+  "1":  { "key": "SummonerBoost", "name": "Purificar" },
+  "3":  { "key": "SummonerExhaust", "name": "Exaustão" },
+  "4":  { "key": "SummonerFlash", "name": "Flash" },
+  "6":  { "key": "SummonerHaste", "name": "Fantasma" },
+  "7":  { "key": "SummonerHeal", "name": "Curar" },
+  "11": { "key": "SummonerSmite", "name": "Golpear" },
+  "12": { "key": "SummonerTeleport", "name": "Teleporte" },
+  "13": { "key": "SummonerMana", "name": "Clareza" },
+  "14": { "key": "SummonerDot", "name": "Incendiar" },
+  "21": { "key": "SummonerBarrier", "name": "Barreira" },
+  "32": { "key": "SummonerSnowball", "name": "Bola de neve" }
+}

@@ -1,0 +1,96 @@
+const { championIdFromRaw } = require('./ddragon');
+
+function mapItem(item, dd) {
+  const meta = dd ? dd.item(item.itemID) : null;
+  return {
+    id: item.itemID,
+    name: (meta && meta.name) || item.displayName,
+    tags: (meta && meta.tags) || [],
+    slot: item.slot,
+    count: item.count || 1,
+  };
+}
+
+function mapPlayer(p, dd) {
+  const champ = dd ? dd.championByRaw(p.rawChampionName, p.championName) : null;
+  const scores = p.scores || {};
+  return {
+    name: p.riotId || p.summonerName || '?',
+    gameName: p.riotIdGameName || p.summonerName || '',
+    champion: p.championName,
+    championId: (champ && champ.id) || championIdFromRaw(p.rawChampionName),
+    tags: (champ && champ.tags) || [],
+    position: p.position || '',
+    team: p.team,
+    level: p.level || 1,
+    isDead: Boolean(p.isDead),
+    respawnTimer: p.respawnTimer || 0,
+    scores: {
+      kills: scores.kills || 0,
+      deaths: scores.deaths || 0,
+      assists: scores.assists || 0,
+      cs: scores.creepScore || 0,
+    },
+    items: (p.items || []).map((it) => mapItem(it, dd)),
+  };
+}
+
+function findActivePlayer(raw, players) {
+  const active = raw.activePlayer || {};
+  const ids = [active.riotId, active.summonerName, active.riotIdGameName].filter(Boolean);
+  return (
+    players.find((p) => ids.includes(p.name) || ids.includes(p.gameName)) || null
+  );
+}
+
+function countObjectives(events, players) {
+  const teamByName = new Map();
+  for (const p of players) {
+    teamByName.set(p.name, p.team);
+    teamByName.set(p.gameName, p.team);
+  }
+  const out = { dragons: { ORDER: 0, CHAOS: 0 }, barons: { ORDER: 0, CHAOS: 0 } };
+  for (const e of events || []) {
+    const team = teamByName.get(e.KillerName);
+    if (!team) continue;
+    if (e.EventName === 'DragonKill') out.dragons[team] += 1;
+    if (e.EventName === 'BaronKill') out.barons[team] += 1;
+  }
+  return out;
+}
+
+/**
+ * Converte o payload cru de /allgamedata no estado que o overlay e o
+ * recomendador consomem. `dd` (DataDragon) é opcional: sem ele, usa só o que
+ * a própria Live API informa.
+ */
+function buildState(raw, dd) {
+  const players = (raw.allPlayers || []).map((p) => mapPlayer(p, dd));
+  const me = findActivePlayer(raw, players);
+  if (!me) {
+    return { phase: 'waiting', reason: 'jogador ativo não encontrado (modo espectador?)' };
+  }
+
+  const active = raw.activePlayer || {};
+  const myState = { ...me, gold: Math.floor(active.currentGold || 0), level: active.level || me.level };
+  const enemies = players.filter((p) => p.team !== me.team);
+  const allies = players.filter((p) => p.team === me.team && p !== me);
+  const laneOpponent = myState.position
+    ? enemies.find((e) => e.position === myState.position) || null
+    : null;
+
+  const gameData = raw.gameData || {};
+  return {
+    phase: 'ingame',
+    gameTime: Math.floor(gameData.gameTime || 0),
+    gameMode: gameData.gameMode || '',
+    assets: { version: dd ? dd.version : null },
+    me: myState,
+    allies,
+    enemies,
+    laneOpponent,
+    objectives: countObjectives((raw.events || {}).Events, players),
+  };
+}
+
+module.exports = { buildState };

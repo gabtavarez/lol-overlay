@@ -1,0 +1,8 @@
+{
+  "_help": "Dados de meta e counters (opcionais). Para editar sem reinstalar, copie este arquivo para a pasta de dados do app (botão 'Abrir pasta de dados' nas configurações) e edite a cópia. Nomes de campeões aceitam o ID do Data Dragon ou o nome ('MissFortune', 'Miss Fortune', 'Kai'Sa').",
+  "_tiers_help": "tiers.<rota>.<campeão> = 'S' | 'A' | 'B' | 'C' | 'D' ou um número de 0 a 1. Rotas: top, jungle, middle, bottom, utility.",
+  "_counters_help": "counters.<campeão inimigo>.<seu campeão> = número de -1 (péssimo contra) a 1 (ótimo contra).",
+  "patch": null,
+  "tiers": { "top": {}, "jungle": {}, "middle": {}, "bottom": {}, "utility": {} },
+  "counters": {}
+}

@@ -75,6 +75,8 @@
     "publish": [
       {
         "provider": "github",
+        "owner": "gabtavarez",
+        "repo": "lol-overlay",
         "releaseType": "release"
       }
     ]
@@ -85,6 +87,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/SEU-USUARIO/lol-overlay.git"
+    "url": "https://github.com/gabtavarez/lol-overlay.git"
   }
 }

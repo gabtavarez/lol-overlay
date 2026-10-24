@@ -1,0 +1,77 @@
+Para estruturar um motor de recomendação inteligente para League of Legends, as Regras Situacionais (Heurísticas) servem como a camada de decisão lógica que se sobrepõe aos dados brutos. Elas garantem que a IA não recomende ceticamente apenas os "itens mais populares", mas sim a resposta tática correta ao contexto específico do jogo.
+
+Abaixo está uma Tabela e Matriz Completa de Regras Situacionais (Heurísticas) pronta para ser transformada em lógica de código (JSON, regras if/else, ou prompts de RAG/LLM).
+
+1. Matriz de Heurísticas de Itemização Situacional
+
+A. Resposta à Análise da Composição Inimiga (Enemy Team Composition)
+
++---------------------------------------+----------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| Condição Contextual (Trigger)         | Métrica / Verificação                                                                                          | Ação Recomendada pela IA                                                                                                 | Justificativa / Prioridade                                                                                |
++=======================================+================================================================================================================+==========================================================================================================================+===========================================================================================================+
+| Monopolização AD Inimiga              | Inimigos possuem 4+ campeões AD ou 0 causadores de dano mágico real.                                           | Priorizar Botas de Aço Fechadas (Plated Steelcaps) + Item de Armadura Core (ex: Coração Congelado / Dança da Morte).     | Reduz drasticamente a eficácia do dano do time adversário no mid/late game.                               |
++---------------------------------------+----------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| Monopolização AP Inimiga              | Inimigos possuem 4+ campeões AP ou causadores de dano mágico pesado.                                           | Priorizar Passos de Mercúrio + Item Mágico de Defesa (Hexdrinker/Malmortius, Semblante Espiritual ou Força da Natureza). | Garante sustentabilidade contra estouro de dano (burst) mágico e CC prolongado.                           |
++---------------------------------------+----------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| Alta Presença de Tanques / HP Elevado | 2+ inimigos construindo itens de HP puro ou classe Tanque/Lutador (HP > 3000 no late game).                    | Mago: Liandry / Cajado do Vazio / Criptoflora.                                                                           | Dano baseado em % de vida e penetração percentual são matematicamente superiores a dano plano/letalidade. |
+|                                       |                                                                                                                |                                                                                                                          |                                                                                                           |
+|                                       |                                                                                                                | Atirador/AD: Espada do Rei Destruído / Lembranças do Lorde Dominik / Cutelo Negro.                                       |                                                                                                           |
++---------------------------------------+----------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| Alta Presença de Sustentação / Cura   | Inimigos com campeões de cura nativa alta (ex: Aatrox, Yuumi, Soraka, Redenção) ou 2+ campeões com Vampirismo. | Adquirir o componente básico de Corta-Cura (Chamado do Carrasco, Grave de Algoz ou Colete de Espinhos) no 2º ou 3º item. | Não completar o item final imediatamente; manter o componente de $800g para eficiência de ouro.           |
++---------------------------------------+----------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
+| Composição de Burst AP Explosivo      | Inimigos com assassinos/magos de burst extremo (ex: Veigar, Syndra, Fizz, LeBlanc).                            | Recomendar Ampulheta de Zhonya (Mago) ou Bordo da Noite / Malmortius (AD).                                               | Zhonya/Bordo cancela o combo de eliminação, neutralizando o papel do assassino.                           |
++---------------------------------------+----------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------+
+
+B. Resposta ao Estado da Fase de Rotas (Lane State & Gold Difference)
+
++----------------------------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Estado do Jogador                            | Estado do Adversário de Rota            | Ação da IA                                                                                                                                                                                    |
++==============================================+=========================================+===============================================================================================================================================================================================+
+| Em Vantagem (Snowballing)                    | Inimigo vulnerável ou atrás em itens.   | Priorizar itens de Dano Puro / Letalidade / Amplificação de Snowball (ex: Mejai se Mago, itens de aceleração de ritmo). Evitar itens defensivos precoces.                                     |
+|                                              |                                         |                                                                                                                                                                                               |
+| (KDA positivo / +1.5k ouro de vantagem @12m) |                                         |                                                                                                                                                                                               |
++----------------------------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Em Desvantagem (Behind / Losing Lane)        | Inimigo forte e com capacidade de dive. | Alterar a ordem de build: comprar componente defensivo imediato (Bota defensiva, Sapatos do Feiticeiro/Passos, Gota das Lágrimas ou Cinto do Gigante) antes de finalizar o 1º item principal. |
+|                                              |                                         |                                                                                                                                                                                               |
+| (0/2+ / Solado na lane / -1k ouro @10m)      |                                         |                                                                                                                                                                                               |
++----------------------------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Rota Neutra / Farm Passivo                   | Ambas as partes equilibradas.           | Seguir estritamente a Build Core de Maior Win Rate Estatístico para o campeão no patch atual.                                                                                                 |
++----------------------------------------------+-----------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+2. Lógica de Posições, Boots e Spikes de Ouro (Early Game Retain)
+
+As decisões nos primeiros 10–15 minutos dependem diretamente do valor disponível no primeiro e segundo retorno à base (recall).
+
+Plaintext
+
+[Primeiro Recall / Tempo de Ouro]
+
+├── Ouro >= 1300g ──> Comprar Componente Épico Principal (ex: Espada Grada, Capítulo Perdido, Achatador)
+
+├── Ouro 800g-1100g ──> Bota Básica + Componentes Menores (Sementes de Dano / Vida)
+
+└── Ouro < 800g ──> Refil de Poção + Ampulheta/Sapatos + Olho Invisível se sobrou
+
+Regra de Seleção de Botas (Boots Decision Matrix)
+
+1.  Passos de Mercúrio (Mercury's Treads): Se o time inimigo tiver 3+ habilidades de Controle de Grupo (Stun, Taunt, Fear, Root) OU laner AP com controle de grupo.
+
+2.  Botas de Aço Fechadas (Plated Steelcaps): Se o laner inimigo for focado em ataques básicos (ADC, Yone, Yasuo, Tryndamere) OU comp inimiga predominantemente AD.
+
+3.  Sapatos do Feiticeiro / Botas de Lucidez / Berserker: Opção padrão ofensiva quando não há ameaça defensiva crítica imediata.
+
+3. Matriz de Heurísticas de Draft (Picks, Bans & Counters)
+
+A. Banimentos Automatizados
+
+-   Regra 1 (Counter Direto Estatístico): Banir o campeão com o menor Win Rate histórico contra o campeão selecionado pelo usuário no Elo específico.
+
+-   Regra 2 (Meta/S-Tier): Se o usuário não tiver um counter crítico direto, banir o campeão da rota com maior Pick Rate + Ban Rate combinado no patch atual.
+
+B. Recomendações de Pick / Synergies
+
+-   Sincronia de Composição:
+
+    -   Se o time possui um caçador de Engage (ex: Jarvan IV, Sejuani, Malphite) → Sugerir campeões com Follow-up ou Dano em Área (ex: Orianna, Yasuo, Miss Fortune).
+
+    -   Se o time possui 3 fontes de dano físico (AD) → Forçar recomendação de campeões de Dano Mágico (AP) para evitar que o time inimigo estaque armadura.

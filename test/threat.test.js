@@ -53,3 +53,18 @@ test('ouro cara a cara: soma o valor dos itens por rota e do time', () => {
   assert.equal(g.team.diff, -1000);
   assert.ok(g.lanes[1].ally.me);
 });
+
+test('heurísticas: time todo AD puxa armadura; anti-cura começa pelo componente; perdendo a rota pede componente defensivo', () => {
+  const I = { 3157: { name: 'Zhonya', tags: [], gold: { total: 3250 } }, 3916: { name: 'Orbe', tags: [], gold: { total: 800 } }, 1029: { name: 'Armadura de pano', tags: [], gold: { total: 300 } }, 1056: { name: 'Doran', tags: [], gold: { total: 400 } } };
+  const ddH = { item: (id) => I[id] || null };
+  const fl = { healers: ['Soraka'], apOverrides: [], adOverrides: [], hardCc: [], burst: [], autoAttackers: [] };
+  const E = (champion, tags, k = 0, d = 0, position = '') => ({ champion, championId: champion, tags, level: 6, position, scores: { kills: k, deaths: d, assists: 0 }, items: [] });
+  const meH = (k, d) => ({ champion: 'Lux', championId: 'Lux', tags: ['Mage'], position: 'MIDDLE', level: 6, gold: 500, items: [{ id: 1056 }], scores: { kills: k, deaths: d, assists: 0 } });
+  const build = { damageType: 'AP', core: [], boots: [] };
+  const allAd = buyAdvice({ dd: ddH, flags: fl, build, state: { gameTime: 900, me: meH(1, 1), enemies: ['Zed', 'Garen', 'Jinx', 'Talon'].map((n) => E(n, ['Assassin'])).concat(E('Soraka', ['Support'])) } });
+  const ids = allAd.items.map((i) => i.id);
+  assert.ok(ids.includes(3157), 'Zhonya (armadura AP) contra time AD');
+  assert.ok(ids.includes(3916), 'componente de anti-cura contra Soraka');
+  const losing = buyAdvice({ dd: ddH, flags: fl, build, state: { gameTime: 600, me: meH(0, 3), enemies: [E('Zed', ['Assassin'], 3, 0, 'MIDDLE')], laneOpponent: { champion: 'Zed' } } });
+  assert.ok(losing.items.some((i) => i.id === 1029), 'componente defensivo contra o Zed');
+});

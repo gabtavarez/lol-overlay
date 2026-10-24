@@ -21,6 +21,18 @@ function recommendBans({ champSelect, picks, getBuild, dd, meta, settings }) {
 
   // quanto cada campeão ameaça os meus melhores picks
   const threat = new Map();
+  // Regra 1: o campeão que você já escolheu (hover/travado) pesa mais: banir quem o counteria.
+  const chosen = champSelect.me && champSelect.me.champion;
+  if (chosen) {
+    const build = getBuild({ id: chosen.id }, role);
+    for (const c of (build && build.weakCounters) || []) {
+      const key = norm(c.name);
+      const prev = threat.get(key) || { value: 0, against: [] };
+      prev.value += Math.max(0, c.value) * 1.4;
+      prev.against.push(chosen.name);
+      threat.set(key, prev);
+    }
+  }
   const weightOf = (cand, i) => (cand.score / 100) * (1 - i * 0.12);
   picks.candidates.slice(0, 5).forEach((cand, i) => {
     const build = getBuild({ id: cand.id }, role);

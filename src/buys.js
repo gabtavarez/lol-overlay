@@ -3,6 +3,7 @@ const defaultFlags = require('../data/champion-flags.json');
 const reactive = require('../data/reactive-items.json');
 const { laterItems } = require('./buildPath');
 const { rankThreats, kdaText } = require('./threat');
+const { goldCompare } = require('./goldDiff');
 
 const BOOT_TAG = 'Boots';
 
@@ -37,6 +38,25 @@ function missingGold(dd, id, owned, used = []) {
   return cost(id);
 }
 
+/** Componente (de qualquer nível da receita) mais caro que ainda não tenho e que cabe em `gold`. */
+function bestComponent(dd, id, owned, gold) {
+  const have = new Set(owned);
+  let best = null;
+  const walk = (itemId) => {
+    const it = dd.item(itemId);
+    if (!it) return;
+    for (const part of it.from || []) {
+      const p = dd.item(part);
+      if (!p || have.has(Number(part))) continue;
+      const cost = (p.gold && p.gold.total) || 0;
+      if (cost <= gold && cost >= 400 && (!best || cost > best.cost)) best = { id: Number(part), name: p.name, cost };
+      walk(part);
+    }
+  };
+  walk(id);
+  return best;
+}
+
 function firstAvailable(ids, dd, ownedSet) {
   return (ids || []).find((id) => dd.item(id) && !ownedSet.has(id)) || null;
 }
@@ -65,6 +85,10 @@ function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, lane
 
   if (mercs && (ccWeight >= 3 || (cc.length >= 3 && apShare >= 0.45))) {
     return { id: mercs, score: losing ? 70 : 64, reason: `Muito controle de grupo (${names(cc)}): tenacidade` };
+  }
+  if (opp && !losing) {
+    if ((flags.autoAttackers || []).includes(opp.e.championId) && steel) return { id: steel, score: 63, reason: `${opp.e.champion} vive de ataque básico: Aço` };
+    if (opp.d.ap >= 0.6 && (flags.hardCc || []).includes(opp.e.championId) && mercs) return { id: mercs, score: 63, reason: `${opp.e.champion} (AP com controle de grupo): Mercúrio` };
   }
   if (losing && opp) {
     const vs = `${opp.e.champion} ${opp.e.scores.kills}/${opp.e.scores.deaths}/${opp.e.scores.assists}`;
@@ -124,10 +148,39 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     if (id && !alreadyHas) add(id, Math.round(score * factor), reason, need);
   };
 
+  // Estado da rota (doc de heurísticas, seção B): ganhando acelera dano, perdendo compra defesa antes do 1º item.
+  const gold = goldCompare(state, dd);
+  const myLane = gold && gold.lanes.find((l) => l.ally && l.ally.me);
+  const laneDiff = myLane && myLane.enemy ? myLane.diff : 0;
+  const sc = me.scores || { kills: 0, deaths: 0 };
+  const laneState = laneDiff >= 1500 || sc.kills - sc.deaths >= 3 ? 'winning'
+    : laneDiff <= -1000 || sc.deaths - sc.kills >= 2 ? 'losing' : 'neutral';
+  const defFactor = laneState === 'winning' ? 0.85 : 1;
+  if (laneState === 'winning') {
+    for (const [id, c] of cands) if (c.tag === 'core') cands.set(id, { ...c, score: c.score + 6, reason: `${c.reason} · rota ganha: acelere o dano` });
+  }
+  const legendaries = owned.filter((id) => ((dd.item(id) || {}).gold || {}).total >= 2200).length;
+  const opp = t.find((x) => x.lane);
+  if (laneState === 'losing' && legendaries === 0 && owned.length >= 1) {
+    const kind = opp ? (opp.d.ad >= 0.6 ? 'ad' : opp.d.ap >= 0.6 ? 'ap' : 'mixed') : adShare >= apShare ? 'ad' : 'ap';
+    const id = firstAvailable(reactive.defComponent[kind], dd, ownedSet);
+    const diffTxt = laneDiff < 0 ? ` (${(laneDiff / 1000).toFixed(1)}k)` : '';
+    if (id) add(id, 74, `Perdendo a rota${diffTxt}${opp ? ` para ${opp.e.champion}` : ''}: componente defensivo antes de fechar o 1º item`, 'defensive');
+  }
+
+  // Anti-cura: curandeiros nativos ou 2+ inimigos com roubo de vida. Começa pelo componente de 800 g.
   const healers = t.filter((x) => flags.healers.includes(x.e.championId));
-  if (healers.length) {
-    const hw = healers.reduce((s, x) => s + x.w, 0);
-    react('antiheal', Math.min(92, 62 + hw * 12), `Anti-cura contra ${who(healers, (x) => x.w)}`);
+  const lifesteal = t.filter((x) => !flags.healers.includes(x.e.championId) && (x.e.items || []).some((i) => (i.tags || []).some((tg) => tg === 'LifeSteal' || tg === 'SpellVamp')));
+  if (healers.length || lifesteal.length >= 2) {
+    const all = [...healers, ...(lifesteal.length >= 2 ? lifesteal : [])];
+    const hw = all.reduce((s, x) => s + x.w, 0);
+    react('antiheal', Math.min(92, 62 + hw * 12), `Anti-cura contra ${who(all, (x) => x.w)} · componente de 800 g já resolve; feche depois`);
+  }
+
+  // Burst AP explosivo vivo (Veigar, Syndra, Fizz, LeBlanc…): Zhonya / Malmortius / Bordo da Noite.
+  const bursts = t.filter((x) => (flags.burst || []).includes(x.e.championId) && (x.fed || x.lane || x.w >= 1.15));
+  if (bursts.length && me.items.length >= 2) {
+    react('antiburst', 60 + Math.min(25, bursts.reduce((s, x) => s + x.w, 0) * 10), `Cancela o combo de ${who(bursts, (x) => x.w)}`);
   }
 
   // Um inimigo fed (ou o oponente de rota ganhando) puxa a defesa contra o dano dele, mesmo se o time for misto.
@@ -135,15 +188,19 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const carryAd = biggest && (biggest.fed || biggest.lane) && biggest.d.ad >= 0.7 ? biggest : null;
   const carryBoost = (c) => (c ? Math.min(24, (c.w - 1) * 30 + (c.lane ? 6 : 0)) : 0);
 
-  if (apShare >= 0.55 || (carryAp && carryAp.fed)) {
+  const adCount = t.filter((x) => x.d.ad >= 0.6).length;
+  const apCount = t.filter((x) => x.d.ap >= 0.6).length;
+  const monoAD = adCount >= 4 || (t.length >= 4 && apCount === 0);
+  const monoAP = apCount >= 4;
+  if (apShare >= 0.55 || monoAP || (carryAp && carryAp.fed)) {
     const foco = who(t, (x) => x.w * x.d.ap);
-    react('mr', 52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp),
-      carryAp && carryAp.fed ? `Resistência mágica: ${foco} está fed` : `Resistência mágica: dano inimigo mais AP · foco: ${foco}`);
+    react('mr', (52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp) + (monoAP ? 14 : 0)) * defFactor,
+      carryAp && carryAp.fed ? `Resistência mágica: ${foco} está fed` : monoAP ? `Time inimigo com ${apCount} campeões AP: RM é prioridade` : `Resistência mágica: dano inimigo mais AP · foco: ${foco}`);
   }
-  if (adShare >= 0.55 || (carryAd && carryAd.fed)) {
+  if (adShare >= 0.55 || monoAD || (carryAd && carryAd.fed)) {
     const foco = who(t, (x) => x.w * x.d.ad);
-    react('armor', 52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd),
-      carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : `Armadura: dano inimigo mais AD · foco: ${foco}`);
+    react('armor', (52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd) + (monoAD ? 14 : 0)) * defFactor,
+      carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : monoAD ? `Time inimigo quase todo AD (${adCount}): armadura é prioridade` : `Armadura: dano inimigo mais AD · foco: ${foco}`);
   }
   if (!hasBoots && owned.length >= 1) {
     const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName });
@@ -151,8 +208,10 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   }
 
   const tanks = enemies.filter((e) => e.tags[0] === 'Tank' || e.items.filter((i) => i.tags.includes('Armor') || i.tags.includes('SpellBlock')).length >= 2);
-  if (tanks.length >= 2 && me.items.length >= 3) {
-    react('pen', 54 + tanks.length * 5, `Penetração contra ${tanks.slice(0, 2).map((e) => e.champion).join(', ')}`);
+  if (tanks.length >= 2 && me.items.length >= 2) {
+    const names = tanks.slice(0, 2).map((e) => e.champion).join(', ');
+    react('antitank', 58 + tanks.length * 5, `Dano por % de vida contra ${names}`);
+    if (me.items.length >= 3) react('pen', 54 + tanks.length * 5, `Penetração contra ${names}`);
   }
 
   // botas: se já tem botas, descarta sugestão de botas de outra categoria repetida
@@ -184,8 +243,14 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const buyable = items.filter((i) => i.canBuy && i.cost >= 900).sort((a, b) => b.score - a.score)[0];
   if (buyable && me.gold >= 1300) {
     recall = `Você tem ${me.gold} g: volte e feche ${buyable.name}.`;
-  } else if (me.gold >= 2500) {
-    recall = `${me.gold} g parados: vale voltar à base.`;
+  } else if (me.gold >= 1300 && items[0]) {
+    // >= 1300 g: o componente épico mais caro que cabe no bolso, rumo ao item principal
+    const comp = bestComponent(dd, items[0].id, owned, me.gold);
+    recall = comp
+      ? `Você tem ${me.gold} g: volte e compre ${comp.name} (${comp.cost} g) rumo a ${items[0].name}.`
+      : `${me.gold} g parados: vale voltar à base.`;
+  } else if (me.gold >= 800 && !hasBoots && state.gameTime < 900) {
+    recall = `${me.gold} g: bota básica + componentes menores se for voltar.`;
   }
 
   const notes = [];

@@ -314,9 +314,16 @@ function champById(id) {
 }
 
 /** Oponente de rota já revelado no champ select (ou null). */
+let matchupPick = null; // { session, id } oponente escolhido à mão no guia (quando a rota inimiga não aparece)
 function laneEnemy() {
+  const enemies = (lcuState.enemies || []).filter((x) => x.champion);
+  if (matchupPick && matchupPick.session === lcuState.sessionId) {
+    if (matchupPick.id === 'none') return null;
+    const picked = enemies.find((x) => x.champion.id === matchupPick.id);
+    if (picked) return picked.champion;
+  }
   const role = lastRole || lcuState.myPosition;
-  const e = (lcuState.enemies || []).find((x) => x.champion && x.position === role);
+  const e = enemies.find((x) => x.position === role);
   return e ? e.champion : null;
 }
 
@@ -413,7 +420,11 @@ async function guideFor(championId) {
   }));
   const fromRole = remote.getBuild(champ, role) && remote.getBuild(champ, role).fromRole;
   const roleNote = fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;
-  return { ...variants[0].guide, variants, roleNote };
+  const opp = laneEnemy();
+  const opponents = (lcuState.enemies || []).filter((x) => x.champion).map((x) => ({ id: x.champion.id, name: x.champion.name }));
+  const mode = matchupPick && matchupPick.session === lcuState.sessionId ? matchupPick.id : 'auto';
+  const pending = opp && !remote.getMatchup(champ, opp, role) ? `Buscando o matchup contra ${opp.name}…` : null;
+  return { ...variants[0].guide, variants, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending };
 }
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
@@ -458,10 +469,19 @@ function registerIpc() {
   ipcMain.handle('guide:get', (_e, championId) => {
     const champ = champById(championId);
     if (champ) {
-      remote.ensureBuild(champ, lastRole || lcuState.myPosition, () =>
-        send('guide-updated', { championId: String(championId) }), 20);
+      const role = lastRole || lcuState.myPosition;
+      const notify = () => send('guide-updated', { championId: String(championId) });
+      remote.ensureBuild(champ, role, notify, 20);
+      const opp = laneEnemy();
+      if (opp) remote.ensureMatchup(champ, opp, role, notify);
     }
     return guideFor(championId);
+  });
+
+  // Escolha manual do oponente do matchup ('auto' volta à detecção pela rota, 'none' = só a build geral).
+  ipcMain.handle('matchup:set', (_e, id) => {
+    matchupPick = id && id !== 'auto' ? { session: lcuState.sessionId, id: String(id) } : null;
+    return true;
   });
 
   ipcMain.handle('import:build', (_e, { championId, what, variant }) => importBuild(championId, what, Number(variant) || 0));

@@ -137,15 +137,28 @@ function allyDamage(allies, flags) {
 }
 
 /** Quanto o campeão aproxima o time de um dano equilibrado AD/AP. */
-function compSignal(champ, team, flags) {
-  if (team.n < 2) return null;
+function compSignal(champ, team, flags, allies = []) {
+  const picked = allies.filter((a) => a.champion);
+  const engager = picked.find((a) => (flags.engage || []).includes(a.champion.id));
+  if (team.n < 2 && !engager) return null;
   const c = damageProfile({ championId: champ.id, tags: champ.tags || [] }, flags);
-  const adShareNow = team.ad / team.n;
-  const adShareWith = (team.ad + c.ad) / (team.n + 1);
-  const value = 1 - Math.min(1, Math.abs(adShareWith - 0.5) * 2);
   const reasons = [];
-  if (adShareNow >= 0.65 && c.ap >= 0.5) reasons.push('Equilibra o dano (time muito AD)');
-  else if (adShareNow <= 0.35 && c.ad >= 0.5) reasons.push('Equilibra o dano (time muito AP)');
+  let value = 0.5;
+  if (team.n >= 2) {
+    const adShareNow = team.ad / team.n;
+    const adShareWith = (team.ad + c.ad) / (team.n + 1);
+    value = 1 - Math.min(1, Math.abs(adShareWith - 0.5) * 2);
+    // 3 fontes de dano físico: força dano mágico (o inimigo empilharia armadura)
+    if (team.ad >= 2.6 && c.ap >= 0.5) { value = 1; reasons.push('Time já tem 3 fontes AD: dano mágico'); }
+    else if (team.ad >= 2.6 && c.ad >= 0.6) value *= 0.5;
+    else if (adShareNow >= 0.65 && c.ap >= 0.5) reasons.push('Equilibra o dano (time muito AD)');
+    else if (adShareNow <= 0.35 && c.ad >= 0.5) reasons.push('Equilibra o dano (time muito AP)');
+  }
+  // engage no time -> campeões de follow-up / dano em área
+  if (engager && (flags.followUp || []).includes(champ.id)) {
+    value = Math.min(1, value + 0.35);
+    reasons.push(`Follow-up para o engage de ${engager.champion.name}`);
+  }
   return { value, reasons };
 }
 
@@ -227,7 +240,7 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
       personal: personalSignal(champ, role, profile, now),
       meta: metaSignal(champ, role, metaData),
       counter: counterSignal(champ, enemies, role, metaData),
-      comp: compSignal(champ, team, flags),
+      comp: compSignal(champ, team, flags, champSelect.allies),
       synergy: synergySignal(champ, champSelect.allies, metaData),
     };
     let num = 0;

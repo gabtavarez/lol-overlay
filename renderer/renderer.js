@@ -240,6 +240,21 @@ function drawGuide() {
       return b;
     })));
   }
+  if (root.opponents && root.opponents.length) {
+    const sel = h('select', { class: 'mu-select' },
+      h('option', { value: 'auto', text: root.opponent && root.matchupMode === 'auto' ? `Automático (${root.opponent})` : 'Automático (oponente da rota)' }),
+      ...root.opponents.map((o) => h('option', { value: o.id, text: o.name })),
+      h('option', { value: 'none', text: 'Nenhum: só a build geral' }));
+    sel.value = root.matchupMode || 'auto';
+    sel.addEventListener('change', async () => {
+      await window.overlay.setMatchup(sel.value);
+      variant = sel.value === 'none' ? 0 : 1;
+      guide = await window.overlay.getGuide(shownId);
+      drawGuide();
+    });
+    parts.push(h('div', { class: 'mu-row' }, svgIcon('sword', 'ico'), h('span', { text: 'Matchup contra' }), sel,
+      root.pending ? h('span', { class: 'muted', text: root.pending }) : null));
+  }
   if (root.roleNote) parts.push(h('p', { class: 'muted', text: root.roleNote }));
   if (g.matchup) {
     const vs = g.matchup.advantage ? ` · vantagem de rota: ${g.matchup.advantage}` : '';

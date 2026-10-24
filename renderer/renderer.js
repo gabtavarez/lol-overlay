@@ -650,7 +650,9 @@ function fillOverlayList() {
     cb.addEventListener('change', async () => { settings = await window.overlay.setSettings({ overlay: { enabled: { [key]: cb.checked } } }); });
     const reset = h('button', { class: 'link', type: 'button', text: 'posição padrão' });
     reset.addEventListener('click', async () => { settings = await window.overlay.setSettings({ overlay: { panels: { [key]: null } } }); els.setMsg.textContent = `${name}: posição restaurada.`; });
-    return h('label', { class: 'ov-item' }, cb, h('div', {}, h('div', { class: 'strong', text: name }), h('div', { class: 'muted small', text: desc })), reset);
+    const prev = h('iframe', { class: 'ov-prev', src: `overlay.html?preview=${key}&v=${encodeURIComponent(version || '')}`, tabindex: '-1', title: name });
+    return h('div', { class: 'ov-item' }, h('div', { class: 'ov-prev-wrap' }, prev),
+      h('label', { class: 'ov-text' }, cb, h('div', {}, h('div', { class: 'strong', text: name }), h('div', { class: 'muted small', text: desc }))), reset);
   }));
 }
 

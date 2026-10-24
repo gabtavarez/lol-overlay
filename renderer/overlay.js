@@ -1,4 +1,12 @@
 const $ = (id) => document.getElementById(id);
+
+// ?preview=<painel>&v=<patch>: mostra só aquele painel com dados de exemplo (usado nas Configurações para explicar cada overlay).
+const PARAMS = new URLSearchParams(location.search);
+const PREVIEW_ONLY = PARAMS.get('preview');
+if (!window.overlay) {
+  const noop = () => {};
+  window.overlay = new Proxy({}, { get: (_t, k) => (k === 'getSettings' ? async () => ({}) : noop) });
+}
 const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox'), timers: $('timersbox'), kit: $('kitbox'), goals: $('goalsbox') };
 let enabled = {};
 const extras = { recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') };
@@ -10,14 +18,38 @@ let previewing = false;
 let panels = { buys: null, info: null, gold: null, timers: null, kit: null, goals: null };
 let dragging = false;
 
-const SAMPLE = { items: [
-  { id: 3102, name: 'Item sugerido', reason: 'Motivo da compra aparece aqui', score: 90, missing: 500, canBuy: false },
-  { id: 3165, name: 'Item sugerido', reason: 'Contra o campeão inimigo', score: 70, missing: 0, canBuy: true },
-  { id: 3146, name: 'Item sugerido', reason: 'Build do meta', score: 60, missing: 900, canBuy: false },
-] };
-
-const SAMPLE_GOLD = { team: { ally: 21400, enemy: 19900, diff: 1500 }, lanes: ['Topo', 'Selva', 'Meio', 'Atirador', 'Suporte'].map((role, i) => ({
-  role, ally: { name: 'Aliado', gold: 4000 + i * 300 }, enemy: { name: 'Inimigo', gold: 4200 - i * 100 }, diff: 4000 + i * 300 - (4200 - i * 100) })) };
+// Partida de exemplo (modo mover/testar e as prévias das Configurações): Ahri x Zed aos 14 min.
+function sampleState(version) {
+  const v = version || PARAMS.get('v') || null;
+  const enemy = (championId, champion, spells, k, d, a, level) => ({ championId, champion, riotId: `${champion}#BR1`, spells, level, scores: { kills: k, deaths: d, assists: a }, items: [] });
+  const enemies = [enemy('Darius', 'Darius', ['SummonerFlash', 'SummonerTeleport'], 2, 1, 0, 11), enemy('LeeSin', 'Lee Sin', ['SummonerFlash', 'SummonerSmite'], 3, 2, 4, 10),
+    enemy('Zed', 'Zed', ['SummonerFlash', 'SummonerDot'], 4, 1, 1, 11), enemy('Jinx', 'Jinx', ['SummonerFlash', 'SummonerHeal'], 1, 2, 2, 9), enemy('Thresh', 'Thresh', ['SummonerFlash', 'SummonerExhaust'], 0, 2, 5, 8)];
+  const allies = ['Garen', 'Vi', 'Ahri', 'Caitlyn', 'Lux'];
+  const golds = [[4800, 5100], [4300, 4600], [5200, 6100], [4500, 4100], [2900, 2700]];
+  return {
+    phase: 'ingame', gameTime: 845, gameMode: 'CLASSIC', assets: { version: v },
+    me: { championId: 'Ahri', champion: 'Ahri', gold: 1240, level: 10 }, enemies, laneOpponent: enemies[2], spellCd: { SummonerFlash: 300 },
+    advice: {
+      buys: {
+        items: [
+          { id: 3157, name: 'Ampulheta de Zhonya', reason: 'Zhonya na marca do ult de Zed: anula o combo', score: 88, missing: 1250, needGold: 10, canBuy: false, parts: ['Tomo Amplificador'] },
+          { id: 3020, name: 'Sapatos do Feiticeiro', reason: 'Rota sob controle: bota ofensiva do meta · hora de fechar a bota', score: 76, missing: 800, needGold: 0, canBuy: true, parts: ['Botas'] },
+          { id: 4645, name: 'Chama Sombria', reason: 'Build do meta · 41% dos jogadores', score: 70, missing: 2900, needGold: 1660, canBuy: false },
+        ],
+        recall: 'Você tem 1240 g: volte e compre Sapatos do Feiticeiro.',
+        matchup: { vs: 'Zed', tip: 'Guarde o E para quando ele usar a sombra (W).' }, notes: [],
+      },
+      alerts: [{ text: 'Darius fechou Armadura de Espinhos: corta a sua cura' }],
+      gold: { team: { diff: -1100 }, lanes: ['Topo', 'Selva', 'Meio', 'Atirador', 'Suporte'].map((role, i) => ({
+        role, ally: { champId: allies[i], gold: golds[i][0], me: i === 2 }, enemy: { champId: enemies[i].championId, gold: golds[i][1] }, diff: golds[i][0] - golds[i][1] })) },
+      timers: [{ key: 'dragon', label: 'Dragão', in: 75 }, { key: 'herald', label: 'Arauto', in: 55 }, { key: 'baron', label: 'Barão', in: 355 }],
+      phases: [{ label: 'Early', verdict: 'theirs', text: 'Zed mais forte' }, { label: 'Mid', verdict: 'even', text: 'Equilibrado' }, { label: 'Late', verdict: 'mine', text: 'Você mais forte' }],
+      scout: [{ who: 'Rota', champion: 'Zed', riotId: 'Zed#BR1', profile: { tier: 'EMERALD', division: 2, lp: 40, wins: 120, losses: 98, hot: true, champs: [] }, onChamp: { games: 80, wins: 46 } }],
+      oppKit: { champion: 'Zed', source: 'Meraki', abilities: [{ key: 'Q', name: 'Shuriken Laminar', cd: '6 s' }, { key: 'W', name: 'Sombra Viva', cd: '20→15 s' }, { key: 'E', name: 'Corte Sombrio', cd: '5→3 s' }, { key: 'R', name: 'Marca da Morte', cd: '120→80 s' }], ult: { rank: 2, cd: 100 } },
+      goals: { aimTier: 'DIAMOND', cs: { now: 6.8, target: 7.5, diff: -10, ok: false }, vision: { now: 0.62, target: 0.6, ok: true } },
+    },
+  };
+}
 
 const fmtK = (g) => (g >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(g));
 const signed = (d) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmtK(Math.abs(d))}`;
@@ -157,14 +189,21 @@ function draw() {
     renderKit(advice.oppKit);
     renderGoals(advice.goals);
   } else if (sample) {
-    $('gold').textContent = '';
-    renderBuyList($('list'), SAMPLE, null);
-    renderGold(SAMPLE_GOLD, null);
-    renderInfo({ phases: [{ label: 'Early', verdict: 'theirs', text: 'Oponente mais forte' }, { label: 'Mid', verdict: 'even', text: 'Equilibrado' }, { label: 'Late', verdict: 'mine', text: 'Você mais forte' }] }, null);
-    renderTimers(null);
-    renderKit({ champion: 'Oponente', source: 'Meraki', abilities: [{ key: 'Q', name: 'Habilidade Q', cd: '8→6 s' }, { key: 'W', name: 'Habilidade W', cd: '18→14 s' }, { key: 'E', name: 'Habilidade E', cd: '14→10 s' }, { key: 'R', name: 'Ultimate', cd: '120→80 s' }], ult: { rank: 1, cd: 120 } });
-    renderGoals({ aimTier: 'PLATINUM', cs: { now: 6.1, target: 6.5, diff: -6, ok: false }, vision: { now: 0.7, target: 0.7, ok: true } });
-    renderExtras(extras, { buys: { recall: 'Aviso de recall aparece aqui', items: [1], matchup: { vs: 'Campeão', tip: 'Dica do matchup aparece aqui.' } }, alerts: [{ text: 'Alertas de itens inimigos' }] });
+    const st = sampleState(lastState && lastState.assets && lastState.assets.version);
+    const v = st.assets.version;
+    $('gold').textContent = `${st.me.gold} g`;
+    renderBuyList($('list'), st.advice.buys, v);
+    renderExtras(extras, st.advice);
+    renderGold(st.advice.gold, v);
+    renderInfo(st.advice, st);
+    if (!marks.size) marks.set('Zed#BR1:SummonerFlash', st.gameTime + 212); // exemplo: Flash do Zed marcado
+    renderTimers(st);
+    renderKit(st.advice.oppKit);
+    renderGoals(st.advice.goals);
+  }
+  if (PREVIEW_ONLY) {
+    for (const [name, el] of Object.entries(boxes)) el.hidden = name !== PREVIEW_ONLY;
+    $('edit-bar').hidden = true;
   }
 }
 
@@ -232,8 +271,9 @@ for (const [name, el] of Object.entries(boxes)) {
 
 $('move-done').addEventListener('click', () => window.overlay.toggleMoveMode());
 
-window.overlay.onState((state) => { lastState = state; draw(); });
+window.overlay.onState((state) => { if (PREVIEW_ONLY) return; lastState = state; draw(); });
 window.overlay.onSettings((s) => {
+  if (PREVIEW_ONLY) return;
   enabled = (s.overlay && s.overlay.enabled) || {};
   if (!dragging && s.overlay && s.overlay.panels) { panels = { ...s.overlay.panels }; Object.keys(boxes).forEach(apply); }
   draw();
@@ -241,6 +281,7 @@ window.overlay.onSettings((s) => {
 window.overlay.onMoveMode((on) => { moving = on; draw(); });
 window.overlay.onPreview((on) => { previewing = on; draw(); });
 window.overlay.getSettings().then((s) => {
+  if (PREVIEW_ONLY) return;
   if (s && s.overlay && s.overlay.panels) panels = { ...panels, ...s.overlay.panels };
   enabled = (s && s.overlay && s.overlay.enabled) || {};
   Object.keys(boxes).forEach(apply);
@@ -248,3 +289,11 @@ window.overlay.getSettings().then((s) => {
 window.addEventListener('resize', () => Object.keys(boxes).forEach(apply));
 Object.keys(boxes).forEach(apply);
 window.overlay.ready();
+
+if (PREVIEW_ONLY) {
+  previewing = true;
+  panels[PREVIEW_ONLY] = { x: 6, y: 6, scale: 1 };
+  Object.keys(boxes).forEach(apply);
+  document.body.classList.add('preview');
+  draw();
+}

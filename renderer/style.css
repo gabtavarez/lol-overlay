@@ -333,3 +333,10 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .elo-wide { grid-column: span 5; border-right: 0; }
 .elo-wide:last-child { border-bottom: 0; }
 @media (max-width: 1100px) { .elo { grid-template-columns: 1fr 1fr; } .elo-wide { grid-column: span 2; } }
+
+.ov-list { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px; }
+.ov-item { display: flex; flex-direction: column; gap: 10px; padding: 12px; cursor: default; }
+.ov-prev-wrap { height: 250px; overflow: hidden; border-radius: 8px; background: repeating-linear-gradient(135deg, #15161b 0 12px, #121317 12px 24px); border: 1px solid var(--line); }
+.ov-prev { width: 360px; height: 330px; border: 0; transform: scale(.82); transform-origin: top left; pointer-events: none; background: transparent; }
+.ov-text { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; cursor: pointer; }
+.ov-item .link { align-self: flex-start; }

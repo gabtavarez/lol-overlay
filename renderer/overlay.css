@@ -79,3 +79,4 @@ button { font: inherit; color: inherit; }
 .g-goal { display: grid; grid-template-columns: 70px 44px 1fr; gap: 8px; align-items: center; padding: 5px 0; font-size: 12px; }
 .g-goal b { font-size: 14px; font-variant-numeric: tabular-nums; }
 .up { color: var(--good); } .down { color: var(--bad); }
+body.preview .box { box-shadow: none; } body.preview .grip { display: none; } body.preview .box header { cursor: default; }

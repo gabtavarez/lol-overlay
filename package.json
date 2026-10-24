@@ -1,6 +1,6 @@
 {
   "name": "lol-overlay",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Overlay de itemização ao vivo para League of Legends",
   "author": "Gabriel",
   "main": "src/main.js",
@@ -78,7 +78,7 @@
         "provider": "github",
         "owner": "gabtavarez",
         "repo": "lol-overlay",
-        "releaseType": "release"
+        "releaseType": "draft"
       }
     ]
   },

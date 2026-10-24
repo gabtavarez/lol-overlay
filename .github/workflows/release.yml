@@ -1,5 +1,5 @@
 name: Release
-# Cada push na main gera (ou completa) o Release da versão do package.json com o instalador.
+# Cada push na main gera o Release da versão do package.json (se ainda não existir) com o instalador.
 on:
   push:
     branches: [main]
@@ -9,12 +9,33 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      - name: Versão
+        id: v
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "tag=v$V" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" --json isDraft -q .isDraft 2>/dev/null | grep -q false; then
+            echo "Release v$V já publicado: suba a versão no package.json para gerar outro."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/setup-node@v4
+        if: steps.v.outputs.skip != '1'
         with: { node-version: 22 }
-      - run: npm ci --no-audit --no-fund
-      - run: npm test
-      - run: npx electron-builder --win nsis --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: steps.v.outputs.skip != '1'
+        run: npm ci --no-audit --no-fund && npm test
+      - name: Cria o release em rascunho
+        if: steps.v.outputs.skip != '1'
+        run: gh release view "${{ steps.v.outputs.tag }}" >/dev/null 2>&1 || gh release create "${{ steps.v.outputs.tag }}" --draft --title "${{ steps.v.outputs.tag }}" --target "$GITHUB_SHA" --notes "LoL Overlay ${{ steps.v.outputs.tag }}"
+      - name: Builda e envia o instalador
+        if: steps.v.outputs.skip != '1'
+        run: npx electron-builder --win nsis --publish always
+      - name: Publica
+        if: steps.v.outputs.skip != '1'
+        run: gh release edit "${{ steps.v.outputs.tag }}" --draft=false --latest

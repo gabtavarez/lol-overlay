@@ -314,7 +314,7 @@ test('engine LCU: sem champ select, cliente fechado e token inválido', async ()
     const states = [];
     const engine = createLcuEngine({ credsProvider: async () => creds, getDd: () => null, getSettings: () => DEFAULTS, getMeta: () => EMPTY_META, onState: (s) => states.push(s) });
     await engine.tick();
-    assert.deepEqual(states.at(-1), { phase: 'idle', client: 'open' });
+    assert.deepEqual({ ...states.at(-1), home: undefined }, { phase: 'idle', client: 'open', home: undefined });
 
     const bad = createLcuEngine({ credsProvider: async () => ({ ...creds, token: 'errado' }), getDd: () => null, getSettings: () => DEFAULTS, getMeta: () => EMPTY_META, onState: (s) => states.push(s) });
     await bad.tick();

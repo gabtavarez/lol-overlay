@@ -288,11 +288,65 @@ function render(state) {
     els.waitingText.textContent = `Erro ao processar a partida: ${state.reason}`;
     els.dot.className = 'dot bad';
   } else {
-    els.waitingText.textContent = state.client === 'open' ? 'Cliente conectado. Aguardando champ select…' : 'Abra o cliente do LoL…';
-    els.dot.className = 'dot warn';
+    els.waitingText.textContent = state.client === 'open' ? 'Pronto para a próxima partida' : 'Abra o cliente do LoL';
+    els.dot.className = state.client === 'open' ? 'dot ok' : 'dot warn';
   }
+  renderHome(state);
   return showView('waiting');
 }
+
+/* ---------- tela inicial ---------- */
+
+const fmtPts = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} mi` : n >= 1e3 ? `${Math.round(n / 1e3)} mil` : String(n));
+let homeKey = '';
+
+function renderHome(state) {
+  const home = state.home || {};
+  const v = home.version || version;
+  const chips = [
+    [state.client === 'open' ? 'Cliente conectado' : 'Cliente fechado', state.client === 'open' ? 'ok' : 'warn'],
+    [v ? `Patch ${v.split('.').slice(0, 2).join('.')}` : 'Carregando dados…', ''],
+    [`Versão ${appVersion || '…'}`, ''],
+  ];
+  $('home-chips').replaceChildren(...chips.map(([t, c]) => h('span', { class: `chip ${c}`, text: t })));
+
+  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, v]);
+  if (key === homeKey) return; // evita redesenhar a cada 1,5 s
+  homeKey = key;
+
+  const s = home.summoner;
+  $('home-hello').textContent = s && s.gameName ? `Olá, ${s.gameName}` : 'Bem-vindo ao LoL Overlay';
+  const box = $('home-summoner');
+  box.hidden = !s;
+  if (s) {
+    box.replaceChildren(
+      v && s.iconId ? h('img', { class: 'sum-icon', src: `${DD}/cdn/${v}/img/profileicon/${s.iconId}.png`, alt: '' }) : h('div', { class: 'sum-icon' }),
+      h('div', {}, h('div', { class: 'sum-name', text: `${s.gameName}${s.tagLine ? ` #${s.tagLine}` : ''}` }),
+        h('div', { class: 'muted', text: s.level ? `Nível ${s.level}` : '' })));
+  }
+
+  const champs = home.top || [];
+  $('home-champs').replaceChildren(...(champs.length
+    ? champs.map((c) => h('div', { class: 'hc' },
+      v ? h('img', { src: champIcon(v, c.id), alt: c.name }) : h('div'),
+      h('div', {}, h('div', { class: 'hc-name', text: c.name }), h('div', { class: 'muted', text: `M${c.level} · ${fmtPts(c.points)} pts` }))))
+    : [h('p', { class: 'muted', text: state.client === 'open' ? (home.loading ? 'Carregando sua maestria…' : 'Sem dados de maestria.') : 'Abra o cliente do LoL para ver sua maestria.' })]));
+
+  const roles = home.roles || [];
+  const max = Math.max(1, ...roles.map((r) => r.games));
+  $('home-roles').replaceChildren(...(roles.length
+    ? [...roles.map((r) => h('div', { class: 'role-row' },
+      h('span', { class: 'role-name', text: ROLE_LABEL[r.role] || r.role }),
+      h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((r.games / max) * 100)}%` })),
+      h('span', { class: 'muted', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}% vit.` }))),
+      h('p', { class: 'muted', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
+    : [h('p', { class: 'muted', text: 'Calculado do seu histórico recente quando o cliente estiver aberto.' })]));
+}
+
+let appVersion = '';
+window.overlay.getDiagnostics().then((d) => { appVersion = d.version; homeKey = ''; if (lastState) render(lastState); }).catch(() => {});
+$('home-test').addEventListener('click', () => window.overlay.previewOverlay());
+$('home-settings').addEventListener('click', () => els.gear.click());
 
 /* ---------- importar ---------- */
 

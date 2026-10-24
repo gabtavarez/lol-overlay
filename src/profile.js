@@ -85,6 +85,8 @@ async function loadProfile(creds) {
       puuid: summoner.puuid,
       gameName: summoner.gameName || summoner.displayName || '',
       tagLine: summoner.tagLine || '',
+      level: summoner.summonerLevel || 0,
+      iconId: summoner.profileIconId || 0,
     },
     mastery,
     roleStats,

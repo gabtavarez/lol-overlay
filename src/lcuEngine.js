@@ -15,6 +15,29 @@ const REDISCOVER_MS = 5000;
  * nomes que o próprio cliente permite ver, carrega o perfil (maestria e
  * histórico) em segundo plano e entrega o estado com as sugestões.
  */
+/** Resumo para a tela inicial: invocador, campeões com mais maestria e rota mais jogada. */
+function homeSummary(profile, dd) {
+  if (!profile) return { loading: true, version: dd ? dd.version : null };
+  const top = [...profile.mastery.entries()]
+    .sort((a, b) => b[1].points - a[1].points)
+    .slice(0, 6)
+    .map(([key, m]) => {
+      const c = dd && dd.championByKey(key);
+      return c ? { id: c.id, name: c.name, points: m.points, level: m.level } : null;
+    })
+    .filter(Boolean);
+  const roles = Object.entries(profile.roleStats || {})
+    .map(([role, champs]) => {
+      const rows = Object.values(champs);
+      const games = rows.reduce((s, r) => s + r.games, 0);
+      const wins = rows.reduce((s, r) => s + r.wins, 0);
+      return { role, games, winRate: games ? wins / games : 0 };
+    })
+    .filter((r) => r.games)
+    .sort((a, b) => b.games - a.games);
+  return { summoner: profile.summoner, top, roles, gamesAnalyzed: profile.gamesAnalyzed, version: dd ? dd.version : null };
+}
+
 function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, getBuild = () => null, prefetch = () => {}, intervalMs = 1500 }) {
   let creds = null;
   let lastDiscovery = 0;
@@ -88,7 +111,7 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
     if (res.status === 404 || !res.body) {
       sessionId = null;
       if (getSettings().autoAccept) await autoAccept(creds, acceptState).catch(() => {});
-      return { phase: 'idle', client: 'open' };
+      return { phase: 'idle', client: 'open', home: homeSummary(ensureProfile(), getDd()) };
     }
     if (res.status !== 200) throw new Error(`cliente respondeu HTTP ${res.status}`);
 
@@ -169,4 +192,4 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
   };
 }
 
-module.exports = { createLcuEngine };
+module.exports = { createLcuEngine, homeSummary };

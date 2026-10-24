@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; img-src https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
+        content="default-src 'none'; img-src 'self' https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
   <title>LoL Overlay</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header id="bar">
+    <img src="logo.png" class="bar-logo" alt="">
     <span id="dot" class="dot"></span>
     <strong>LoL Overlay</strong>
     <span id="status" class="muted"></span>
@@ -18,10 +19,41 @@
     <button id="gear" class="icon-btn" title="Configurações">⚙</button>
   </header>
 
-  <div id="waiting" class="center">
-    <h1 id="waiting-text">Aguardando…</h1>
-    <p class="muted">Abra o cliente do LoL. No champ select aparecem as recomendações; em partida, segure <b>TAB</b> para ver as compras sugeridas.</p>
-  </div>
+  <main id="waiting" class="home">
+    <section class="hero">
+      <img src="logo.png" class="hero-logo" alt="">
+      <div class="hero-text">
+        <div id="home-hello" class="hello">Bem-vindo ao LoL Overlay</div>
+        <h1 id="waiting-text">Aguardando…</h1>
+        <div id="home-chips" class="chips"></div>
+      </div>
+      <div id="home-summoner" class="summoner" hidden></div>
+    </section>
+
+    <div class="home-grid">
+      <section class="panel">
+        <h2>Seus campeões</h2>
+        <div id="home-champs" class="home-champs"><p class="muted">Abra o cliente do LoL para ver sua maestria.</p></div>
+      </section>
+      <section class="panel">
+        <h2>Suas rotas</h2>
+        <div id="home-roles"><p class="muted">Calculado do seu histórico recente.</p></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>Como funciona</h2>
+      <div class="steps">
+        <div class="step"><b>1 · Champ select</b><span>Sugestões de pick e ban, runas, feitiços e build para importar com um clique.</span></div>
+        <div class="step"><b>2 · Em partida</b><span>Segure <kbd>TAB</kbd> para ver as 3 próximas compras com o motivo de cada uma.</span></div>
+        <div class="step"><b>3 · Ajustar overlay</b><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> move e redimensiona; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> deixa sempre visível.</span></div>
+      </div>
+      <div class="row">
+        <button id="home-test" class="btn">Testar overlay</button>
+        <button id="home-settings" class="btn">Configurações</button>
+      </div>
+    </section>
+  </main>
 
   <!-- Champ select -->
   <main id="select" hidden>

@@ -8,6 +8,7 @@ function h(tag, props = {}, ...children) {
   for (const [k, v] of Object.entries(props)) {
     if (k === 'class') el.className = v;
     else if (k === 'text') el.textContent = v;
+    else if (k === 'style') el.style.cssText = v; // via CSSOM: permitido pelo CSP
     else el.setAttribute(k, v);
   }
   for (const c of children) if (c) el.append(c);

@@ -52,7 +52,10 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
         onStatus('OP.GG: dados atualizados', 'ok');
       } catch (err) {
         retryAfter.set(id, Date.now() + RETRY_MS);
-        onStatus(`OP.GG: ${err.message}${cache[bucket][key] ? ' (usando cache antigo)' : ''}`, 'warn');
+        // "Invalid position or champion" = o OP.GG não tem dados desse campeão nessa rota: não é erro do app.
+        if (!/invalid position|champion specified/i.test(err.message)) {
+          onStatus(`OP.GG: ${err.message}${cache[bucket][key] ? ' (usando cache antigo)' : ''}`, 'warn');
+        }
       } finally {
         inflight.delete(id);
         if (onDone) onDone();

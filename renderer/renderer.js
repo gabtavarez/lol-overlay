@@ -374,7 +374,7 @@ function renderGame(state) {
   const sc = adv.scout || [];
   $('scout').replaceChildren(...(sc.length ? sc.map((x) => {
     const p = x.profile;
-    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''} · ${p.lp} PDL` : p ? 'Sem elo solo' : 'Carregando…';
+    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''} · ${p.lp} PDL` : p ? 'Sem elo solo' : x.error ? `Sem dados: ${x.error}` : 'Carregando…';
     const wr = p && p.wins + p.losses ? `${Math.round((p.wins / (p.wins + p.losses)) * 100)}% em ${p.wins + p.losses} jogos` : '';
     const mains = p ? p.champs.slice(0, 3).map((c) => c.name).join(', ') : '';
     const on = x.onChamp ? `${x.onChamp.games} jogos de ${x.champion} (${Math.round((x.onChamp.wins / x.onChamp.games) * 100)}%)` : p ? `primeira vez de ${x.champion} na temporada?` : '';

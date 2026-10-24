@@ -52,7 +52,7 @@ function renderInfo(advice, state) {
   $('scout').hidden = !sc.length;
   $('scout').replaceChildren(...sc.map((x) => {
     const p = x.profile;
-    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''}` : p ? 'Sem elo' : '…';
+    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''}` : p ? 'Sem elo' : x.error || '…';
     const wr = p && p.wins + p.losses ? ` · ${Math.round((p.wins / (p.wins + p.losses)) * 100)}%` : '';
     const on = x.onChamp ? ` · ${x.onChamp.games} jogos de ${x.champion}` : p ? ` · novo de ${x.champion}?` : '';
     return h('div', { class: 'sc-row' }, h('b', { text: `${x.who}: ${x.champion}` }), h('span', { text: `${rank}${wr}${on}${p && p.hot ? ' · em sequência' : ''}` }));

@@ -116,6 +116,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       if (!name || !tag) return Promise.resolve();
       return refresh('scout', `${region}:${riotId.toLowerCase()}`, () => client.summoner(name, tag, region), onDone, 3600 * 1000);
     },
+    scoutError: (riotId, region) => failures.get(`scout:${region}:${String(riotId).toLowerCase()}`) || null,
     getScout: (riotId, region) => { const e = cache.scout[`${region}:${String(riotId).toLowerCase()}`]; return e ? e.data : null; },
     tierListError: () => failures.get('tierlist:all') || null,
     ensureTiers: (role, onDone) => (role ? refresh('tiers', role, () => client.laneMeta(role), onDone) : Promise.resolve()),

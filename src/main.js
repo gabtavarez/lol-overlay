@@ -3,7 +3,7 @@ const path = require('path');
 const { DataDragon } = require('./ddragon');
 const { createEngine } = require('./engine');
 const { createLcuEngine } = require('./lcuEngine');
-const { discoverCredentials } = require('./lcu');
+const { discoverCredentials, lcuGetJson } = require('./lcu');
 const { createSettingsStore } = require('./settings');
 const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
@@ -464,22 +464,58 @@ function currentRegion() {
 }
 
 /** Jogadores para o lane scouting: oponente de rota e o caçador inimigo (quem tem Golpear). */
+// A Live API pode esconder o Riot ID dos inimigos ("#"). Nesse caso pegamos pelo cliente (gameflow -> puuid -> Riot ID).
+const validRiotId = (id) => /^[^#]+#[^#]+$/.test(String(id || ''));
+const enemyIds = new Map(); // championId do DDragon -> 'Nome#TAG'
+let enemyIdsGame = null;
+let enemyIdsBusy = false;
+async function resolveEnemyIds(state) {
+  const creds = lcuEngine && lcuEngine.getCreds();
+  if (!creds || enemyIdsBusy || !dd) return;
+  const gameKey = state.enemies.map((e) => e.championId).join(',');
+  if (enemyIdsGame === gameKey) return;
+  enemyIdsBusy = true;
+  try {
+    const session = await lcuGetJson(creds, '/lol-gameflow/v1/session');
+    const gd = (session && session.gameData) || {};
+    for (const p of [...(gd.teamOne || []), ...(gd.teamTwo || [])]) {
+      const champ = dd.championByKey(p.championId);
+      if (!champ || !p.puuid) continue;
+      let id = p.gameName && p.tagLine ? `${p.gameName}#${p.tagLine}` : null;
+      if (!id) {
+        const s = await lcuGetJson(creds, `/lol-summoner/v2/summoners/puuid/${encodeURIComponent(p.puuid)}`).catch(() => null);
+        if (s && s.gameName && s.tagLine) id = `${s.gameName}#${s.tagLine}`;
+      }
+      if (id) enemyIds.set(champ.id, id);
+    }
+    enemyIdsGame = gameKey;
+    logger.log(`scouting: ${enemyIds.size} Riot IDs resolvidos pelo cliente`);
+  } catch (err) {
+    logger.log(`scouting: não consegui ler a sessão do cliente (${err.message})`);
+    enemyIdsGame = gameKey; // não fica tentando a cada tick
+  } finally {
+    enemyIdsBusy = false;
+  }
+}
+const riotIdOf = (p) => (validRiotId(p.riotId) ? p.riotId : enemyIds.get(p.championId) || null);
+
 function scoutTargets(state) {
   const out = [];
   if (state.laneOpponent) out.push({ who: 'Rota', p: state.laneOpponent });
   const jg = (state.enemies || []).find((e) => (e.spells || []).includes('SummonerSmite') && e !== state.laneOpponent);
   if (jg) out.push({ who: 'Selva', p: jg });
-  return out.filter((x) => x.p.riotId && x.p.riotId.includes('#'));
+  return out.map((x) => ({ ...x, riotId: riotIdOf(x.p) }));
 }
 
 /** Acrescenta ao estado da partida: lane scouting e fases (early/mid/late) do matchup. */
 function decorateLive(state) {
   if (state.phase !== 'ingame' || !state.advice) return state;
   const region = currentRegion();
-  state.advice.scout = scoutTargets(state).map(({ who, p }) => {
-    const prof = remote.getScout(p.riotId, region);
+  state.advice.scout = scoutTargets(state).map(({ who, p, riotId }) => {
+    const prof = riotId ? remote.getScout(riotId, region) : null;
     const onChamp = prof && prof.champs.find((c) => c.name.toLowerCase() === String(p.champion).toLowerCase());
-    return { who, champion: p.champion, championId: p.championId, riotId: p.riotId, profile: prof, onChamp: onChamp || null };
+    const error = !riotId ? (enemyIdsGame ? 'Nome oculto pela Riot nesta partida' : 'Buscando o nome no cliente…') : !prof ? remote.scoutError(riotId, region) : null;
+    return { who, champion: p.champion, championId: p.championId, riotId: riotId || 'nome oculto', profile: prof, onChamp: onChamp || null, error };
   });
   const meC = dd && dd.champions[state.me.championId];
   const opC = dd && state.laneOpponent && dd.champions[state.laneOpponent.championId];
@@ -489,7 +525,9 @@ function decorateLive(state) {
 
 function prefetchInGame(state, me, opp) {
   const region = currentRegion();
-  for (const t of scoutTargets(state)) remote.ensureScout(t.p.riotId, region, () => liveEngine.tick());
+  const targets = scoutTargets(state);
+  if (targets.some((t) => !t.riotId)) resolveEnemyIds(state).then(() => liveEngine.tick());
+  for (const t of targets) if (t.riotId) remote.ensureScout(t.riotId, region, () => liveEngine.tick());
   // a Live API muitas vezes não informa a rota: sem rota, o OP.GG escolhe a mais comum do campeão
   remote.ensureBuild(me, state.myRole, () => liveEngine.tick());
   if (opp) remote.ensureMatchup(me, opp, state.myRole, () => liveEngine.tick());

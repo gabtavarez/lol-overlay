@@ -30,6 +30,7 @@ let lcuEngine = null;
 let remote = null;
 let dd = null;
 let runeIndex = {};
+let runeStyles = [];
 let settings = null;
 let meta = { tiers: {}, counters: {} };
 let overlayAlways = false;
@@ -294,7 +295,10 @@ async function loadDataDragon() {
 async function loadRuneIndex(version) {
   try {
     const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/pt_BR/runesReforged.json`);
-    if (res.ok) runeIndex = indexRunes(await res.json());
+    if (res.ok) {
+      runeStyles = await res.json();
+      runeIndex = indexRunes(runeStyles);
+    }
   } catch {
     // sem ícones de runa: a UI mostra só os nomes
   }
@@ -316,12 +320,13 @@ function buildFor(champ, role) {
   return withMatchup(remote.getBuild(champ, role), opp && remote.getMatchup(champ, opp, role), opp && opp.name);
 }
 
-function guideFor(championId) {
+async function guideFor(championId) {
   const champ = champById(championId);
   if (!champ) return null;
   const role = lastRole || (lcuState.myPosition || '');
   const build = buildFor(champ, role);
-  return buildGuide({ champ, role, build, dd, runeIndex });
+  const skills = await dd.championSkills(champ.id).catch(() => null);
+  return buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills });
 }
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
@@ -402,7 +407,7 @@ function registerIpc() {
 
   ipcMain.handle('overlay:toggle-move', () => toggleMoveMode());
   ipcMain.handle('update:get', () => (updater ? updater.get() : { state: 'idle' }));
-  ipcMain.handle('update:check', () => (updater ? updater.check({ manual: true }) : { state: 'none', message: 'Atualização automática só no app instalado.' }));
+  ipcMain.handle('update:check', () => (updater ? updater.check({ manual: true }) : { state: 'error', message: 'Atualização só funciona no app instalado.' }));
   ipcMain.handle('update:install', () => { if (updater) updater.install(); return true; });
   ipcMain.handle('overlay:preview', () => { previewOverlay(5000); return true; });
 

@@ -87,6 +87,8 @@ function renderGuide(state, picks) {
   if (pickId !== shownId) {
     shownId = pickId;
     guide = null;
+    imported.runes = false;
+    imported.spells = false;
     els.impMsg.textContent = '';
     window.overlay.getGuide(pickId).then((g) => {
       if (shownId === pickId) { guide = g; drawGuide(); }
@@ -96,13 +98,99 @@ function renderGuide(state, picks) {
 }
 
 function setImportEnabled(on) {
-  for (const id of ['imp-all', 'imp-runes', 'imp-spells', 'imp-items']) $(id).disabled = !on;
+  for (const id of ['imp-all', 'imp-items']) $(id).disabled = !on;
 }
 
 function iconRow(label, ids, names) {
   const row = h('div', { class: 'g-row' }, h('span', { class: 'g-label', text: label }));
   ids.forEach((id, i) => row.append(h('img', { class: 'g-item', src: itemIcon(version, id), title: names[i], alt: names[i] })));
   return row;
+}
+
+const ddImg = (path) => `${DD}/cdn/img/${path}`;
+const ddVerImg = (path) => `${DD}/cdn/${version}/img/${path}`;
+const imported = { runes: false, spells: false };
+
+/** <img> que vira texto se o ícone não existir. */
+function icon(src, cls, title, fallback) {
+  const img = h('img', { class: cls, src, title, alt: title });
+  img.addEventListener('error', () => img.replaceWith(h('span', { class: `${cls} miss`, title, text: fallback || title.slice(0, 2) })));
+  return img;
+}
+
+function badge(what) {
+  const b = h('button', { class: `badge${imported[what] ? ' on' : ''}`, text: imported[what] ? '✓ Selecionado' : '⬇ Importar' });
+  b.addEventListener('click', () => doImport(what));
+  return b;
+}
+
+function head(title, what) {
+  return h('div', { class: 'g-head' }, h('h3', { text: title }), what ? badge(what) : null);
+}
+
+function runeRow(row, cls) {
+  return h('div', { class: 'r-row' }, ...row.map((r) => icon(ddImg(r.icon), `${cls}${r.selected ? ' sel' : ''}`, r.name)));
+}
+
+function drawRunes(t) {
+  const left = h('div', { class: 'tree' },
+    runeRow(t.primaryStyles, 'r-style'),
+    ...t.primary.map((row, i) => runeRow(row, i === 0 ? 'r-key' : 'r-rune')));
+  const right = h('div', { class: 'tree' },
+    runeRow(t.secondaryStyles, 'r-style'),
+    ...t.secondary.map((row) => runeRow(row, 'r-rune')),
+    h('div', { class: 'shards' }, ...t.shards.map((row) => runeRow(row, 'r-shard'))));
+  return h('div', { class: 'trees' }, left, right);
+}
+
+/** Completa a ordem de skills até o nível 18 (R no 16, depois maximiza na ordem de prioridade). */
+function skillOrder18(order) {
+  const seq = order.slice(0, 18);
+  const count = (k) => seq.filter((x) => x === k).length;
+  const prio = ['Q', 'W', 'E'].sort((a, b) => count(b) - count(a) || order.indexOf(a) - order.indexOf(b));
+  while (seq.length < 18) {
+    const lvl = seq.length + 1;
+    if ([6, 11, 16].includes(lvl) && count('R') < 3) seq.push('R');
+    else seq.push(prio.find((k) => count(k) < 5) || 'R');
+  }
+  return seq;
+}
+
+function drawSkills(g) {
+  const seq = skillOrder18(g.skills);
+  const icons = g.skillIcons ? g.skillIcons.spells : [];
+  const grid = h('div', { class: 'sk-grid' }, h('span'));
+  for (let i = 1; i <= 18; i++) grid.append(h('span', { class: 'sk-lvl', text: String(i) }));
+  ['Q', 'W', 'E', 'R'].forEach((key, k) => {
+    const sp = icons[k];
+    grid.append(sp ? icon(ddVerImg(sp.icon), 'sk-icon', `${key} · ${sp.name}`, key) : h('span', { class: 'sk-icon miss', text: key }));
+    seq.forEach((x) => grid.append(h('span', { class: `sk-cell${x === key ? ` on s-${key}` : ''}`, text: x === key ? key : '' })));
+  });
+  return grid;
+}
+
+function drawSpells(g) {
+  const flashD = settings && settings.flashKey === 'D';
+  let [d, f] = g.spells;
+  const isFlash = (s) => s && s.id === 4;
+  if (isFlash(d) && !flashD) [d, f] = [f, d];
+  if (isFlash(f) && flashD) [d, f] = [f, d];
+  const spell = (s, key) => h('div', { class: 'sp' },
+    s && s.key ? icon(ddVerImg(`spell/${s.key}.png`), 'sp-icon', s.name) : h('span', { class: 'sp-icon miss', text: '?' }),
+    h('span', { class: 'kbd', text: key }));
+  const swap = h('button', { class: 'swap', title: 'Trocar a tecla do Flash (D/F)', text: '⇄' });
+  swap.addEventListener('click', toggleFlashKey);
+  return h('div', { class: 'spells' }, spell(d, 'D'), swap, spell(f, 'F'));
+}
+
+function drawBuild(g) {
+  const starter = h('div', { class: 'items' }, ...g.starterCounts.map((it) => h('div', { class: 'it' },
+    icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name), it.count > 1 ? h('span', { class: 'cnt', text: `x${it.count}` }) : null)));
+  const full = h('div', { class: 'items full' }, ...g.fullBuild.map((it, i) => h('div', { class: 'it' },
+    h('span', { class: 'num', text: String(i + 1) }), icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name))));
+  return h('div', { class: 'build' },
+    h('div', {}, h('div', { class: 'sub', text: 'Itens iniciais' }), starter),
+    h('div', {}, h('div', { class: 'sub', text: 'Build completa' }), full));
 }
 
 function drawGuide() {
@@ -118,32 +206,17 @@ function drawGuide() {
     parts.push(h('div', { class: 'tip' }, h('b', { text: `Matchup vs ${g.matchup.vs}${vs}` }), h('div', { text: g.matchup.tip || '' }),
       g.matchup.used.length ? h('div', { class: 'muted', text: `Ajustado ao matchup: ${g.matchup.used.join(', ')}` }) : null));
   }
-  if (g.runes) {
-    const row = h('div', { class: 'g-row' }, h('span', { class: 'g-label', text: `Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
-    g.runes.perks.forEach((p) => {
-      row.append(p.icon
-        ? h('img', { class: 'g-rune', src: `${DD}/cdn/img/${p.icon}`, title: p.name, alt: p.name })
-        : h('span', { class: 'chip', text: STAT_SHARD[p.id] || p.name }));
-    });
-    parts.push(row);
-  }
-  if (g.spells.length) {
-    const row = h('div', { class: 'g-row' }, h('span', { class: 'g-label', text: 'Feitiços' }));
-    g.spells.forEach((s) => row.append(s.key
-      ? h('img', { class: 'g-item', src: `${DD}/cdn/${version}/img/spell/${s.key}.png`, title: s.name, alt: s.name })
-      : h('span', { class: 'chip', text: s.name })));
-    parts.push(row);
-  }
-  if (g.starter.length) parts.push(iconRow('Inicial', g.starter.map((i) => i.id), g.starter.map((i) => i.name)));
-  if (g.boots.length) parts.push(iconRow('Botas', g.boots.map((i) => i.id), g.boots.map((i) => i.name)));
-  if (g.core.length) parts.push(iconRow('Core', g.core.map((i) => i.id), g.core.map((i) => i.name)));
-  if (g.later.length) parts.push(iconRow('Depois', g.later.map((i) => i.id), g.later.map((i) => i.name)));
-  if (g.skills.length) {
-    const row = h('div', { class: 'g-row' }, h('span', { class: 'g-label', text: 'Skills (nv 1-15)' }));
-    g.skills.forEach((k, i) => row.append(h('span', { class: `skill s-${k}`, title: `Nível ${i + 1}`, text: k })));
-    parts.push(row);
-  }
-  if (typeof g.winRate === 'number') parts.push(h('p', { class: 'muted', text: `Taxa de vitória geral: ${(g.winRate * 100).toFixed(1)}%` }));
+  const left = h('div', { class: 'g-left' });
+  if (g.runeTree) left.append(head('Runas', 'runes'), drawRunes(g.runeTree));
+  else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
+  if (g.skills.length) left.append(head('Caminho da habilidade'), drawSkills(g));
+
+  const right = h('div', { class: 'g-right' });
+  if (g.spells.length) right.append(head('Invocador', 'spells'), drawSpells(g));
+  right.append(head('Build'), drawBuild(g));
+  if (typeof g.winRate === 'number') right.append(h('p', { class: 'muted', text: `Taxa de vitória: ${(g.winRate * 100).toFixed(1)}%` }));
+
+  parts.push(h('div', { class: 'g-grid' }, left, right));
   els.guideBody.replaceChildren(...parts);
   setImportEnabled(Boolean(g.runes || g.spells.length));
 }
@@ -228,10 +301,13 @@ async function doImport(what) {
   els.impMsg.textContent = 'Importando…';
   const res = await window.overlay.importBuild(shownId, what);
   els.impMsg.textContent = res.ok ? `Importado: ${res.done.join(' e ')}.` : `Não consegui importar: ${res.error}`;
+  if (res.ok) {
+    if (res.done.includes('runas')) imported.runes = true;
+    if (res.done.includes('feitiços')) imported.spells = true;
+    drawGuide();
+  }
 }
 $('imp-all').addEventListener('click', () => doImport('both'));
-$('imp-runes').addEventListener('click', () => doImport('runes'));
-$('imp-spells').addEventListener('click', () => doImport('spells'));
 $('imp-items').addEventListener('click', () => doImport('items'));
 
 /* ---------- configurações ---------- */
@@ -292,14 +368,15 @@ async function saveSettings() {
 }
 
 function showFlashKey() {
-  $('flash-key').textContent = `Flash em: ${(settings && settings.flashKey) || 'F'}`;
+  if (guide) drawGuide();
 }
-$('flash-key').addEventListener('click', async () => {
+async function toggleFlashKey() {
   settings = settings || (await window.overlay.getSettings());
   settings = await window.overlay.setSettings({ flashKey: settings.flashKey === 'D' ? 'F' : 'D' });
+  imported.spells = false;
   showFlashKey();
-  els.impMsg.textContent = `Ao importar, o Flash vai para a tecla ${settings.flashKey}.`;
-});
+  els.impMsg.textContent = `Flash agora no ${settings.flashKey}. Clique em Importar no Invocador para aplicar.`;
+}
 window.overlay.getSettings().then((s) => { settings = s; showFlashKey(); });
 
 $('set-test').addEventListener('click', () => window.overlay.previewOverlay());
@@ -325,12 +402,23 @@ $('set-diag').addEventListener('click', async () => {
 
 function showUpdate(u) {
   const btn = $('update-btn');
-  btn.hidden = !['downloading', 'ready'].includes(u.state);
-  btn.disabled = u.state !== 'ready';
-  btn.textContent = u.state === 'ready' ? `Reiniciar e atualizar para ${u.version}` : `Baixando ${u.version || 'atualização'}… ${u.percent || 0}%`;
-  if (u.message) els.setMsg.textContent = u.message;
+  btn.classList.toggle('primary', u.state === 'ready');
+  btn.disabled = u.state === 'checking' || u.state === 'downloading';
+  btn.textContent = {
+    checking: 'Procurando…',
+    downloading: `Baixando ${u.version || ''} ${u.percent || 0}%`,
+    ready: `Reiniciar e atualizar (${u.version})`,
+    none: 'Atualizado ✓',
+  }[u.state] || 'Procurar atualizações';
+  btn.title = u.message || '';
+  if (u.state === 'error' && u.message) els.status.textContent = u.message;
 }
-$('update-btn').addEventListener('click', () => window.overlay.installUpdate());
+$('update-btn').addEventListener('click', async () => {
+  const btn = $('update-btn');
+  if (btn.textContent.startsWith('Reiniciar')) return window.overlay.installUpdate();
+  btn.textContent = 'Procurando…';
+  showUpdate(await window.overlay.checkUpdate());
+});
 $('set-update-now').addEventListener('click', async () => {
   els.setMsg.textContent = 'Verificando…';
   const u = await window.overlay.checkUpdate();

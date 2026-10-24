@@ -2,7 +2,7 @@ const spells = require('../data/spells.json');
 const { laterItems } = require('./buildPath');
 
 /** Monta o guia do campeão (itens, feitiços, runas, skills) pronto para a UI, só com texto e IDs. */
-function buildGuide({ champ, role, build, dd, runeIndex }) {
+function buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills }) {
   if (!champ || !build) return null;
   const item = (id) => {
     const it = dd && dd.item(id);
@@ -22,12 +22,57 @@ function buildGuide({ champ, role, build, dd, runeIndex }) {
     later,
     spells: build.spells.map((id) => ({ id, name: (spells[id] || {}).name || String(id), key: (spells[id] || {}).key || null })),
     skills: build.skills,
+    skillIcons: skills || null,
+    starterCounts: countIds(build.starter).map(([id, n]) => ({ ...item(id), count: n })).filter((x) => x.id),
+    fullBuild: list(fullBuild(build)),
+    runeTree: build.runes ? runeTree(runeStyles, build.runes) : null,
     runes: r && {
       primaryStyleName: r.primaryStyleName,
       subStyleName: r.subStyleName,
       perks: r.perks.map((id) => ({ id, name: (runeIndex && runeIndex[id] && runeIndex[id].name) || String(id), icon: (runeIndex && runeIndex[id] && runeIndex[id].icon) || null })),
       pickRate: r.pickRate,
     },
+  };
+}
+
+function countIds(ids) {
+  const m = new Map();
+  for (const id of ids || []) m.set(id, (m.get(id) || 0) + 1);
+  return [...m];
+}
+
+/** Build completa em ordem: 1º item core, botas, resto do core, depois os itens de fechamento (até 6, sem repetir). */
+function fullBuild(build) {
+  const core = build.core || [];
+  const seq = [core[0], ...(build.boots || []).slice(0, 1), ...core.slice(1), ...laterItems(build)];
+  return [...new Set(seq.filter(Boolean))].slice(0, 6);
+}
+
+// Fragmentos atuais: 3 linhas, cada uma com 3 opções.
+const SHARDS = [
+  [[5008, 'Força adaptativa', 'StatModsAdaptiveForceIcon'], [5005, 'Velocidade de ataque', 'StatModsAttackSpeedIcon'], [5007, 'Aceleração de habilidade', 'StatModsCDRScalingIcon']],
+  [[5008, 'Força adaptativa', 'StatModsAdaptiveForceIcon'], [5010, 'Velocidade de movimento', 'StatModsMovementSpeedIcon'], [5001, 'Vida por nível', 'StatModsHealthScalingIcon']],
+  [[5011, 'Vida', 'StatModsHealthPlusIcon'], [5013, 'Tenacidade e resistência a lentidão', 'StatModsTenacityIcon'], [5001, 'Vida por nível', 'StatModsHealthScalingIcon']],
+];
+
+/** Árvore completa de runas (todas as opções, marcando as escolhidas), no formato da tela do cliente. */
+function runeTree(styles, runes) {
+  if (!Array.isArray(styles) || !styles.length) return null;
+  const chosen = new Set(runes.perks);
+  const styleBtn = (s, sel) => ({ id: s.id, name: s.name, icon: s.icon, selected: s.id === sel });
+  const slotRows = (style, from) => (style ? style.slots.slice(from).map((slot) =>
+    slot.runes.map((r) => ({ id: r.id, name: r.name, icon: r.icon, selected: chosen.has(r.id) }))) : []);
+  const primary = styles.find((s) => s.id === runes.primaryStyleId);
+  const secondary = styles.find((s) => s.id === runes.subStyleId);
+  const statIds = runes.perks.slice(-3);
+  return {
+    primaryStyles: styles.map((s) => styleBtn(s, runes.primaryStyleId)),
+    primary: slotRows(primary, 0),
+    secondaryStyles: styles.filter((s) => s.id !== runes.primaryStyleId).map((s) => styleBtn(s, runes.subStyleId)),
+    secondary: slotRows(secondary, 1),
+    shards: SHARDS.map((row, i) => row.map(([id, name, file]) => ({
+      id, name, icon: `perk-images/StatMods/${file}.png`, selected: statIds[i] === id,
+    }))),
   };
 }
 
@@ -41,4 +86,4 @@ function indexRunes(styles) {
   return out;
 }
 
-module.exports = { buildGuide, indexRunes };
+module.exports = { buildGuide, indexRunes, runeTree, fullBuild };

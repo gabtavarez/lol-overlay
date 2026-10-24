@@ -78,3 +78,48 @@ b { color: var(--cyan); }
 input, select { -webkit-user-select: text; user-select: text; cursor: auto; }
 button, .card { cursor: pointer; }
 img { -webkit-user-drag: none; }
+
+/* ---------- guia estilo cliente (runas / invocador / build / skills) ---------- */
+.g-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr); gap: 18px 26px; margin-top: 8px; }
+@media (max-width: 900px) { .g-grid { grid-template-columns: 1fr; } }
+.g-head { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.g-head h3 { margin: 0; font-size: 17px; font-weight: 700; color: #fff; }
+.badge { font: 600 12px "Segoe UI", sans-serif; padding: 3px 9px; border-radius: 6px; cursor: pointer; border: 1px solid rgba(255,190,60,.45); background: rgba(255,190,60,.10); color: #ffbe3c; }
+.badge.on { border-color: rgba(255,190,60,.8); background: rgba(255,190,60,.22); }
+.badge:hover { filter: brightness(1.2); }
+.trees { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.tree { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.r-row { display: flex; gap: 12px; justify-content: center; align-items: center; }
+.r-style, .r-key, .r-rune, .r-shard { border-radius: 50%; filter: grayscale(1) brightness(.55); opacity: .55; transition: filter .15s; }
+.r-style { width: 26px; height: 26px; padding: 4px; }
+.r-style.sel { filter: none; opacity: 1; border: 2px solid #c9a2ff; background: rgba(140,90,255,.15); }
+.r-key { width: 46px; height: 46px; }
+.r-rune { width: 34px; height: 34px; background: #120810; padding: 2px; }
+.r-key.sel, .r-rune.sel, .r-shard.sel { filter: none; opacity: 1; }
+.r-rune.sel { box-shadow: 0 0 0 2px var(--accent); }
+.shards { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.r-shard { width: 20px; height: 20px; padding: 2px; background: #120810; }
+.r-shard.sel { box-shadow: 0 0 0 1px #c9a2ff; }
+.miss { display: inline-grid; place-items: center; font: 700 11px Consolas, monospace; color: var(--muted); background: #1a0a12; }
+
+.spells { display: flex; align-items: center; gap: 18px; }
+.sp { position: relative; }
+.sp-icon { width: 40px; height: 40px; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.kbd { position: absolute; top: -8px; right: -8px; width: 18px; height: 18px; border-radius: 50%; background: #111; border: 1px solid #555; color: #fff; font: 700 10px "Segoe UI"; display: grid; place-items: center; }
+.swap { background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; }
+.swap:hover { color: var(--accent2); }
+
+.build { display: flex; gap: 22px; flex-wrap: wrap; }
+.sub { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+.items { display: flex; gap: 8px; flex-wrap: wrap; }
+.items.full { display: grid; grid-template-columns: repeat(2, 36px); gap: 10px 16px; }
+.it { position: relative; }
+.it-icon { width: 36px; height: 36px; border-radius: 6px; border: 1px solid var(--line); display: block; }
+.cnt { position: absolute; right: -6px; bottom: -6px; background: #111; border: 1px solid #555; border-radius: 6px; padding: 0 3px; font: 700 10px "Segoe UI"; color: #fff; }
+.num { position: absolute; left: -9px; top: -9px; width: 17px; height: 17px; border-radius: 50%; background: #111; border: 1px solid #555; color: #fff; font: 700 10px "Segoe UI"; display: grid; place-items: center; z-index: 1; }
+
+.sk-grid { display: grid; grid-template-columns: 26px repeat(18, minmax(16px, 1fr)); gap: 3px; align-items: center; }
+.sk-lvl { text-align: center; font-size: 11px; color: var(--muted); }
+.sk-icon { width: 24px; height: 24px; border-radius: 5px; }
+.sk-cell { height: 22px; border-radius: 3px; background: rgba(255,255,255,.04); display: grid; place-items: center; font: 700 11px Consolas, monospace; }
+.sk-cell.on { background: #2b2630; color: #fff; }

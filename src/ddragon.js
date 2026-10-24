@@ -62,6 +62,20 @@ class DataDragon {
     return this._championsByKey.get(Number(key)) || null;
   }
 
+  /** Passiva + Q/W/E/R do campeão (nome e arquivo do ícone), do arquivo champion/<id>.json. */
+  async championSkills(id) {
+    this._skills = this._skills || new Map();
+    if (this._skills.has(id)) return this._skills.get(id);
+    const json = await this._cachedJson(this.version, `champion/${id}.json`);
+    const c = json.data[id];
+    const out = {
+      passive: c.passive ? { name: c.passive.name, icon: `passive/${c.passive.image.full}` } : null,
+      spells: c.spells.slice(0, 4).map((s, i) => ({ key: 'QWER'[i], name: s.name, icon: `spell/${s.image.full}` })),
+    };
+    this._skills.set(id, out);
+    return out;
+  }
+
   item(id) {
     return this.items[String(id)] || null;
   }
@@ -81,7 +95,7 @@ class DataDragon {
       // sem cache (ou cache corrompido): baixa de novo
     }
     const json = await this._fetchJson(`${BASE}/cdn/${version}/data/${this.lang}/${file}`);
-    await fs.mkdir(dir, { recursive: true });
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, JSON.stringify(json));
     return json;
   }

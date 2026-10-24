@@ -128,8 +128,8 @@ Matchup específico (build contra o oponente de rota) e macro mais fina (timing 
 
 ### Publicar uma versão
 
-1. Troque `repository.url` no `package.json` pelo seu repositório (`https://github.com/gabtavarez/lol-overlay.git`).
-2. `git add -A && git commit -m "..."`, suba a versão em `package.json` (`npm version patch`) e envie: `git push && git push --tags`.
-3. O workflow `.github/workflows/release.yml` roda em tag `v*`, gera `LoL Overlay Setup X.Y.Z.exe` + `latest.yml` e publica o Release. Quem já tem o app recebe a atualização sozinho.
+1. Suba o `version` no `package.json` (ex.: 0.8.0 → 0.8.1).
+2. `git add -A && git commit -m "..." && git push`.
+3. O GitHub Actions gera o Release `vX.Y.Z` com `LoL-Overlay-Setup-X.Y.Z.exe`. Quem tem o app instalado recebe a atualização (ou clica em "Procurar atualizações").
 
 Use sempre o Setup gerado pelo GitHub Release para a primeira instalação (o `npm run dist:local` gera um instalador só para teste local, sem canal de atualização).

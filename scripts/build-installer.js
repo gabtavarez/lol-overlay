@@ -55,6 +55,6 @@ run(findMakensis(nsisDir), [
   `-DSRC=${path.join(root, 'dist', 'win-unpacked')}`,
   `-DOUT=${out}`,
   `-DICON=${path.join(root, 'build', 'icon.ico')}`,
-  path.join(root, 'build', 'installer.nsi'),
+  path.join(root, 'scripts', 'installer.nsi'),
 ], { env });
 console.log(`\nInstalador pronto: ${out}`);

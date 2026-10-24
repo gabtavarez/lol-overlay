@@ -1,7 +1,8 @@
 name: Release
+# Cada push na main gera (ou completa) o Release da versão do package.json com o instalador.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: write

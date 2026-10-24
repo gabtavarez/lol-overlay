@@ -151,3 +151,26 @@ test('botas: com bota básica sugere a final; anti-cura não dispara por Lâmina
   assert.equal(adv.items.find((i) => i.id === 3020).missing, 800);
   assert.ok(!ids.includes(3916), 'sem anti-cura por Doran');
 });
+
+const { situationalItems } = require('../src/situational');
+test('situacionais no champ select: respostas à comp inimiga + alternativas do meta', () => {
+  const I = { 3157: { name: 'Zhonya' }, 3916: { name: 'Orbe' }, 3102: { name: 'Banshee' }, 3135: { name: 'Cajado do Vazio' }, 6653: { name: 'Liandry' }, 3089: { name: 'Rabadon' }, 4645: { name: 'Chama' } };
+  const ddS = { item: (id) => I[id] || null };
+  const s = situationalItems({ champ: { tags: ['Mage'] }, dd: ddS, build: { damageType: 'AP', core: [4645], boots: [], later: [[{ ids: [3089], pick: 0.5 }, { ids: [3135], pick: 0.2 }]] },
+    enemies: [{ id: 'Zed', name: 'Zed', tags: ['Assassin'] }, { id: 'Soraka', name: 'Soraka', tags: ['Support'] }, { id: 'Malphite', name: 'Malphite', tags: ['Tank'] }, { id: 'Ornn', name: 'Ornn', tags: ['Tank'] }] });
+  const ids = s.map((x) => x.id);
+  assert.ok(ids.includes(3157) && ids.includes(3916) && ids.includes(6653), ids.join());
+  assert.equal(s[0].id, 3916); // anti-cura primeiro
+});
+
+const { championFit, mainRoleOf } = require('../src/fit');
+test('champion fit: rota principal pelas partidas e só campeões da mesma classe/dano', () => {
+  assert.equal(mainRoleOf({ matches: [1, 2, 3, 4].map(() => ({ me: { position: 'MID' } })).concat([{ me: { position: 'TOP' } }]), roles: [{ role: 'top' }] }), 'middle');
+  const champs = { Ahri: { id: 'Ahri', key: '103', name: 'Ahri', tags: ['Mage', 'Assassin'] }, Syndra: { id: 'Syndra', key: '134', name: 'Syndra', tags: ['Mage'] },
+    Hwei: { id: 'Hwei', key: '910', name: 'Hwei', tags: ['Mage'] }, Malphite: { id: 'Malphite', key: '54', name: 'Malphite', tags: ['Tank', 'Mage'] }, Talon: { id: 'Talon', key: '91', name: 'Talon', tags: ['Assassin'] } };
+  const ddF = { championByKey: (k) => Object.values(champs).find((c) => c.key === String(k)), championByRaw: (_r, n) => champs[n] || null };
+  const mastery = new Map([[103, { points: 400000 }], [134, { points: 100000 }]]);
+  const tl = { middle: ['Hwei', 'Malphite', 'Talon'].map((n) => ({ champion: n, tier: 1, winRate: 0.52, roleRate: 0.9 })) };
+  const fit = championFit({ mastery, dd: ddF, tierList: tl, mainRole: 'middle', roleStats: { middle: { 103: { games: 20 }, 134: { games: 8 } } } });
+  assert.deepEqual(fit.map((f) => f.id), ['Hwei']);
+});

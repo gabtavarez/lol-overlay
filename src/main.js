@@ -18,9 +18,10 @@ const { spawn } = require('child_process');
 const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { predictRoles, roleIndex } = require('./roles');
-const { championFit } = require('./fit');
+const { championFit, mainRoleOf } = require('./fit');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
+const { situationalItems } = require('./situational');
 const { liveGoals, targetsFor } = require('./goals');
 const { createEloTracker, weekStats } = require('./elo');
 const { createMeraki, ultRank } = require('./providers/meraki');
@@ -395,7 +396,8 @@ async function importBuild(championId, what, variant = 0) {
       done.push('feitiços');
     }
     if (what === 'items' || what === 'both') {
-      await importItemSet(creds, build, champ);
+      const enemyChamps = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
+      await importItemSet(creds, { ...build, situational: situationalItems({ champ, build, enemies: enemyChamps, dd }).map((x) => x.id) }, champ);
       done.push('itens da loja');
     }
     return { ok: true, done };
@@ -433,8 +435,10 @@ async function guideFor(championId) {
     return error ? { error: `Sem dados do OP.GG: ${error}`, champion: { id: champ.id, name: champ.name } } : null;
   }
   const skills = await dd.championSkills(champ.id).catch(() => null);
+  const enemyChamps = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
   const variants = buildVariants(champ, role).map((v) => ({
-    label: v.label, sub: v.sub, guide: buildGuide({ champ, role, build: v.build, dd, runeIndex, runeStyles, skills }),
+    label: v.label, sub: v.sub,
+    guide: { ...buildGuide({ champ, role, build: v.build, dd, runeIndex, runeStyles, skills }), situational: situationalItems({ champ, build: v.build, enemies: enemyChamps, dd }) },
   }));
   const fromRole = remote.getBuild(champ, role) && remote.getBuild(champ, role).fromRole;
   const roleNote = fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;
@@ -591,8 +595,10 @@ function decorateLcu(state) {
   if (state.home && !state.home.loading) {
     if (!tl) remote.ensureTierList(() => lcuEngine.tick());
     const profile = lcuEngine && lcuEngine.getProfile();
-    const mainRole = state.home.roles && state.home.roles[0] && state.home.roles[0].role;
-    state.home.fit = profile && tl ? championFit({ mastery: profile.mastery, dd, tierList: tl.data, mainRole }) : [];
+    const mRiot = settings.get().myRiotId;
+    const recent = mRiot && remote.getMatches(mRiot, currentRegion());
+    const mainRole = mainRoleOf({ matches: recent && recent.list, roles: state.home.roles });
+    state.home.fit = profile && tl ? championFit({ mastery: profile.mastery, dd, tierList: tl.data, mainRole, roleStats: profile.roleStats }) : [];
     const s = profile && profile.summoner;
     if (s && s.gameName && s.tagLine && settings.get().myRiotId !== `${s.gameName}#${s.tagLine}`) settings.update({ myRiotId: `${s.gameName}#${s.tagLine}` });
     if (s && s.rank) elo.record(s.rank);

@@ -72,6 +72,7 @@ async function importItemSet(creds, build, champ) {
     build.boots.length && block('Botas', build.boots),
     build.core.length && block(build.matchup ? `Core vs ${build.matchup.vs}` : 'Core', build.core),
     later.length && block('Depois', later),
+    build.situational && build.situational.length && block('Situacionais', build.situational),
   ].filter(Boolean);
   if (!blocks.length) throw new Error('sem itens para importar');
 

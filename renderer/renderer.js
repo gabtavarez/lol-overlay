@@ -233,9 +233,15 @@ function drawBuild(g) {
     icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name), it.count > 1 ? h('span', { class: 'cnt', text: `x${it.count}` }) : null)));
   const full = h('div', { class: 'items full' }, ...g.fullBuild.map((it, i) => h('div', { class: 'it' },
     h('span', { class: 'num', text: String(i + 1) }), icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name))));
+  const sit = (g.situational || []).length ? h('div', {}, head('Situacionais'), h('div', { class: 'items' }, ...g.situational.map((it) => {
+    const el = h('div', { class: 'it' }, icon(ddVerImg(`item/${it.id}.png`), 'it-icon', '', ''));
+    tipOn(el, it.name, it.why);
+    return el;
+  }))) : null;
   return h('div', { class: 'build' },
     h('div', {}, head('Início'), starter),
-    h('div', {}, head('Build'), full));
+    h('div', {}, head('Build'), full),
+    sit);
 }
 
 function drawGuide() {
@@ -589,6 +595,8 @@ function renderHome(state) {
   }
 
   const fit = home.fit || [];
+  const fitSub = document.querySelector('#home-fit').previousElementSibling.querySelector('.muted');
+  if (fitSub && home.mainRole) fitSub.textContent = `fortes no ${ROLE_LABEL[home.mainRole] || home.mainRole} (sua rota principal) e parecidos com os que você joga lá`;
   $('home-fit').replaceChildren(...(fit.length ? fit.map((c) => h('div', { class: 'fit' },
     v ? h('img', { class: 'ic', src: champIcon(v, c.id), alt: '' }) : h('span', { class: 'ic' }),
     h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: c.name }),

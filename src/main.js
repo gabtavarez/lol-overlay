@@ -22,6 +22,7 @@ const { championFit, mainRoleOf } = require('./fit');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
 const { situationalItems } = require('./situational');
+const { isBoots: isBootsItem } = require('./buys');
 const { liveGoals, targetsFor } = require('./goals');
 const { createEloTracker, weekStats } = require('./elo');
 const { createMeraki, ultRank } = require('./providers/meraki');
@@ -686,7 +687,7 @@ function registerIpc() {
     const done = [];
     const notes = [];
     try {
-      const isBoots = (id) => ((dd.item(id) || {}).tags || []).includes('Boots');
+      const isBoots = (id) => isBootsItem(dd, id);
       const big = (id) => (((dd.item(id) || {}).gold || {}).total || 0) >= 900;
       const meta = buildFor(champ, lastRole || lcuState.myPosition) || { starter: [], runes: null };
       const set = { starter: meta.starter || [], boots: p.build.items.filter(isBoots), core: p.build.items.filter((id) => !isBoots(id) && big(id)), later: [], matchup: null };

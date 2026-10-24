@@ -174,3 +174,12 @@ test('champion fit: rota principal pelas partidas e só campeões da mesma class
   const fit = championFit({ mastery, dd: ddF, tierList: tl, mainRole: 'middle', roleStats: { middle: { 103: { games: 20 }, 134: { games: 8 } } } });
   assert.deepEqual(fit.map((f) => f.id), ['Hwei']);
 });
+
+test('bota evoluída (Grevas Bélicas, sem a tag Boots) conta como bota: não sugere bota de novo', () => {
+  const I = { 3006: { name: 'Grevas do Berserker', tags: ['AttackSpeed', 'Boots'], gold: { total: 1100 }, from: ['1001'] }, 3172: { name: 'Grevas Bélicas', tags: ['AttackSpeed', 'LifeSteal'], gold: { total: 1100 }, from: ['3006'] }, 1055: { name: 'Doran', tags: [], gold: { total: 450 } } };
+  const ddE = { item: (id) => I[id] || null };
+  const fl = { healers: [], apOverrides: [], adOverrides: [], hardCc: [], burst: [], autoAttackers: [] };
+  const adv = buyAdvice({ dd: ddE, flags: fl, build: { damageType: 'AD', core: [], boots: [3006] }, state: {
+    gameTime: 1200, me: { champion: 'Jinx', championId: 'Jinx', tags: ['Marksman'], level: 12, gold: 2000, items: [{ id: 1055 }, { id: 3172 }], scores: { kills: 1, deaths: 1, assists: 0 } }, enemies: [] } });
+  assert.ok(!adv.items.some((i) => i.id === 3006), adv.items.map((i) => i.name).join());
+});

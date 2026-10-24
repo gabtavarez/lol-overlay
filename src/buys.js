@@ -14,6 +14,17 @@ function classOf(me, build) {
   return 'ad';
 }
 
+/**
+ * Bota (inclusive as evoluídas: Grevas Bélicas 3172 vem das Grevas do Berserker e o Data Dragon
+ * não marca a tag "Boots" nela). Conta como bota se tiver a tag ou se for feita a partir de uma bota.
+ */
+function isBoots(dd, id, depth = 0) {
+  const it = dd.item(id);
+  if (!it) return false;
+  if ((it.tags || []).includes(BOOT_TAG)) return true;
+  return depth < 2 && (it.from || []).some((p) => isBoots(dd, Number(p), depth + 1));
+}
+
 function ownedIds(me) {
   const ids = [];
   for (const it of me.items) for (let i = 0; i < (it.count || 1); i++) ids.push(it.id);
@@ -126,7 +137,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   /* --- caminho do meta --- */
   // Bota básica (1001) não conta: ela precisa virar a bota final, e o ouro que falta já desconta a básica.
   const BASIC_BOOTS = 1001;
-  const hasBoots = owned.some((id) => id !== BASIC_BOOTS && (dd.item(id) || { tags: [] }).tags.includes(BOOT_TAG));
+  const hasBoots = owned.some((id) => id !== BASIC_BOOTS && isBoots(dd, id));
   const hasBasicBoots = owned.includes(BASIC_BOOTS);
   const path = [];
   if (build) {
@@ -286,4 +297,4 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   return { items, notes, cls, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
 }
 
-module.exports = { buyAdvice, missingGold, classOf };
+module.exports = { buyAdvice, missingGold, classOf, isBoots };

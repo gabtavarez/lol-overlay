@@ -179,8 +179,14 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 
   // Burst AP explosivo vivo (Veigar, Syndra, Fizz, LeBlanc…): Zhonya / Malmortius / Bordo da Noite.
   const bursts = t.filter((x) => (flags.burst || []).includes(x.e.championId) && (x.fed || x.lane || x.w >= 1.15));
-  if (bursts.length && me.items.length >= 2) {
-    react('antiburst', 60 + Math.min(25, bursts.reduce((s, x) => s + x.w, 0) * 10), `Cancela o combo de ${who(bursts, (x) => x.w)}`);
+  if (bursts.length) {
+    // Véu da Banshee (mago) bloqueia a habilidade de abertura/ult do assassino; Zhonya é a alternativa.
+    // Antes do 1º item lendário fica abaixo do core: completar o item principal ainda vem primeiro.
+    const lane = bursts.find((x) => x.lane);
+    const early = legendaries === 0;
+    const score = (60 + Math.min(25, bursts.reduce((s, x) => s + x.w, 0) * 10) + (lane ? 8 : 0)) * (early ? 0.8 : 1);
+    const names = who(bursts, (x) => x.w);
+    react('antiburst', score, cls === 'ap' ? `Escudo de feitiço contra o combo de ${names}` : `Cancela o combo de ${names}`);
   }
 
   // Um inimigo fed (ou o oponente de rota ganhando) puxa a defesa contra o dano dele, mesmo se o time for misto.

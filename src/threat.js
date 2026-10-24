@@ -28,7 +28,11 @@ function rankThreats(enemies, opts = {}) {
   for (const r of rows) r.score *= 1 + Math.max(-0.3, Math.min(0.6, (r.gold - avgGold) / avgGold)) * 0.5;
   const avg = rows.reduce((s, r) => s + r.score, 0) / rows.length;
   return rows
-    .map((r) => ({ ...r, w: r.score / avg, fed: r.score / avg >= 1.3 }))
+    .map((r) => {
+      const { kills = 0, deaths = 0 } = r.e.scores || {};
+      const fed = r.score / avg >= 1.3 && kills - deaths >= 2 && kills >= 3; // 1/1/0 aos 3 min não é "fed"
+      return { ...r, w: r.score / avg, fed };
+    })
     .sort((a, b) => b.w - a.w);
 }
 

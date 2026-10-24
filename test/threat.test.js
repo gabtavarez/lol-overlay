@@ -105,3 +105,18 @@ test('rotas inimigas previstas, flex, fases e timers', () => {
   const t = objectiveTimers({ phase: 'ingame', gameMode: 'CLASSIC', gameTime: 400, events: [{ name: 'DragonKill', time: 320 }] });
   assert.equal(t.find((x) => x.key === 'dragon').in, 220);
 });
+
+test('Ahri contra Fizz no começo: Fizz é AP, 1/1/0 não é fed, sugere Véu da Banshee e não Aço', () => {
+  const flagsReal = require('../data/champion-flags.json');
+  const I = { 3102: { name: 'Véu da Banshee', tags: [], gold: { total: 3000 } }, 3157: { name: 'Zhonya', tags: [], gold: { total: 3250 } }, 3047: { name: 'Aço', tags: ['Boots'], gold: { total: 1200 } }, 3020: { name: 'Feiticeiro', tags: ['Boots'], gold: { total: 1100 } }, 1056: { name: 'Doran', tags: [], gold: { total: 400 } } };
+  const ddF = { item: (id) => I[id] || null };
+  const E = (champion, tags, k, d, position = '') => ({ champion, championId: champion, tags, level: 4, position, scores: { kills: k, deaths: d, assists: 0 }, items: [] });
+  const adv = buyAdvice({ dd: ddF, flags: flagsReal, build: { damageType: 'AP', core: [], boots: [3020] }, state: {
+    gameTime: 230, laneOpponent: { champion: 'Fizz' },
+    me: { champion: 'Ahri', championId: 'Ahri', tags: ['Mage', 'Assassin'], position: 'MIDDLE', level: 4, gold: 100, items: [{ id: 1056 }], scores: { kills: 1, deaths: 1, assists: 0 } },
+    enemies: [E('Fizz', ['Assassin', 'Fighter'], 1, 1, 'MIDDLE'), E('Lucian', ['Marksman'], 0, 1), E('TahmKench', ['Support', 'Tank'], 0, 0), E('XinZhao', ['Fighter'], 0, 0), E('Blitzcrank', ['Tank'], 0, 0)] } });
+  const ids = adv.items.map((i) => i.id);
+  assert.ok(ids.includes(3102), `Banshee esperado, veio ${ids}`);
+  assert.ok(!ids.includes(3047), 'sem Aço contra Fizz');
+  assert.ok(!adv.notes.some((n) => /fed/.test(n)));
+});

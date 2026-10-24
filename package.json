@@ -57,7 +57,8 @@
       "shortcutName": "LoL Overlay",
       "perMachine": false,
       "deleteAppDataOnUninstall": false,
-      "runAfterFinish": true
+      "runAfterFinish": true,
+      "artifactName": "LoL-Overlay-Setup-${version}.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"

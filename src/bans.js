@@ -3,7 +3,7 @@ const { norm } = require('./util');
 /**
  * Sugestão de ban: campeões fortes na sua rota (tier list) e que counteram
  * os picks que você tem mais chance de jogar (dados do OP.GG em cache).
- * Retorna até 5 { id, key, name, score, reasons }.
+ * Retorna até 10 { id, key, name, score, reasons }.
  */
 function recommendBans({ champSelect, picks, getBuild, dd, meta, settings }) {
   if (!dd || champSelect.spectating) return [];
@@ -16,13 +16,13 @@ function recommendBans({ champSelect, picks, getBuild, dd, meta, settings }) {
   );
   const mine = new Set([
     ...(((settings.picker.pool || {})[role]) || []).map(norm),
-    ...picks.candidates.slice(0, 3).map((c) => norm(c.id)),
+    ...picks.candidates.slice(0, 2).map((c) => norm(c.id)),
   ]);
 
   // quanto cada campeão ameaça os meus melhores picks
   const threat = new Map();
-  const weightOf = (cand, i) => (cand.score / 100) * (1 - i * 0.15);
-  picks.candidates.slice(0, 3).forEach((cand, i) => {
+  const weightOf = (cand, i) => (cand.score / 100) * (1 - i * 0.12);
+  picks.candidates.slice(0, 5).forEach((cand, i) => {
     const build = getBuild({ id: cand.id }, role);
     for (const c of (build && build.weakCounters) || []) {
       const key = norm(c.name);
@@ -43,16 +43,16 @@ function recommendBans({ champSelect, picks, getBuild, dd, meta, settings }) {
     const t = threat.get(norm(champ.id));
     const tier = tiers[norm(champ.id)];
     const tierValue = typeof tier === 'string' ? TIER[tier] || 0 : 0;
-    if (!t && tierValue < 0.9) continue;
+    if (!t && tierValue < 0.7) continue;
     const reasons = [];
     if (t) reasons.push(`Counter do seu ${[...new Set(t.against)].slice(0, 2).join(' e ')}`);
-    if (tierValue >= 0.9) reasons.push(`Tier ${tier} na sua rota`);
+    if (tierValue >= 0.7) reasons.push(`Tier ${tier} na sua rota`);
     out.push({
       id: champ.id, key, name: champ.name, reasons,
       score: Math.round(100 * Math.min(1, 0.6 * Math.min(1, t ? t.value : 0) + 0.4 * tierValue)),
     });
   }
-  return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 5);
+  return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 10);
 }
 
 module.exports = { recommendBans };

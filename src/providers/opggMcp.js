@@ -3,7 +3,8 @@ const { norm, clamp } = require('../util');
 const ENDPOINT = 'https://mcp-api.op.gg/mcp';
 const PROTOCOL = '2025-06-18';
 const TIMEOUT_MS = 20_000;
-const MIN_GAP_MS = 400;
+const MIN_GAP_MS = 120;
+const CONCURRENCY = 3;
 
 // Papel do app -> papel do OP.GG
 const POSITION = { top: 'top', jungle: 'jungle', middle: 'mid', bottom: 'adc', utility: 'support' };
@@ -196,10 +197,12 @@ function parseSynergies(text) {
 
 /* ---------- cliente MCP (HTTP) ---------- */
 
-function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_GAP_MS } = {}) {
+function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_GAP_MS, concurrency = CONCURRENCY } = {}) {
   let session = null;
+  let initing = null;
   let last = 0;
-  let chain = Promise.resolve();
+  const queue = []; // { run, priority, resolve, reject }
+  let active = 0;
   let nextId = 1;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -232,8 +235,14 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
     await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, true).catch(() => {});
   }
 
+  async function ensureSession() {
+    if (session) return;
+    if (!initing) initing = init().finally(() => { initing = null; });
+    await initing;
+  }
+
   async function callOnce(name, args) {
-    if (!session) await init();
+    await ensureSession();
     const res = await post({ jsonrpc: '2.0', id: nextId++, method: 'tools/call', params: { name, arguments: args } }, true);
     if (res.status === 404 || res.status === 400) {
       session = null;
@@ -249,7 +258,17 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
     return text;
   }
 
-  function call(name, args) {
+  function pump() {
+    while (active < concurrency && queue.length) {
+      queue.sort((a, b) => b.priority - a.priority);
+      const job = queue.shift();
+      active++;
+      job.run().then(job.resolve, job.reject).finally(() => { active--; pump(); });
+    }
+  }
+
+  /** Chamadas em paralelo (até `concurrency`), as de maior prioridade primeiro. */
+  function call(name, args, priority = 0) {
     const run = async () => {
       try {
         return await callOnce(name, args);
@@ -258,9 +277,7 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
         return callOnce(name, args);
       }
     };
-    const next = chain.then(run, run);
-    chain = next.catch(() => {});
-    return next;
+    return new Promise((resolve, reject) => { queue.push({ run, priority, resolve, reject }); pump(); });
   }
 
   const ANALYSIS_FIELDS = [
@@ -270,11 +287,11 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   ];
 
   return {
-    analysis: async (champ, role) =>
+    analysis: async (champ, role, priority = 0) =>
       parseAnalysis(await call('lol_get_champion_analysis', {
         game_mode: 'ranked', champion: String(champ.id).toUpperCase(), position: POSITION[role] || 'none',
         lang: 'en_US', desired_output_fields: ANALYSIS_FIELDS,
-      })),
+      }, priority)),
     matchup: async (me, enemy, role) =>
       parseMatchup(await call('lol_get_lane_matchup_guide', {
         lang: 'en_US', position: POSITION[role] || 'none',
@@ -289,7 +306,7 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
     laneMeta: async (role) =>
       parseLaneMeta(await call('lol_list_lane_meta_champions', {
         lang: 'en_US', position: POSITION[role],
-      })),
+      }, 5)),
   };
 }
 

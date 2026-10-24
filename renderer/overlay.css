@@ -1,3 +1,5 @@
+@font-face { font-family: "Inter"; src: url("fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Outfit"; src: url("fonts/outfit.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 /* Paleta inspirada em K/DA FIRESTARTER: preto, vinho, carmim e rosa neon */
 :root { --bg: rgba(14, 4, 10, .93); --line: #5c1630; --accent: #ff4d79; --accent2: #ff9ab5; --text: #fdeef3; --muted: #bf93a3; --green: #6ee7b7; --gold: #ffb3c7; }
 [hidden] { display: none !important; }
@@ -22,3 +24,6 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 #edit-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; background: var(--bg); border: 1px solid var(--accent); border-radius: 10px; padding: 8px 14px; color: var(--text); }
 #edit-bar button { background: #7a1636; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
 .muted { color: var(--muted); }
+
+body, button { font-family: "Inter", "Segoe UI", sans-serif; }
+.panel-title, h2, .buy-name { font-family: "Outfit", "Inter", sans-serif; }

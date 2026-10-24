@@ -2,6 +2,7 @@
   "region": "auto",
   "autoAccept": false,
   "autoUpdate": true,
+  "autoImport": true,
   "remoteData": { "enabled": true },
   "flashKey": "F",
   "overlay": { "mode": "tab", "panels": { "buys": null, "info": null } },
@@ -11,6 +12,6 @@
     "blacklist": [],
     "poolBonus": 0.15,
     "minGamesForRole": 1,
-    "maxResults": 6
+    "maxResults": 10
   }
 }

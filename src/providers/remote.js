@@ -24,6 +24,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
   for (const k of ['tiers', 'builds', 'matchups', 'synergies']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
+  const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
 
   function save() {
     try {
@@ -48,10 +49,12 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
         const data = await fetcher();
         if (!data || (typeof data === 'object' && !Object.keys(data).length)) throw new Error('resposta vazia');
         cache[bucket][key] = { at: Date.now(), data };
+        failures.delete(id);
         save();
         onStatus('OP.GG: dados atualizados', 'ok');
       } catch (err) {
         retryAfter.set(id, Date.now() + RETRY_MS);
+        failures.set(id, err.message);
         // "Invalid position or champion" = o OP.GG não tem dados desse campeão nessa rota: não é erro do app.
         if (!/invalid position|champion specified/i.test(err.message)) {
           onStatus(`OP.GG: ${err.message}${cache[bucket][key] ? ' (usando cache antigo)' : ''}`, 'warn');
@@ -65,12 +68,31 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     return job;
   }
 
+  // Campeão sem dados na rota pedida (ex.: off-meta ou recém-lançado): tenta as outras rotas.
+  const ROLES = ['middle', 'top', 'jungle', 'bottom', 'utility'];
+  async function analysisWithFallback(champ, role, priority) {
+    try {
+      return await client.analysis(champ, role, priority);
+    } catch (err) {
+      if (!/invalid position|champion specified|resposta vazia/i.test(err.message)) throw err;
+      for (const r of ROLES.filter((x) => x !== role)) {
+        try {
+          const data = await client.analysis(champ, r, priority);
+          return { ...data, fromRole: r };
+        } catch { /* tenta a próxima */ }
+      }
+      throw new Error(`o OP.GG ainda não tem dados de ${champ.name || champ.id}`);
+    }
+  }
+
   const buildKey = (champ, role) => `${norm(champ.id)}:${role || 'none'}`;
 
   return {
     ensureTiers: (role, onDone) => (role ? refresh('tiers', role, () => client.laneMeta(role), onDone) : Promise.resolve()),
-    ensureBuild: (champ, role, onDone) =>
-      champ ? refresh('builds', buildKey(champ, role), () => client.analysis(champ, role), onDone) : Promise.resolve(),
+    ensureBuild: (champ, role, onDone, priority = 0) =>
+      champ ? refresh('builds', buildKey(champ, role), () => analysisWithFallback(champ, role, priority), onDone) : Promise.resolve(),
+    /** Erro da última tentativa de buscar a build (null se ok ou ainda não tentou). */
+    buildError: (champ, role) => (champ ? failures.get(`builds:${buildKey(champ, role)}`) || null : null),
 
     ensureMatchup: (me, enemy, role, onDone) =>
       me && enemy ? refresh('matchups', `${norm(me.id)}:${norm(enemy.id)}:${role || 'none'}`, () => client.matchup(me, enemy, role), onDone) : Promise.resolve(),

@@ -53,9 +53,10 @@ function slot(p, extraClass = '') {
   );
 }
 
-function pickCard(c, selected) {
+function pickCard(c, selected, i = 0) {
   const card = h('button', { class: `card${selected ? ' selected' : ''}`, type: 'button' },
     h('div', { class: 'card-art' }),
+    h('div', { class: 'card-rank', text: `#${i + 1}` }),
     h('div', { class: 'card-score', text: String(c.score) }),
     h('div', { class: 'card-name', text: c.name }),
     h('div', { class: 'card-why', text: c.reasons[0] || 'Pelos seus dados' }),
@@ -200,6 +201,11 @@ function drawGuide() {
     return;
   }
   const g = guide;
+  if (g.error) {
+    els.guideBody.replaceChildren(h('p', { class: 'muted', text: g.error }));
+    setImportEnabled(false);
+    return;
+  }
   const parts = [];
   if (g.matchup) {
     const vs = g.matchup.advantage ? ` · vantagem de rota: ${g.matchup.advantage}` : '';
@@ -234,7 +240,7 @@ function renderSelect(state) {
   els.turn.hidden = !turnText;
 
   const selectedId = chosenId || (state.me && state.me.champion && state.me.champion.id) || (picks.candidates[0] && picks.candidates[0].id);
-  els.picks.replaceChildren(...picks.candidates.map((c) => pickCard(c, c.id === selectedId)));
+  els.picks.replaceChildren(...picks.candidates.map((c, i) => pickCard(c, c.id === selectedId, i)));
   els.pickNotes.replaceChildren(...picks.notes.map((n) => h('p', { text: n })));
 
   els.team.replaceChildren(...[state.me, ...state.allies].filter(Boolean).map((p) => slot(p)));
@@ -245,9 +251,9 @@ function renderSelect(state) {
 
   const bans = (state.advice && state.advice.bans) || [];
   $('bans').hidden = state.action !== 'ban' || !bans.length;
-  $('ban-row').replaceChildren(...bans.map((b) => h('div', { class: 'ban' },
+  $('ban-row').replaceChildren(...bans.map((b, i) => h('div', { class: 'ban' },
     portrait(b.id, b.name),
-    h('div', {}, h('div', { class: 'slot-name', text: `${b.name} · ${b.score}` }), h('div', { class: 'muted', text: b.reasons.join(' · ') })))));
+    h('div', {}, h('div', { class: 'slot-name' }, h('span', { class: 'ban-rank', text: `#${i + 1}` }), document.createTextNode(` ${b.name} · ${b.score}`)), h('div', { class: 'muted', text: b.reasons.join(' · ') })))));
 
   renderGuide(state, picks);
   showView('select');
@@ -362,6 +368,15 @@ $('home-settings').addEventListener('click', () => els.gear.click());
 
 /* ---------- importar ---------- */
 
+window.overlay.onAutoImport((r) => {
+  els.impMsg.textContent = r.ok ? `✓ ${r.name}: ${r.done.join(', ')} importados automaticamente.` : `Importação automática de ${r.name} falhou: ${r.error}`;
+  if (r.ok && r.championId === shownId) {
+    imported.runes = true;
+    imported.spells = true;
+    drawGuide();
+  }
+});
+
 async function doImport(what) {
   if (!shownId) return;
   els.impMsg.textContent = 'Importando…';
@@ -395,6 +410,7 @@ function fillSettings() {
   $('set-remote').checked = settings.remoteData.enabled;
   $('set-accept').checked = settings.autoAccept === true;
   $('set-update').checked = settings.autoUpdate !== false;
+  $('set-import').checked = settings.autoImport !== false;
   $('set-flash').value = settings.flashKey || 'F';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
   fillRoleFields();
@@ -421,6 +437,7 @@ async function saveSettings() {
     remoteData: { enabled: $('set-remote').checked },
     autoAccept: $('set-accept').checked,
     autoUpdate: $('set-update').checked,
+    autoImport: $('set-import').checked,
     flashKey: $('set-flash').value,
     overlay: { mode: $('set-overlay-mode').value },
     picker: {

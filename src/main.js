@@ -324,11 +324,63 @@ function buildFor(champ, role) {
   return withMatchup(remote.getBuild(champ, role), opp && remote.getMatchup(champ, opp, role), opp && opp.name);
 }
 
+/** Importa runas/feitiços/itens do OP.GG para o cliente. `what`: runes | spells | items | both. */
+async function importBuild(championId, what) {
+  const champ = champById(championId);
+  const role = lastRole || lcuState.myPosition;
+  const build = champ && buildFor(champ, role);
+  const creds = lcuEngine.getCreds();
+  if (!build) return { ok: false, error: 'Ainda não há dados do OP.GG para este campeão.' };
+  if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
+  const done = [];
+  try {
+    if (what !== 'spells' && what !== 'items') {
+      if (!build.runes) throw new Error('sem runas nos dados do OP.GG');
+      await importRunes(creds, build.runes, champ.name);
+      done.push('runas');
+    }
+    if (what !== 'runes' && what !== 'items') {
+      await importSpells(creds, build.spells, { flashOnF: settings.get().flashKey !== 'D' });
+      done.push('feitiços');
+    }
+    if (what === 'items' || what === 'both') {
+      await importItemSet(creds, build, champ);
+      done.push('itens da loja');
+    }
+    return { ok: true, done };
+  } catch (err) {
+    return { ok: false, error: err.message, done };
+  }
+}
+
+/* Importação automática: ao travar o campeão, importa tudo assim que a build do OP.GG chegar. */
+let autoImported = '';
+function maybeAutoImport(state) {
+  if (!settings.get().autoImport || state.phase !== 'champselect' || !state.me || !state.me.locked || !state.me.champion) return;
+  const champ = state.me.champion;
+  const key = `${state.sessionId || ''}:${champ.id}`;
+  if (autoImported === key) return;
+  const role = state.myPosition || lastRole;
+  const run = async () => {
+    if (autoImported === key || !buildFor(champ, role)) return;
+    autoImported = key;
+    const res = await importBuild(champ.id, 'both');
+    logger.log(`importação automática de ${champ.id}: ${res.ok ? res.done.join(', ') : res.error}`);
+    send('auto-import', { championId: String(champ.id), name: champ.name, ...res });
+  };
+  if (buildFor(champ, role)) run();
+  else remote.ensureBuild(champ, role, run, 30);
+}
+
 async function guideFor(championId) {
   const champ = champById(championId);
   if (!champ) return null;
   const role = lastRole || (lcuState.myPosition || '');
   const build = buildFor(champ, role);
+  if (!build) {
+    const error = remote.buildError(champ, role);
+    return error ? { error: `Sem dados do OP.GG: ${error}`, champion: { id: champ.id, name: champ.name } } : null;
+  }
   const skills = await dd.championSkills(champ.id).catch(() => null);
   return buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills });
 }
@@ -339,12 +391,12 @@ function prefetchChampSelect(state, done) {
   const role = state.myPosition;
   remote.ensureTiers(role, done);
   const mine = state.me && state.me.champion;
-  if (mine) remote.ensureBuild(mine, role, done);
+  if (mine) remote.ensureBuild(mine, role, done, 25);
   for (const e of state.enemies) {
     if (e.champion) remote.ensureBuild(e.champion, e.position || role, done);
   }
   const picks = (state.advice && state.advice.picks && state.advice.picks.candidates) || [];
-  for (const c of picks.slice(0, 4)) remote.ensureBuild({ id: c.id }, role, done);
+  picks.slice(0, 6).forEach((c, i) => remote.ensureBuild({ id: c.id }, role, done, 10 - i));
   const opp = state.enemies.find((e) => e.champion && e.position === role);
   if (opp) for (const c of picks.slice(0, 4)) remote.ensureMatchup({ id: c.id }, opp.champion, role, done);
   for (const a of state.allies) if (a.champion && a.position) remote.ensureSynergy(a.champion, a.position, role, done);
@@ -376,38 +428,12 @@ function registerIpc() {
     const champ = champById(championId);
     if (champ) {
       remote.ensureBuild(champ, lastRole || lcuState.myPosition, () =>
-        send('guide-updated', { championId: String(championId) }));
+        send('guide-updated', { championId: String(championId) }), 20);
     }
     return guideFor(championId);
   });
 
-  ipcMain.handle('import:build', async (_e, { championId, what }) => {
-    const champ = champById(championId);
-    const role = lastRole || lcuState.myPosition;
-    const build = champ && buildFor(champ, role);
-    const creds = lcuEngine.getCreds();
-    if (!build) return { ok: false, error: 'Ainda não há dados do OP.GG para este campeão.' };
-    if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
-    const done = [];
-    try {
-      if (what !== 'spells' && what !== 'items') {
-        if (!build.runes) throw new Error('sem runas nos dados do OP.GG');
-        await importRunes(creds, build.runes, champ.name);
-        done.push('runas');
-      }
-      if (what !== 'runes' && what !== 'items') {
-        await importSpells(creds, build.spells, { flashOnF: settings.get().flashKey !== 'D' });
-        done.push('feitiços');
-      }
-      if (what === 'items' || what === 'both') {
-        await importItemSet(creds, build, champ);
-        done.push('itens da loja');
-      }
-      return { ok: true, done };
-    } catch (err) {
-      return { ok: false, error: err.message, done };
-    }
-  });
+  ipcMain.handle('import:build', (_e, { championId, what }) => importBuild(championId, what));
 
   ipcMain.handle('overlay:toggle-move', () => toggleMoveMode());
   ipcMain.handle('win:minimize', () => mainWin && mainWin.minimize());
@@ -496,6 +522,7 @@ app.whenReady().then(() => {
     onState: (state) => {
       lcuState = state;
       publish();
+      maybeAutoImport(state);
     },
   });
 

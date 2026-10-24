@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; img-src 'self' https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
+        content="default-src 'none'; font-src 'self'; img-src 'self' https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
   <title>LoL Overlay</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -62,7 +62,7 @@
   <main id="select" hidden>
     <section class="panel">
       <div class="panel-head">
-        <h2>Recomendações de campeões · IA</h2>
+        <h2 class="ih"><i data-ico="spark"></i>Recomendações de pick · top 10</h2>
         <span id="selRole" class="chip"></span>
         <span id="turn" class="chip hot" hidden></span>
       </div>
@@ -71,7 +71,7 @@
     </section>
 
     <section class="panel" id="bans" hidden>
-      <h2>Sugestões de ban</h2>
+      <h2 class="ih"><i data-ico="close"></i>Sugestões de ban · top 10</h2>
       <div id="ban-row" class="ban-row"></div>
     </section>
 
@@ -152,6 +152,7 @@
         <option value="always">Sempre visível</option>
       </select>
     </label>
+    <label class="field"><input type="checkbox" id="set-import"> Importar runas, feitiços e itens automaticamente ao travar o campeão</label>
     <label class="field"><input type="checkbox" id="set-update"> Atualizar o app automaticamente (GitHub Releases)</label>
     <label class="field"><input type="checkbox" id="set-accept"> Aceitar a partida automaticamente (ready check)</label>
     <label class="field"><input type="checkbox" id="set-remote"> Buscar tier list, builds, runas e counters no OP.GG (cache de 12 h)</label>

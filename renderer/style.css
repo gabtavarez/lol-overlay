@@ -1,3 +1,5 @@
+@font-face { font-family: "Inter"; src: url("fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "Outfit"; src: url("fonts/outfit.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 :root {
   /* K/DA FIRESTARTER: preto, vinho, carmim e rosa neon */
   --bg: #08030a; --panel: rgba(26, 8, 17, .9); --line: #531429; --cyan: #ff4d79; --text: #fdeef3;
@@ -185,3 +187,47 @@ h2.ih .ico { width: 18px; height: 18px; color: var(--accent); filter: drop-shado
 .role-name { display: inline-flex; align-items: center; gap: 6px; }
 .role-ico { width: 16px; height: 16px; color: var(--accent2); }
 .role-row { grid-template-columns: 96px 1fr auto; }
+
+/* =================== visual 2.0 =================== */
+:root { --radius: 16px; --glass: linear-gradient(160deg, rgba(42,10,28,.82), rgba(16,4,12,.86)); --ring: rgba(255,77,121,.16); --grad: linear-gradient(100deg, #ff4d79, #d946ef 55%, #8b5cf6); }
+html, body { font-family: "Inter", "Segoe UI", system-ui, sans-serif; font-feature-settings: "cv11", "ss01"; -webkit-font-smoothing: antialiased; letter-spacing: -.005em;
+  background: radial-gradient(900px 520px at 85% -10%, rgba(217,70,239,.22), transparent 60%), radial-gradient(800px 600px at -10% 110%, rgba(255,77,121,.14), transparent 60%), #07020a; background-attachment: fixed; }
+h1, h2, h3, .brand, .card-score, .card-name, .hc-name, .sum-name, .buy-name, .slot-name, .step b { font-family: "Outfit", "Inter", sans-serif; letter-spacing: -.01em; }
+h1 { font-weight: 700; } h2 { font-size: 16px; font-weight: 600; }
+.panel { background: var(--glass); border: 1px solid var(--ring); border-radius: var(--radius); padding: 18px 20px; box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 20px 40px -24px rgba(0,0,0,.8); }
+.hero { border-radius: 20px; border-color: var(--ring); background: radial-gradient(700px 260px at 0% 0%, rgba(255,60,180,.28), transparent 70%), radial-gradient(500px 240px at 100% 100%, rgba(139,92,246,.22), transparent 70%), var(--glass); }
+.hero h1 { font-size: 32px; background: linear-gradient(90deg, #fff, #ffc2d6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.btn { border-radius: 11px; padding: 9px 15px; font: 600 13px "Inter", sans-serif; border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.05); transition: transform .12s, background .12s, border-color .12s, box-shadow .12s; }
+.btn:hover:not(:disabled) { background: rgba(255,77,121,.12); border-color: rgba(255,77,121,.45); transform: translateY(-1px); }
+.btn.primary { background: var(--grad); border-color: transparent; color: #fff; box-shadow: 0 8px 22px -10px rgba(217,70,239,.8); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--grad); }
+.chip { border-radius: 99px; padding: 3px 11px; font-weight: 500; border-color: rgba(255,255,255,.1); }
+.chip.hot { background: rgba(255,77,121,.14); border-color: rgba(255,77,121,.5); color: #ff8fb0; }
+
+/* cartas de pick */
+.carousel { gap: 14px; padding: 6px 4px 14px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: #5a1a37 transparent; }
+.card { width: 158px; height: 232px; border-radius: 16px; border: 1px solid rgba(255,255,255,.08); background: #14050e; scroll-snap-align: start; transition: transform .18s, box-shadow .18s, border-color .18s; }
+.card:hover { transform: translateY(-3px); border-color: rgba(255,77,121,.6); box-shadow: 0 14px 30px -14px rgba(255,77,121,.6); }
+.card.selected { border-color: transparent; box-shadow: 0 0 0 2px #ff4d79, 0 0 26px -4px rgba(255,77,121,.7); }
+.card-art { transition: transform .4s; } .card:hover .card-art { transform: scale(1.06); }
+.card::after { background: linear-gradient(180deg, rgba(7,2,10,0) 30%, rgba(7,2,10,.92) 78%); }
+.card-score { font: 700 30px "Outfit", sans-serif; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; bottom: 64px; }
+.card-name { font-size: 13px; letter-spacing: .04em; }
+.card-rank { position: absolute; top: 8px; left: 8px; z-index: 2; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 99px; display: grid; place-items: center; font: 700 12px "Outfit", sans-serif; color: #fff; background: rgba(7,2,10,.7); border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(4px); }
+.card:first-child .card-rank { background: var(--grad); border-color: transparent; }
+
+/* bans */
+.ban-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; overflow: visible; }
+.ban { border-radius: 14px; border: 1px solid rgba(255,107,107,.22); background: linear-gradient(135deg, rgba(255,80,80,.10), rgba(255,255,255,.02)); padding: 8px 10px; }
+.ban .portrait { border-radius: 10px; }
+.ban-rank { font: 700 12px "Outfit", sans-serif; color: #ff9b9b; margin-right: 2px; }
+
+.slot, .hc, .step, .summoner { border-radius: 14px; border-color: rgba(255,255,255,.07); background: rgba(255,255,255,.035); }
+.slot.me { border-color: rgba(255,77,121,.55); background: rgba(255,77,121,.08); }
+.hc { transition: transform .15s, border-color .15s; } .hc:hover { transform: translateY(-2px); border-color: rgba(255,77,121,.4); }
+.tip { border-radius: 0 12px 12px 0; border-left-color: #ff4d79; background: linear-gradient(90deg, rgba(255,77,121,.12), transparent); }
+.badge { border-radius: 8px; }
+.field input[type=text], select { border-radius: 10px; background: rgba(0,0,0,.35); border-color: rgba(255,255,255,.1); padding: 9px 10px; font: inherit; }
+input[type=range] { accent-color: #ff4d79; } input[type=checkbox] { accent-color: #ff4d79; width: 15px; height: 15px; vertical-align: -2px; margin-right: 6px; }
+::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: #3a0f24; border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; } ::-webkit-scrollbar-thumb:hover { background: #5a1a37; background-clip: padding-box; }
+main { animation: fadeUp .25s ease-out; } @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

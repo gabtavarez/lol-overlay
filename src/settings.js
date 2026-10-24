@@ -38,6 +38,7 @@ function sanitize(input, base) {
 
   if ('autoAccept' in input) out.autoAccept = input.autoAccept === true;
 
+  if ('autoImport' in input) out.autoImport = input.autoImport !== false;
   if ('autoUpdate' in input) out.autoUpdate = input.autoUpdate !== false;
   if ('flashKey' in input) out.flashKey = input.flashKey === 'D' ? 'D' : 'F';
 
@@ -76,7 +77,7 @@ function sanitize(input, base) {
     if ('minGamesForRole' in p) {
       out.picker.minGamesForRole = clamp(Math.round(number(p.minGamesForRole, 1)), 0, 20);
     }
-    if ('maxResults' in p) out.picker.maxResults = clamp(Math.round(number(p.maxResults, 6)), 1, 10);
+    if ('maxResults' in p) out.picker.maxResults = clamp(Math.round(number(p.maxResults, 10)), 1, 10);
   }
   return out;
 }
@@ -91,7 +92,10 @@ function readJson(file) {
 
 /** Configurações do usuário, salvas em JSON na pasta de dados do app. */
 function createSettingsStore(filePath) {
-  let current = sanitize(readJson(filePath), DEFAULTS);
+  const saved = readJson(filePath);
+  let current = sanitize(saved, DEFAULTS);
+  // Migração sem apagar nada: quem estava no antigo padrão de 6 sugestões passa para 10.
+  if (saved && saved.picker && saved.picker.maxResults === 6) current.picker.maxResults = 10;
 
   return {
     get: () => current,

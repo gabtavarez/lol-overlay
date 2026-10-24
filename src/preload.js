@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('overlay', {
   winToggleMax: () => ipcRenderer.invoke('win:toggle-max'),
   winClose: () => ipcRenderer.invoke('win:close'),
   onMaximized: (cb) => ipcRenderer.on('win:maximized', (_e, v) => cb(v)),
+  onAutoImport: (cb) => ipcRenderer.on('auto-import', (_e, r) => cb(r)),
   getUpdate: () => ipcRenderer.invoke('update:get'),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),

@@ -54,6 +54,10 @@
           <div id="home-roles" class="pad"><p class="muted">Calculado do seu histórico recente.</p></div>
         </section>
       </div>
+      <section class="card" id="elo-card" hidden>
+        <div class="card-h"><h2>Elo e evolução</h2><span class="muted small">ranqueada solo</span></div>
+        <div id="elo-body" class="elo"></div>
+      </section>
       <section class="card">
         <div class="card-h"><h2>Combina com você</h2><span class="muted small">campeões fortes na sua rota, parecidos com os que você joga</span></div>
         <div id="home-fit" class="fit-row"><p class="muted pad">Aparece quando o cliente estiver aberto.</p></div>
@@ -146,6 +150,10 @@
             <div class="card-h"><h2>Fases do matchup</h2><span id="phase-vs" class="muted small"></span></div>
             <div id="phases" class="phases"><p class="muted pad">Aparece quando o oponente de rota for conhecido.</p></div>
           </section>
+          <section class="card" id="goals-card" hidden>
+            <div class="card-h"><h2>Metas da partida</h2><span id="goals-aim" class="muted small"></span></div>
+            <div id="goals-body" class="goals"></div>
+          </section>
           <section class="card" id="kit-card" hidden>
             <div id="kit-body" class="pad"></div>
           </section>
@@ -217,6 +225,11 @@
       <div class="page-head">
         <div><div class="eyebrow">Ajustes</div><h1>Configurações</h1></div>
       </div>
+      <section class="card pad-all">
+        <h2>Overlays em partida</h2>
+        <p class="muted small">Escolha o que aparece quando você segura TAB. Arraste cada painel pelo título para mudar de lugar e pelo canto para mudar o tamanho.</p>
+        <div id="ov-list" class="ov-list"></div>
+      </section>
       <div class="grid-2">
         <section class="card pad-all">
           <h2>Recomendação de pick</h2>

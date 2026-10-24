@@ -21,6 +21,8 @@ const { predictRoles, roleIndex } = require('./roles');
 const { championFit } = require('./fit');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
+const { liveGoals, targetsFor } = require('./goals');
+const { createEloTracker, weekStats } = require('./elo');
 const { createMeraki, ultRank } = require('./providers/meraki');
 
 const USE_MOCK = process.argv.includes('--mock');
@@ -329,6 +331,7 @@ function champById(id) {
 let lastRegion = null;
 let recorder = null;
 let meraki = null;
+let elo = null;
 let matchupPick = null; // { session, id } oponente escolhido à mão no guia (quando a rota inimiga não aparece)
 function laneEnemy() {
   const enemies = (lcuState.enemies || []).filter((x) => x.champion);
@@ -460,6 +463,12 @@ function prefetchChampSelect(state, done) {
   for (const a of state.allies) if (a.champion && a.position) remote.ensureSynergy(a.champion, a.position, role, done);
 }
 
+/** Seu elo solo (lido do cliente; sem ele, Ouro como referência). */
+function myTier() {
+  const p = lcuEngine && lcuEngine.getProfile();
+  return (p && p.summoner && p.summoner.rank && p.summoner.rank.tier) || 'GOLD';
+}
+
 function currentRegion() {
   const s = settings.get().region;
   if (s && s !== 'auto') return s;
@@ -558,6 +567,7 @@ function decorateLive(state) {
   const opC = dd && state.laneOpponent && dd.champions[state.laneOpponent.championId];
   state.advice.phases = meC && opC ? phaseCompare(meC, opC) : null;
   state.advice.oppKit = opC ? abilityCard(opC, state.laneOpponent.level) : null;
+  state.advice.goals = liveGoals(state, myTier(), state.myRole);
   return state;
 }
 
@@ -585,6 +595,11 @@ function decorateLcu(state) {
     state.home.fit = profile && tl ? championFit({ mastery: profile.mastery, dd, tierList: tl.data, mainRole }) : [];
     const s = profile && profile.summoner;
     if (s && s.gameName && s.tagLine && settings.get().myRiotId !== `${s.gameName}#${s.tagLine}`) settings.update({ myRiotId: `${s.gameName}#${s.tagLine}` });
+    if (s && s.rank) elo.record(s.rank);
+    const riotId = settings.get().myRiotId;
+    if (riotId) remote.ensureMatches(riotId, currentRegion(), () => lcuEngine.tick());
+    const m = riotId && remote.getMatches(riotId, currentRegion());
+    state.home.elo = { lp: elo.summary(), week: m ? weekStats(m.list) : null };
     state.home.mainRole = mainRole || null;
   }
   return state;
@@ -655,6 +670,38 @@ function registerIpc() {
     return { list, region, error: list.length ? null : remote.otpError(champ, region) };
   });
 
+  // Importa a build de um one-trick: itens e feitiços dele; runas do meta se a runa principal for a mesma.
+  ipcMain.handle('otp:import', async (_e, { championId, index }) => {
+    const champ = champById(championId);
+    const creds = lcuEngine.getCreds();
+    const p = champ && (remote.getOtp(champ, currentRegion()) || [])[Number(index)];
+    if (!p || !p.build) return { ok: false, error: 'sem build desse jogador' };
+    if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
+    const done = [];
+    const notes = [];
+    try {
+      const isBoots = (id) => ((dd.item(id) || {}).tags || []).includes('Boots');
+      const big = (id) => (((dd.item(id) || {}).gold || {}).total || 0) >= 900;
+      const meta = buildFor(champ, lastRole || lcuState.myPosition) || { starter: [], runes: null };
+      const set = { starter: meta.starter || [], boots: p.build.items.filter(isBoots), core: p.build.items.filter((id) => !isBoots(id) && big(id)), later: [], matchup: null };
+      await importItemSet(creds, set, { ...champ, name: `${champ.name} (${p.riotId.split('#')[0]})` });
+      done.push('itens');
+      if (p.build.spells && p.build.spells.length === 2) {
+        await importSpells(creds, p.build.spells, { flashOnF: settings.get().flashKey !== 'D' });
+        done.push('feitiços');
+      }
+      if (meta.runes && meta.runes.perks[0] === p.build.keystone) {
+        await importRunes(creds, meta.runes, champ.name);
+        done.push('runas');
+      } else {
+        notes.push('runas não importadas: o OP.GG só mostra a runa principal dele, diferente da página do meta');
+      }
+      return { ok: true, done, notes };
+    } catch (err) {
+      return { ok: false, error: err.message, done };
+    }
+  });
+
   // Clique num campeão do app -> marca (hover) no cliente. Ban só na sua vez de banir.
   ipcMain.handle('champselect:hover', async (_e, { championId, kind }) => {
     const champ = champById(championId);
@@ -689,6 +736,7 @@ function registerIpc() {
       const review = reviewMatch(detail, {
         coreOf: (name, role) => { const id = ddId(name); const b = id && remote.getBuild({ id }, role); return b ? b.core : []; },
         itemName: (itemId) => ((dd && dd.item(itemId)) || {}).name || String(itemId),
+        tier: myTier(),
       });
       return { ok: true, detail, review };
     } catch (err) {
@@ -738,6 +786,7 @@ function registerIpc() {
   ipcMain.handle('settings:get', () => settings.get());
   ipcMain.handle('settings:set', (_e, patch) => {
     const next = settings.update(patch);
+    send('settings-changed', next);
     updateOverlayVisibility();
     if (lcuEngine) lcuEngine.tick();
     return next;
@@ -755,6 +804,7 @@ app.whenReady().then(() => {
   settings = createSettingsStore(path.join(userData, 'settings.json'));
   meta = loadMeta([path.join(__dirname, '..', 'data', 'meta.json'), path.join(userData, 'meta.json')]);
 
+  elo = createEloTracker({ dir: userData });
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
   remote = createRemoteData({
@@ -787,7 +837,7 @@ app.whenReady().then(() => {
       liveState = decorateLive(state);
       if (state.phase === 'ingame') recorder.sample(state, state.myRole);
       else if (was === 'ingame') {
-        const rec = recorder.finish();
+        const rec = recorder.finish({ tier: myTier() });
         if (rec) send('postgame', rec);
       }
       publish();

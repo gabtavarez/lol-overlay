@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { goldCompare } = require('./goldDiff');
+const { targetsFor } = require('./goals');
 
 const SAMPLE_EVERY = 30; // s de jogo
 const MAX_GAMES = 40;
@@ -72,7 +73,7 @@ function createRecorder({ dir, dd = () => null, log = () => {} }) {
   }
 
   /** Chamado quando a partida termina. Retorna o registro salvo (ou null se foi curta demais). */
-  function finish() {
+  function finish({ tier } = {}) {
     const c = cur;
     cur = null;
     if (!c || c.last.gameTime < 300) return null;
@@ -97,6 +98,9 @@ function createRecorder({ dir, dd = () => null, log = () => {} }) {
       samples: c.samples,
       version: s.assets && s.assets.version,
     };
+    const t = targetsFor(tier, rec.role);
+    const min = Math.max(1, rec.duration / 60);
+    rec.goals = { tier: tier || null, aimTier: t.aimTier, cs: t.cs === null ? null : { now: +(rec.final.cs / min).toFixed(1), target: t.cs }, vision: { now: +((rec.final.wards || 0) / min).toFixed(2), target: t.vision } };
     rec.analysis = analyze(rec);
     history = [rec, ...history].slice(0, MAX_GAMES);
     save();

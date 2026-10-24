@@ -329,13 +329,24 @@ function fillOtp() {
   const box = $('otp-box');
   if (!box) return;
   const d = otp.data;
-  const rows = d && d.list && d.list.length ? d.list.map((p) => {
+  const rows = d && d.list && d.list.length ? d.list.map((p, idx) => {
     const b = p.build;
     const wr = p.games ? `${Math.round((p.wins / p.games) * 100)}% em ${p.games}` : '';
     const tier = p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()}${p.division ? ` ${p.division}` : ''} · ${p.lp} PDL` : '';
     return h('div', { class: 'otp' },
       h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: `#${p.rank} ${p.riotId}` }), h('div', { class: 'why', text: [tier, wr].filter(Boolean).join(' · ') })),
       b ? h('div', { class: 'otp-build' },
+        (() => {
+          const btn = h('button', { class: 'badge', type: 'button', text: 'Importar' });
+          btn.addEventListener('click', async () => {
+            btn.textContent = '…';
+            const r = await window.overlay.importOtp(otp.id, idx);
+            btn.textContent = r.ok ? '✓ Importado' : 'Importar';
+            btn.classList.toggle('on', r.ok);
+            els.impMsg.textContent = r.ok ? `Build de ${p.riotId.split('#')[0]}: ${r.done.join(', ')} importados.${r.notes && r.notes.length ? ` (${r.notes[0]})` : ''}` : `Não consegui importar: ${r.error}`;
+          });
+          return btn;
+        })(),
         b.keystoneIcon ? icon(ddImg(b.keystoneIcon), 'otp-rune', b.keystoneName) : null,
         ...b.spellKeys.map((k) => icon(ddVerImg(`spell/${k}.png`), 'otp-sp', k)),
         ...b.items.slice(0, 6).map((id) => icon(ddVerImg(`item/${id}.png`), 'otp-it', String(id), ''))) : h('span', { class: 'muted small', text: 'sem partida recente com ele' }));
@@ -386,6 +397,7 @@ function renderSelect(state) {
 
 /* ---------- em partida ---------- */
 
+const TIER_PT = { IRON: 'Ferro', BRONZE: 'Bronze', SILVER: 'Prata', GOLD: 'Ouro', PLATINUM: 'Platina', EMERALD: 'Esmeralda', DIAMOND: 'Diamante', MASTER: 'Mestre', GRANDMASTER: 'Grão-Mestre', CHALLENGER: 'Desafiante' };
 const fmtK = (g) => (Math.abs(g) >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(g));
 const signedK = (d) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmtK(Math.abs(d))}`;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -428,6 +440,15 @@ function renderGame(state) {
   $('phase-vs').textContent = state.laneOpponent ? `vs ${state.laneOpponent.champion} · estimativa` : '';
   $('phases').replaceChildren(...(ph ? ph.map((p) => h('div', { class: `phase ${p.verdict}` }, h('b', { text: p.label }), h('span', { text: p.text })))
     : [h('p', { class: 'muted pad', text: 'Aparece quando o oponente de rota for conhecido.' })]));
+
+  // metas
+  const gl = adv.goals;
+  $('goals-card').hidden = !gl;
+  if (gl) {
+    $('goals-aim').textContent = `ritmo de ${TIER_PT[gl.aimTier] || gl.aimTier} (um elo acima do seu)`;
+    const cell = (label, now, target, ok, extra) => h('div', { class: 'goal' }, h('b', { text: label }), h('span', { class: `goal-v ${ok ? 'up' : 'down'}`, text: String(now) }), h('span', { class: 'muted small', text: `meta ${target}${extra || ''}` }));
+    $('goals-body').replaceChildren(...(gl.cs ? [cell('CS/min', gl.cs.now, gl.cs.target, gl.cs.ok, ` · ${gl.cs.diff >= 0 ? '+' : ''}${gl.cs.diff} CS`)] : []), cell('Visão/min', gl.vision.now, gl.vision.target, gl.vision.ok));
+  }
 
   // habilidades do oponente
   $('kit-card').hidden = !adv.oppKit;
@@ -512,7 +533,7 @@ function renderHome(state) {
   ];
   $('home-chips').replaceChildren(...chips.map(([t, c]) => h('span', { class: `chip ${c}`, text: t })));
 
-  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v]);
+  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v, home.elo]);
   if (key === homeKey) return; // evita redesenhar a cada 1,5 s
   homeKey = key;
 
@@ -544,6 +565,28 @@ function renderHome(state) {
       h('span', { class: 'muted small', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}%` }))),
       h('p', { class: 'muted small', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
     : [h('p', { class: 'muted', text: 'Calculado do seu histórico recente quando o cliente estiver aberto.' })]));
+
+  // elo e evolução
+  const el = home.elo;
+  const rk2 = s && s.rank;
+  $('elo-card').hidden = !(rk2 || (el && (el.lp || el.week)));
+  if (!$('elo-card').hidden) {
+    const sign = (n) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${Math.abs(n)} PDL`;
+    const lp = el && el.lp;
+    const wk = el && el.week;
+    const cell = (label, value, cls = '') => h('div', { class: 'elo-c' }, h('b', { text: label }), h('span', { class: `elo-v ${cls}`, text: value }));
+    const champLine = (list) => list.map((c) => `${c.champion} ${c.wins}/${c.games}`).join(' · ') || '—';
+    $('elo-body').replaceChildren(
+      h('div', { class: 'elo-c elo-main' }, rk2 ? rankImg(rk2.tier, 'rank-big') : '', h('div', {},
+        h('div', { class: 'strong', text: rk2 ? `${TIER_PT[rk2.tier] || rk2.tier} ${rk2.division || ''} · ${rk2.lp} PDL` : 'Sem elo' }),
+        h('div', { class: 'muted small', text: rk2 ? `${rk2.wins}V ${rk2.losses}D · ${Math.round((rk2.wins / Math.max(1, rk2.wins + rk2.losses)) * 100)}%` : '' }))),
+      cell('Hoje', lp ? sign(lp.today) : '—', lp ? (lp.today > 0 ? 'up' : lp.today < 0 ? 'down' : '') : ''),
+      cell('7 dias', lp ? sign(lp.week) : '—', lp ? (lp.week > 0 ? 'up' : lp.week < 0 ? 'down' : '') : ''),
+      cell('Sequência', wk && wk.streak ? `${wk.streak.count} ${wk.streak.wins ? 'vitória' : 'derrota'}${wk.streak.count > 1 ? 's' : ''}` : '—', wk && wk.streak ? (wk.streak.wins ? 'up' : 'down') : ''),
+      cell('Semana', wk ? `${wk.weekWins}V ${wk.weekGames - wk.weekWins}D` : '—'),
+      h('div', { class: 'elo-c elo-wide' }, h('b', { text: 'Melhores da semana' }), h('span', { class: 'up', text: wk ? champLine(wk.best) : '—' })),
+      h('div', { class: 'elo-c elo-wide' }, h('b', { text: 'Piores da semana' }), h('span', { class: 'down', text: wk ? champLine(wk.worst) : '—' })));
+  }
 
   const fit = home.fit || [];
   $('home-fit').replaceChildren(...(fit.length ? fit.map((c) => h('div', { class: 'fit' },
@@ -591,7 +634,28 @@ function fillRoleFields() {
   els.setPool.value = (settings.picker.pool[els.setRole.value] || []).join(', ');
 }
 
+const OVERLAYS = [
+  ['buys', 'Compras · IA', 'As 3 próximas compras com o motivo, o ouro que falta e o aviso de voltar à base.'],
+  ['info', 'Rota', 'Quem é mais forte em cada fase, scouting do oponente e do caçador, dica do matchup e alertas de itens inimigos.'],
+  ['gold', 'Ouro cara a cara', 'Diferença de ouro (valor dos itens) de cada rota e do time.'],
+  ['timers', 'Timers', 'Dragão, arauto e barão; clique nos feitiços inimigos (ou Ctrl+Shift+1…5) para cronometrar o Flash.'],
+  ['kit', 'Habilidades do oponente', 'Recarga de Q/W/E/R do oponente de rota e da ult no nível atual dele.'],
+  ['goals', 'Metas da partida', 'CS/min e visão/min no ritmo do elo acima do seu, com quanto falta.'],
+];
+function fillOverlayList() {
+  const en = (settings.overlay && settings.overlay.enabled) || {};
+  $('ov-list').replaceChildren(...OVERLAYS.map(([key, name, desc]) => {
+    const cb = h('input', { type: 'checkbox' });
+    cb.checked = en[key] !== false;
+    cb.addEventListener('change', async () => { settings = await window.overlay.setSettings({ overlay: { enabled: { [key]: cb.checked } } }); });
+    const reset = h('button', { class: 'link', type: 'button', text: 'posição padrão' });
+    reset.addEventListener('click', async () => { settings = await window.overlay.setSettings({ overlay: { panels: { [key]: null } } }); els.setMsg.textContent = `${name}: posição restaurada.`; });
+    return h('label', { class: 'ov-item' }, cb, h('div', {}, h('div', { class: 'strong', text: name }), h('div', { class: 'muted small', text: desc })), reset);
+  }));
+}
+
 function fillSettings() {
+  fillOverlayList();
   for (const key of WEIGHTS) {
     const pct = Math.round(settings.picker.weights[key] * 100);
     $(`w-${key}`).value = pct;
@@ -854,6 +918,13 @@ function drawHistList() {
 $('hist-refresh').addEventListener('click', () => loadHistory(true));
 window.overlay.onMatchesUpdated(() => { if (page === 'history') loadHistory(); });
 
+/** Linha "metas da partida" no pós-partida: bateu ou não o ritmo do elo acima. */
+function goalsLine(g) {
+  if (!g) return null;
+  const part = (label, x) => (x ? h('span', { class: x.now >= x.target ? 'up' : 'down', text: `${label} ${x.now} (meta ${x.target}) ${x.now >= x.target ? '✓' : '✗'}` }) : null);
+  return h('div', { class: 'g-sub' }, h('span', { text: `Metas no ritmo de ${TIER_PT[g.aimTier] || g.aimTier}:` }), part('CS/min', g.cs), part('Visão/min', g.vision));
+}
+
 function scoreChart(timeline) {
   if (!timeline || timeline.length < 2) return h('p', { class: 'muted', text: 'Sem linha do tempo para esta partida.' });
   const W = 600; const H = 120; const pad = 6;
@@ -903,6 +974,7 @@ async function showHistoryItem(it) {
       h('div', { class: 'h-stat' }, h('b', { text: (s.cs / min).toFixed(1) }), h('span', { class: 'muted small', text: `CS/min (${s.cs})` })),
       h('div', { class: 'h-stat' }, h('b', { text: fmtK(s.damage) }), h('span', { class: 'muted small', text: 'dano em campeões' })),
       h('div', { class: 'h-stat' }, h('b', { text: t.mine && t.mine.kills ? `${Math.round(((s.kills + s.assists) / t.mine.kills) * 100)}%` : '–' }), h('span', { class: 'muted small', text: 'participação' }))),
+    goalsLine(r.goals),
     h('div', { class: 'h-cols' },
       h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { text: o ? `Você x ${o.champion}` : 'Você' })),
         h('div', { class: 'cmp-row head' }, h('span'), h('span', { class: 'muted small', text: 'você' }), h('span', { class: 'muted small', text: o ? o.champion : '' })),
@@ -965,6 +1037,7 @@ async function showHistory(id) {
       h('div', { class: 'h-stat' }, h('b', { text: (f.cs / min).toFixed(1) }), h('span', { class: 'muted small', text: `CS/min (${f.cs})` })),
       h('div', { class: 'h-stat' }, h('b', { text: r.teamKills ? `${Math.round(((f.kills + f.assists) / r.teamKills) * 100)}%` : '–' }), h('span', { class: 'muted small', text: 'participação' })),
       h('div', { class: 'h-stat' }, h('b', { text: String(Math.round(f.wards || 0)) }), h('span', { class: 'muted small', text: 'placar de visão' }))),
+    goalsLine(r.goals),
     h('div', { class: 'h-chart' }, goldChart(r.samples || [])),
     h('div', { class: 'h-cols' },
       h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'up', text: 'O que ajudou' })),

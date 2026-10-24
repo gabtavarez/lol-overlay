@@ -13,7 +13,17 @@
       "buys": null,
       "info": null,
       "gold": null,
-      "timers": null
+      "timers": null,
+      "kit": null,
+      "goals": null
+    },
+    "enabled": {
+      "buys": true,
+      "info": true,
+      "gold": true,
+      "timers": true,
+      "kit": true,
+      "goals": true
     }
   },
   "picker": {

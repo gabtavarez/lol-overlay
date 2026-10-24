@@ -5,7 +5,7 @@ const { toOpggRegion } = require('./opgg');
 const { clamp } = require('./util');
 
 const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
-const PANELS = ['buys', 'info', 'gold', 'timers'];
+const PANELS = ['buys', 'info', 'gold', 'timers', 'kit', 'goals'];
 const BUILD_TIERS = ['ALL', 'GOLD', 'PLATINUM_PLUS', 'EMERALD_PLUS', 'DIAMOND_PLUS', 'MASTER_PLUS', 'CHALLENGER'];
 const WEIGHT_KEYS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 
@@ -54,6 +54,10 @@ function sanitize(input, base) {
   const ov = input.overlay;
   if (ov && typeof ov === 'object') {
     if ('mode' in ov) out.overlay.mode = ov.mode === 'always' ? 'always' : 'tab';
+    if (ov.enabled && typeof ov.enabled === 'object') {
+      out.overlay.enabled = { ...(out.overlay.enabled || {}) };
+      for (const name of PANELS) if (name in ov.enabled) out.overlay.enabled[name] = ov.enabled[name] !== false;
+    }
     if (ov.panels && typeof ov.panels === 'object') {
       for (const name of PANELS) {
         if (!(name in ov.panels)) continue;
@@ -103,6 +107,8 @@ function readJson(file) {
 function createSettingsStore(filePath) {
   const saved = readJson(filePath);
   let current = sanitize(saved, DEFAULTS);
+  current.overlay.enabled = { ...DEFAULTS.overlay.enabled, ...(current.overlay.enabled || {}) };
+  current.overlay.panels = { ...DEFAULTS.overlay.panels, ...(current.overlay.panels || {}) };
   // Migração sem apagar nada: quem estava no antigo padrão de 6 sugestões passa para 10.
   if (saved && saved.picker && saved.picker.maxResults === 6) current.picker.maxResults = 10;
 

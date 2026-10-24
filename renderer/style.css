@@ -311,3 +311,25 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .rank-img { width: 26px; height: 26px; }
 .side-rank { margin-left: auto; width: 24px; height: 24px; }
 .scout-r { display: flex; align-items: center; gap: 6px; }
+
+.ov-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px; margin-top: 6px; }
+.ov-item { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.ov-item input { margin-top: 2px; }
+.ov-item .link { align-self: center; }
+
+.goals { display: grid; grid-template-columns: 1fr 1fr; }
+.goal { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-right: 1px solid var(--line); }
+.goal:last-child { border-right: 0; }
+.goal b { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+.goal-v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.otp-build .badge { margin-right: 8px; }
+
+.elo { display: grid; grid-template-columns: 1.6fr repeat(4, 1fr); }
+.elo-c { display: flex; flex-direction: column; gap: 3px; padding: 12px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.elo-c b { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); font-weight: 600; }
+.elo-v { font-size: 16px; font-weight: 600; }
+.elo-main { flex-direction: row; align-items: center; gap: 12px; }
+.rank-big { width: 40px; height: 40px; }
+.elo-wide { grid-column: span 5; border-right: 0; }
+.elo-wide:last-child { border-bottom: 0; }
+@media (max-width: 1100px) { .elo { grid-template-columns: 1fr 1fr; } .elo-wide { grid-column: span 2; } }

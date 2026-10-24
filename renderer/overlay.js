@@ -1,12 +1,13 @@
 const $ = (id) => document.getElementById(id);
-const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox'), timers: $('timersbox') };
+const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox'), timers: $('timersbox'), kit: $('kitbox'), goals: $('goalsbox') };
+let enabled = {};
 const extras = { recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') };
 
 const BASE_WIDTH = 330;
 let lastState = null;
 let moving = false;
 let previewing = false;
-let panels = { buys: null, info: null, gold: null, timers: null };
+let panels = { buys: null, info: null, gold: null, timers: null, kit: null, goals: null };
 let dragging = false;
 
 const SAMPLE = { items: [
@@ -40,6 +41,22 @@ function renderGold(gold, version) {
       h('div', { class: 'g-mid' }, h('div', { class: `g-diff ${l.diff >= 0 ? 'up' : 'down'}`, text: signed(l.diff) }), bar, h('div', { class: 'g-role', text: l.role })),
       goldSide(l.enemy, version, 'enemy'));
   }));
+}
+
+/* ---------- habilidades do oponente e metas ---------- */
+function renderKit(kit) {
+  if (!kit) return;
+  $('kit-src').textContent = kit.champion;
+  $('kit').replaceChildren(...kit.abilities.map((a) => h('div', { class: `k-row${a.key === 'R' ? ' ult' : ''}` }, h('b', { text: a.key }), h('span', { class: 'k-name', text: a.name }), h('span', { class: 'k-cd', text: a.key === 'R' && kit.ult && kit.ult.cd ? `${kit.ult.cd} s agora` : a.cd }))));
+}
+const TIER_PT = { IRON: 'Ferro', BRONZE: 'Bronze', SILVER: 'Prata', GOLD: 'Ouro', PLATINUM: 'Platina', EMERALD: 'Esmeralda', DIAMOND: 'Diamante', MASTER: 'Mestre', GRANDMASTER: 'Grão-Mestre', CHALLENGER: 'Desafiante' };
+function renderGoals(g) {
+  if (!g) return;
+  $('goals-aim').textContent = `ritmo de ${TIER_PT[g.aimTier] || g.aimTier}`;
+  const row = (label, now, target, ok, extra) => h('div', { class: 'g-goal' }, h('span', { text: label }), h('b', { class: ok ? 'up' : 'down', text: String(now) }), h('span', { class: 'muted', text: `meta ${target}${extra || ''}` }));
+  $('goals').replaceChildren(
+    ...(g.cs ? [row('CS/min', g.cs.now, g.cs.target, g.cs.ok, ` · ${g.cs.diff >= 0 ? '+' : ''}${g.cs.diff} CS`)] : []),
+    row('Visão/min', g.vision.now, g.vision.target, g.vision.ok));
 }
 
 /* ---------- rota: fases + scouting ---------- */
@@ -103,7 +120,7 @@ window.overlay.onSpellMark(({ index, spell }) => {
 
 function defaults() {
   const y = Math.round(window.innerHeight * 0.3);
-  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 }, timers: { x: window.innerWidth - 300, y: Math.max(10, y - 250), scale: 1 } };
+  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 }, timers: { x: window.innerWidth - 300, y: Math.max(10, y - 250), scale: 1 }, kit: { x: 362, y: Math.max(10, y - 170), scale: 1 }, goals: { x: 362, y: y + 10, scale: 1 } };
 }
 
 function apply(name) {
@@ -124,6 +141,9 @@ function draw() {
   boxes.info.hidden = !(sample || (inGame && hasInfo));
   boxes.gold.hidden = !(sample || (inGame && advice.gold));
   boxes.timers.hidden = !(sample || (inGame && ((advice.timers && advice.timers.length) || lastState.enemies.length)));
+  boxes.kit.hidden = !(sample || (inGame && advice.oppKit));
+  boxes.goals.hidden = !(sample || (inGame && advice.goals));
+  for (const [name, el] of Object.entries(boxes)) if (enabled[name] === false) el.hidden = true; // desligado em Configurações > Overlays
   for (const b of Object.values(boxes)) b.classList.toggle('moving', moving);
   $('edit-bar').hidden = !moving;
 
@@ -134,12 +154,16 @@ function draw() {
     renderGold(advice.gold, lastState.assets.version);
     renderInfo(advice, lastState);
     renderTimers(lastState);
+    renderKit(advice.oppKit);
+    renderGoals(advice.goals);
   } else if (sample) {
     $('gold').textContent = '';
     renderBuyList($('list'), SAMPLE, null);
     renderGold(SAMPLE_GOLD, null);
     renderInfo({ phases: [{ label: 'Early', verdict: 'theirs', text: 'Oponente mais forte' }, { label: 'Mid', verdict: 'even', text: 'Equilibrado' }, { label: 'Late', verdict: 'mine', text: 'Você mais forte' }] }, null);
     renderTimers(null);
+    renderKit({ champion: 'Oponente', source: 'Meraki', abilities: [{ key: 'Q', name: 'Habilidade Q', cd: '8→6 s' }, { key: 'W', name: 'Habilidade W', cd: '18→14 s' }, { key: 'E', name: 'Habilidade E', cd: '14→10 s' }, { key: 'R', name: 'Ultimate', cd: '120→80 s' }], ult: { rank: 1, cd: 120 } });
+    renderGoals({ aimTier: 'PLATINUM', cs: { now: 6.1, target: 6.5, diff: -6, ok: false }, vision: { now: 0.7, target: 0.7, ok: true } });
     renderExtras(extras, { buys: { recall: 'Aviso de recall aparece aqui', items: [1], matchup: { vs: 'Campeão', tip: 'Dica do matchup aparece aqui.' } }, alerts: [{ text: 'Alertas de itens inimigos' }] });
   }
 }
@@ -209,10 +233,16 @@ for (const [name, el] of Object.entries(boxes)) {
 $('move-done').addEventListener('click', () => window.overlay.toggleMoveMode());
 
 window.overlay.onState((state) => { lastState = state; draw(); });
+window.overlay.onSettings((s) => {
+  enabled = (s.overlay && s.overlay.enabled) || {};
+  if (!dragging && s.overlay && s.overlay.panels) { panels = { ...s.overlay.panels }; Object.keys(boxes).forEach(apply); }
+  draw();
+});
 window.overlay.onMoveMode((on) => { moving = on; draw(); });
 window.overlay.onPreview((on) => { previewing = on; draw(); });
 window.overlay.getSettings().then((s) => {
-  if (s && s.overlay && s.overlay.panels) panels = { buys: s.overlay.panels.buys, info: s.overlay.panels.info, gold: s.overlay.panels.gold, timers: s.overlay.panels.timers };
+  if (s && s.overlay && s.overlay.panels) panels = { ...panels, ...s.overlay.panels };
+  enabled = (s && s.overlay && s.overlay.enabled) || {};
   Object.keys(boxes).forEach(apply);
 });
 window.addEventListener('resize', () => Object.keys(boxes).forEach(apply));

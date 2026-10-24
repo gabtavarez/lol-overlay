@@ -5,7 +5,9 @@
 const k = (n) => (Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n)));
 const ROLE = { TOP: 'top', JUNGLE: 'jungle', MID: 'middle', ADC: 'bottom', SUPPORT: 'utility' };
 
-function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id) } = {}) {
+const { targetsFor } = require('./goals');
+
+function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id), tier = null } = {}) {
   const players = detail.teams.flatMap((t) => t.players);
   const me = players.find((p) => p.target);
   if (!me) return null;
@@ -56,8 +58,10 @@ function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id) 
     if (!built.length) bad.push({ title: 'Fora da build do meta', text: `nenhum item core (${core.map(itemName).join(', ')})` });
     else if (built.length >= 2) good.push({ title: 'Build do meta', text: `${built.map(itemName).join(', ')}` });
   }
+  const t = targetsFor(tier, role);
+  const goals = { aimTier: t.aimTier, cs: t.cs === null ? null : { now: +(s.cs / min).toFixed(1), target: t.cs }, vision: null }; // o OP.GG só informa sentinelas colocadas, não o placar de visão
   return {
-    me, opp: opp || null, role,
+    me, opp: opp || null, role, goals,
     teams: { mine: myTeam, enemy: enemyTeam },
     good, bad,
   };

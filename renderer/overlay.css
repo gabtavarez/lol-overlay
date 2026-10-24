@@ -69,3 +69,13 @@ button { font: inherit; color: inherit; }
 .t-spell img { width: 100%; height: 100%; display: block; }
 .t-spell.down img { filter: grayscale(1) brightness(.4); }
 .t-left { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; color: #fff; }
+
+.kit-box { width: 250px; } .goals-box { width: 230px; }
+.k-row { display: grid; grid-template-columns: 16px 1fr auto; gap: 8px; align-items: center; padding: 4px 0; font-size: 12px; }
+.k-row b { color: var(--acc); }
+.k-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+.k-cd { font-variant-numeric: tabular-nums; }
+.k-row.ult .k-cd { font-weight: 700; }
+.g-goal { display: grid; grid-template-columns: 70px 44px 1fr; gap: 8px; align-items: center; padding: 5px 0; font-size: 12px; }
+.g-goal b { font-size: 14px; font-variant-numeric: tabular-nums; }
+.up { color: var(--good); } .down { color: var(--bad); }

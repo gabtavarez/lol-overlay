@@ -281,3 +281,22 @@ test('Meraki: recargas por nível e rank da ult', () => {
   assert.equal(s.adaptiveType, 'MAGIC_DAMAGE');
   assert.equal(ultRank(11), 2);
 });
+
+const { absLp, weekStats, createEloTracker } = require('../src/elo');
+test('elo: PDL absoluto, saldo e sequência', () => {
+  assert.equal(absLp({ tier: 'EMERALD', division: 'I', lp: 14 }), 5 * 400 + 300 + 14);
+  assert.equal(absLp({ tier: 'MASTER', lp: 50 }), 2850);
+  const dir = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'elo-'));
+  let t = Date.now() - 2 * 24 * 3600 * 1000;
+  const tr = createEloTracker({ dir, now: () => t });
+  tr.record({ tier: 'GOLD', division: 'II', lp: 40, wins: 10, losses: 10 });
+  t = Date.now();
+  tr.record({ tier: 'GOLD', division: 'I', lp: 10, wins: 13, losses: 11 });
+  assert.equal(tr.summary().week, 70);
+  const now = Date.now();
+  const g = (res, champ, daysAgo) => ({ type: 'SOLORANKED', createdAt: new Date(now - daysAgo * 864e5).toISOString(), me: { champion: champ, stats: { result: res } } });
+  const w = weekStats([g('WIN', 'Ahri', 0), g('WIN', 'Ahri', 1), g('LOSE', 'Zed', 1), g('LOSE', 'Zed', 2), g('WIN', 'Lux', 3), g('WIN', 'Lux', 3), g('LOSE', 'Lux', 9)], now);
+  assert.deepEqual(w.streak, { wins: true, count: 2 });
+  assert.equal(w.best[0].champion, 'Ahri');
+  assert.equal(w.weekGames, 6);
+});

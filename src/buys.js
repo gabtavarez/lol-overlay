@@ -71,8 +71,10 @@ function who(list, key, n = 2) {
  * Bota certa para o momento: defensiva se você está perdendo a rota ou o time inimigo tem muito CC/dano
  * de um tipo; senão, a bota ofensiva do meta (janela pra buildar dano).
  */
-function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName }) {
-  const meta = build && build.boots && build.boots.find((id) => dd.item(id));
+const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3158, 3047], tank: [3047, 3111] };
+
+function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls = 'ad' }) {
+  const meta = (build && build.boots && build.boots.find((id) => dd.item(id))) || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id));
   const mercs = firstAvailable(reactive.bootsMr, dd, ownedSet);
   const steel = firstAvailable(reactive.bootsArmor, dd, ownedSet);
   const opp = t.find((x) => x.lane) || t.find((x) => x.e.champion === laneOpponentName) || null;
@@ -122,7 +124,10 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   };
 
   /* --- caminho do meta --- */
-  const hasBoots = owned.some((id) => (dd.item(id) || { tags: [] }).tags.includes(BOOT_TAG));
+  // Bota básica (1001) não conta: ela precisa virar a bota final, e o ouro que falta já desconta a básica.
+  const BASIC_BOOTS = 1001;
+  const hasBoots = owned.some((id) => id !== BASIC_BOOTS && (dd.item(id) || { tags: [] }).tags.includes(BOOT_TAG));
+  const hasBasicBoots = owned.includes(BASIC_BOOTS);
   const path = [];
   if (build) {
     path.push(...build.core, ...laterItems(build));
@@ -170,11 +175,17 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 
   // Anti-cura: curandeiros nativos ou 2+ inimigos com roubo de vida. Começa pelo componente de 800 g.
   const healers = t.filter((x) => flags.healers.includes(x.e.championId));
-  const lifesteal = t.filter((x) => !flags.healers.includes(x.e.championId) && (x.e.items || []).some((i) => (i.tags || []).some((tg) => tg === 'LifeSteal' || tg === 'SpellVamp')));
+  // Roubo de vida só conta com item LENDÁRIO de cura (ex.: Sedenta por Sangue); Lâmina de Doran e afins não.
+  const healItem = (e) => (e.items || []).find((i) => {
+    const meta = dd.item(i.id);
+    return meta && ((meta.gold && meta.gold.total) || 0) >= 2500 && (i.tags || []).some((tg) => tg === 'LifeSteal' || tg === 'SpellVamp');
+  });
+  const lifesteal = t.filter((x) => !flags.healers.includes(x.e.championId) && healItem(x.e));
   if (healers.length || lifesteal.length >= 2) {
     const all = [...healers, ...(lifesteal.length >= 2 ? lifesteal : [])];
     const hw = all.reduce((s, x) => s + x.w, 0);
-    react('antiheal', Math.min(92, 62 + hw * 12), `Anti-cura contra ${who(all, (x) => x.w)} · componente de 800 g já resolve; feche depois`);
+    const why = all.map((x) => (healers.includes(x) ? x.e.champion : `${x.e.champion} (${healItem(x.e).name})`)).slice(0, 3).join(', ');
+    react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), `Anti-cura contra ${why} · o componente de 800 g já resolve`);
   }
 
   // Burst AP explosivo vivo (Veigar, Syndra, Fizz, LeBlanc…): Zhonya / Malmortius / Bordo da Noite.
@@ -214,8 +225,13 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
       carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : monoAD ? `Time inimigo quase todo AD (${adCount}): armadura é prioridade` : `Armadura: dano inimigo mais AD · foco: ${foco}`);
   }
   if (!hasBoots && owned.length >= 1) {
-    const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName });
-    if (b) add(b.id, b.score, b.reason, 'boots');
+    const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls });
+    if (b) {
+      // Timing: botas entram depois do 1º item (ou ~8 min) e sobem se você já tem a bota básica.
+      const due = legendaries >= 1 || state.gameTime >= 480;
+      const bonus = (due ? 18 : 0) + (hasBasicBoots ? 10 : 0);
+      add(b.id, b.score + bonus, `${b.reason}${hasBasicBoots ? ' · você já tem a bota básica' : due ? ' · hora de fechar a bota' : ''}`, 'boots');
+    }
   }
 
   const tanks = enemies.filter((e) => e.tags[0] === 'Tank' || e.items.filter((i) => i.tags.includes('Armor') || i.tags.includes('SpellBlock')).length >= 2);

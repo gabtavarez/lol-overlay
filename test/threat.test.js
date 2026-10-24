@@ -135,3 +135,19 @@ test('mago contra Zed na rota: Zhonya (não Banshee)', () => {
   assert.match(z.reason, /Zed/);
   assert.ok(!adv.items.some((i) => i.id === 3102));
 });
+
+test('botas: com bota básica sugere a final; anti-cura não dispara por Lâmina de Doran', () => {
+  const I = { 1001: { name: 'Botas', tags: ['Boots'], gold: { total: 300 } }, 3020: { name: 'Feiticeiro', tags: ['Boots'], gold: { total: 1100 }, from: ['1001'] , },
+    1055: { name: 'Lâmina de Doran', tags: ['LifeSteal'], gold: { total: 450 } }, 3916: { name: 'Orbe', tags: [], gold: { total: 800 } }, 1056: { name: 'Anel', tags: [], gold: { total: 400 } } };
+  I[3020].gold.base = 800;
+  const ddB = { item: (id) => I[id] || null };
+  const fl = { healers: [], apOverrides: [], adOverrides: [], hardCc: [], burst: [], autoAttackers: [] };
+  const E = (champion, tags) => ({ champion, championId: champion, tags, level: 8, position: '', scores: { kills: 1, deaths: 1, assists: 0 }, items: [{ id: 1055, tags: ['LifeSteal'] }] });
+  const adv = buyAdvice({ dd: ddB, flags: fl, build: { damageType: 'AP', core: [], boots: [3020] }, state: {
+    gameTime: 600, me: { champion: 'Ahri', championId: 'Ahri', tags: ['Mage'], level: 8, gold: 900, items: [{ id: 1056 }, { id: 1001 }], scores: { kills: 1, deaths: 1, assists: 0 } },
+    enemies: [E('Talon', ['Assassin']), E('Smolder', ['Marksman'])] } });
+  const ids = adv.items.map((i) => i.id);
+  assert.ok(ids.includes(3020), `bota final esperada: ${ids}`);
+  assert.equal(adv.items.find((i) => i.id === 3020).missing, 800);
+  assert.ok(!ids.includes(3916), 'sem anti-cura por Doran');
+});

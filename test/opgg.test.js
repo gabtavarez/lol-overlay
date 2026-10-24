@@ -237,3 +237,14 @@ test('settings: painéis do overlay, modo e tecla do Flash são validados', () =
   assert.equal(sanitize({ overlay: { panels: { buys: { x: 'a', y: 1 } } } }, a).overlay.panels.buys, null);
   assert.deepEqual(sanitize({ overlay: { panels: { buys: { x: -5, y: 99999 } } } }, a).overlay.panels.buys, { x: 0, y: 10000, scale: 1 });
 });
+
+const { parseTierList } = require('../src/providers/opggMcp');
+test('tier list do OP.GG: todas as rotas com WR, pick, ban e rank', () => {
+  const text = 'class LolListLaneMetaChampions: data\nclass Data: positions\nclass Positions: mid,adc\nclass Mid: champion,play,win_rate,pick_rate,role_rate,ban_rate,kda,tier,rank,rank_prev\nclass Adc: champion,play,win_rate,pick_rate,role_rate,ban_rate,kda,tier,rank,rank_prev\n\nLolListLaneMetaChampions(Data(Positions([Mid("Ahri",58465,0.51,0.1,0.95,0.03,2.54,1,1,1),Mid("Zed",48422,0.49,0.08,0.69,0.24,2.15,2,15,15)],[Adc("Jinx",50000,0.52,0.12,0.9,0.05,2.5,1,1,3)])))';
+  const t = parseTierList(text);
+  assert.equal(t.middle.length, 2);
+  assert.equal(t.middle[0].champion, 'Ahri');
+  assert.equal(t.middle[1].tier, 2);
+  assert.equal(t.bottom[0].rankPrev, 3);
+  assert.equal(t.bottom[0].banRate, 0.05);
+});

@@ -481,6 +481,23 @@ function registerIpc() {
     return guideFor(championId);
   });
 
+  // Tier list ranqueada (OP.GG): todas as rotas, com a fonte e o patch.
+  ipcMain.handle('tierlist:get', (_e, force) => {
+    remote.ensureTierList(() => send('tierlist-updated', true), Boolean(force));
+    const e = remote.getTierList();
+    let data = null;
+    if (e) {
+      data = {};
+      for (const [role, rows] of Object.entries(e.data)) {
+        data[role] = rows.map((r) => {
+          const c = dd && dd.championByRaw(null, r.champion);
+          return { ...r, id: c ? c.id : null, name: c ? c.name : r.champion };
+        });
+      }
+    }
+    return { data, at: e ? e.at : null, patch: dd ? dd.version : null, error: e ? null : remote.tierListError() };
+  });
+
   // Escolha manual do oponente do matchup ('auto' volta à detecção pela rota, 'none' = só a build geral).
   ipcMain.handle('matchup:set', (_e, id) => {
     matchupPick = id && id !== 'auto' ? { session: lcuState.sessionId, id: String(id) } : null;
@@ -541,6 +558,7 @@ app.whenReady().then(() => {
     cacheDir: path.join(userData, 'remote'),
     isEnabled: () => !USE_MOCK && settings.get().remoteData.enabled,
     onStatus: (text, level) => setStatus(text, level),
+    getTier: () => settings.get().buildTier,
   });
 
   if (!DEVTOOLS_ALLOWED) Menu.setApplicationMenu(null); // sem menu padrão do Electron (View > Toggle DevTools etc.)

@@ -6,6 +6,7 @@ const { clamp } = require('./util');
 
 const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
 const PANELS = ['buys', 'info', 'gold'];
+const BUILD_TIERS = ['ALL', 'GOLD', 'PLATINUM_PLUS', 'EMERALD_PLUS', 'DIAMOND_PLUS', 'MASTER_PLUS', 'CHALLENGER'];
 const WEIGHT_KEYS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 
 function cleanList(value) {
@@ -38,6 +39,10 @@ function sanitize(input, base) {
 
   if ('autoAccept' in input) out.autoAccept = input.autoAccept === true;
 
+  if ('buildTier' in input) {
+    const t = String(input.buildTier || '').toUpperCase();
+    if (BUILD_TIERS.includes(t)) out.buildTier = t;
+  }
   if ('autoImport' in input) out.autoImport = input.autoImport !== false;
   if ('autoUpdate' in input) out.autoUpdate = input.autoUpdate !== false;
   if ('flashKey' in input) out.flashKey = input.flashKey === 'D' ? 'D' : 'F';

@@ -150,6 +150,22 @@ function parseLaneMeta(text) {
   return out;
 }
 
+const TL_POS = { top: 'top', jungle: 'jungle', mid: 'middle', adc: 'bottom', support: 'utility' };
+const TL_FIELDS = Object.keys(TL_POS).map((p) => `data.positions.${p}[].{champion,play,win_rate,pick_rate,role_rate,ban_rate,kda,tier,rank,rank_prev}`);
+
+/** Tier list completa (todas as rotas) -> { [rota]: [{ champion, tier, rank, rankPrev, winRate, pickRate, banRate, games, kda }] } */
+function parseTierList(text) {
+  const positions = (parseCompact(text).data || {}).positions || {};
+  const out = {};
+  for (const [pos, role] of Object.entries(TL_POS)) {
+    out[role] = (Array.isArray(positions[pos]) ? positions[pos] : []).filter((r) => r && r.champion).map((r) => ({
+      champion: r.champion, tier: Number(r.tier) || 5, rank: Number(r.rank) || 999, rankPrev: Number(r.rank_prev) || null,
+      winRate: r.win_rate || 0, pickRate: r.pick_rate || 0, banRate: r.ban_rate || 0, roleRate: r.role_rate || 0, games: r.play || 0, kda: r.kda || 0,
+    })).sort((a, b) => a.rank - b.rank);
+  }
+  return out;
+}
+
 /** Guia de matchup (JSON): melhores runas/itens/feitiços CONTRA aquele oponente + dica. */
 function parseMatchup(text) {
   const d = (JSON.parse(text) || {}).data;
@@ -287,10 +303,10 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   ];
 
   return {
-    analysis: async (champ, role, priority = 0) =>
+    analysis: async (champ, role, priority = 0, tier = null) =>
       parseAnalysis(await call('lol_get_champion_analysis', {
         game_mode: 'ranked', champion: String(champ.id).toUpperCase(), position: POSITION[role] || 'none',
-        lang: 'en_US', desired_output_fields: ANALYSIS_FIELDS,
+        lang: 'en_US', desired_output_fields: ANALYSIS_FIELDS, ...(tier ? { tier } : {}),
       }, priority)),
     matchup: async (me, enemy, role) =>
       parseMatchup(await call('lol_get_lane_matchup_guide', {
@@ -303,6 +319,8 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
         synergy_position: POSITION[myRole] || 'none', lang: 'en_US',
         desired_output_fields: ['data.synergies[].{champion_name,synergy_champion_name,win_rate,play}'],
       })),
+    tierList: async () =>
+      parseTierList(await call('lol_list_lane_meta_champions', { lang: 'en_US', position: 'all', desired_output_fields: TL_FIELDS }, 4)),
     laneMeta: async (role) =>
       parseLaneMeta(await call('lol_list_lane_meta_champions', {
         lang: 'en_US', position: POSITION[role],
@@ -310,4 +328,4 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   };
 }
 
-module.exports = { createMcpClient, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };
+module.exports = { createMcpClient, parseTierList, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };

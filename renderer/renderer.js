@@ -34,11 +34,18 @@ function playerLabel(p) {
   return p.tagLine ? `${p.gameName}#${p.tagLine}` : p.gameName;
 }
 
+let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' = aba Tier List
+let lastView = 'waiting';
 function showView(name) {
-  const v = settingsOpen ? null : name;
+  lastView = name;
+  const v = settingsOpen ? null : page === 'tierlist' ? 'tierlist' : name;
   els.waiting.hidden = v !== 'waiting';
   els.select.hidden = v !== 'select';
   els.game.hidden = v !== 'game';
+  $('tierlist').hidden = v !== 'tierlist';
+  $('nav-home').classList.toggle('on', page !== 'tierlist');
+  $('nav-tier').classList.toggle('on', page === 'tierlist');
+  $('nav-home').textContent = name === 'select' ? 'Champ select' : name === 'game' ? 'Partida' : 'Início';
 }
 
 /* ---------- champ select ---------- */
@@ -332,7 +339,13 @@ function renderGame(state) {
 
 /* ---------- roteamento ---------- */
 
+let lastPhase = '';
 function render(state) {
+  if (state.phase !== lastPhase) {
+    // começou champ select ou partida: sai da tier list para não perder nada
+    if (state.phase === 'champselect' || state.phase === 'ingame') page = 'auto';
+    lastPhase = state.phase;
+  }
   lastState = state;
   if (state.phase === 'ingame') return renderGame(state);
   if (state.phase === 'champselect') return renderSelect(state);
@@ -460,6 +473,7 @@ function fillSettings() {
   $('set-accept').checked = settings.autoAccept === true;
   $('set-update').checked = settings.autoUpdate !== false;
   $('set-import').checked = settings.autoImport !== false;
+  $('set-tier').value = settings.buildTier || 'EMERALD_PLUS';
   $('set-flash').value = settings.flashKey || 'F';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
   fillRoleFields();
@@ -487,6 +501,7 @@ async function saveSettings() {
     autoAccept: $('set-accept').checked,
     autoUpdate: $('set-update').checked,
     autoImport: $('set-import').checked,
+    buildTier: $('set-tier').value,
     flashKey: $('set-flash').value,
     overlay: { mode: $('set-overlay-mode').value },
     picker: {
@@ -575,3 +590,89 @@ window.overlay.onGuideUpdated((p) => {
   if (p.championId === shownId) window.overlay.getGuide(shownId).then((g) => { guide = g; drawGuide(); });
 });
 window.overlay.ready();
+
+/* ---------- tier list ---------- */
+
+const TL_ROLES = [['all', 'Todas'], ['top', 'Topo'], ['jungle', 'Selva'], ['middle', 'Meio'], ['bottom', 'Atirador'], ['utility', 'Suporte']];
+const TL_TIERS = [[1, 'S'], [2, 'A'], [3, 'B'], [4, 'C'], [5, 'D']];
+let tl = null;
+let tlRole = 'all';
+const pc = (x) => `${(x * 100).toFixed(1)}%`;
+
+function tlRoleButtons() {
+  $('tl-roles').replaceChildren(...TL_ROLES.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === tlRole ? ' on' : ''}`, type: 'button', title: label });
+    b.append(k === 'all' ? svgIcon('spark') : svgIcon(k), h('span', { text: label }));
+    b.addEventListener('click', () => { tlRole = k; tlRoleButtons(); drawTierList(); });
+    return b;
+  }));
+}
+
+function tlTile(r, showRole) {
+  const v = (tl && tl.patch) || version;
+  const delta = r.rankPrev ? r.rankPrev - r.rank : 0;
+  const tile = h('div', { class: 'tl-tile' },
+    h('div', { class: 'tl-ico' },
+      v && r.id ? h('img', { src: champIcon(v, r.id), alt: r.name }) : h('span'),
+      showRole ? svgIcon(r.role, 'ico tl-role') : null),
+    h('div', { class: 'tl-info' },
+      h('div', { class: 'tl-name', text: r.name }),
+      h('div', { class: 'tl-wr', text: pc(r.winRate) }),
+      h('div', { class: 'tl-sub', text: `Pick ${pc(r.pickRate)} · Ban ${pc(r.banRate)}` })),
+    delta ? h('span', { class: `tl-delta ${delta > 0 ? 'up' : 'down'}`, text: `${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}` }) : null);
+  tile.title = `${r.name} · #${r.rank} na rota · ${r.games.toLocaleString('pt-BR')} partidas · KDA ${r.kda}`;
+  return tile;
+}
+
+function drawTierList() {
+  const body = $('tl-body');
+  if (!tl || !tl.data) {
+    body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: tl && tl.error ? `Não consegui carregar: ${tl.error}` : 'Carregando a tier list do OP.GG…' })));
+    return;
+  }
+  const meta = [`Patch ${String(tl.patch || '').split('.').slice(0, 2).join('.')}`, 'Esmeralda+ · Global', 'OP.GG'];
+  if (tl.at) meta.push(`atualizada ${new Date(tl.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
+  $('tl-meta').replaceChildren(...meta.map((t) => h('span', { class: 'chip', text: t })));
+
+  const q = $('tl-search').value.trim().toLowerCase();
+  const sort = $('tl-sort').value;
+  let rows = [];
+  for (const [role, list] of Object.entries(tl.data)) if (tlRole === 'all' || role === tlRole) rows.push(...list.map((r) => ({ ...r, role })));
+  if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q));
+  const order = (a, b) => (sort === 'tier' ? a.tier - b.tier || b.winRate - a.winRate : b[sort] - a[sort]);
+  rows.sort(order);
+  if (!rows.length) { body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: 'Nenhum campeão encontrado.' }))); return; }
+
+  if (sort !== 'tier') {
+    body.replaceChildren(h('section', { class: 'tl-group' }, h('div', { class: 'tl-grid' }, ...rows.map((r) => tlTile(r, tlRole === 'all')))));
+    return;
+  }
+  body.replaceChildren(...TL_TIERS.map(([n, letter]) => {
+    const list = rows.filter((r) => Math.min(5, Math.max(1, r.tier)) === n);
+    if (!list.length) return null;
+    return h('section', { class: `tl-group t${letter}` },
+      h('div', { class: 'tl-rail' }, h('span', { class: 'tl-letter', text: letter })),
+      h('div', { class: 'tl-grid' }, ...list.map((r) => tlTile(r, tlRole === 'all'))));
+  }).filter(Boolean));
+}
+
+async function loadTierList(force = false) {
+  tl = await window.overlay.getTierList(force);
+  drawTierList();
+}
+window.overlay.onTierListUpdated(() => { if (page === 'tierlist') loadTierList(); });
+$('nav-tier').addEventListener('click', () => {
+  if (settingsOpen) closeSettings();
+  page = 'tierlist';
+  showView(lastView);
+  tlRoleButtons();
+  loadTierList();
+});
+$('nav-home').addEventListener('click', () => {
+  if (settingsOpen) closeSettings();
+  page = 'auto';
+  showView(lastView);
+});
+$('tl-search').addEventListener('input', drawTierList);
+$('tl-sort').addEventListener('change', drawTierList);
+$('tl-refresh').addEventListener('click', () => { tl = null; drawTierList(); loadTierList(true); });

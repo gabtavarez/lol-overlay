@@ -34,5 +34,6 @@
     "poolBonus": 0.15,
     "minGamesForRole": 1,
     "maxResults": 10
-  }
+  },
+  "buildTier": "EMERALD_PLUS"
 }

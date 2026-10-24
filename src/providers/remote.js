@@ -18,10 +18,10 @@ function readJson(file) {
  * Dados do OP.GG (servidor MCP oficial): tier list por rota, e por campeão+rota
  * runas, feitiços, itens e counters. Cache em disco de 12 h; em falha usa o cache antigo.
  */
-function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient() }) {
+function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -36,12 +36,12 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     }
   }
 
-  function refresh(bucket, key, fetcher, onDone) {
+  function refresh(bucket, key, fetcher, onDone, ttl = TTL_MS) {
     if (!isEnabled()) return Promise.resolve();
     const id = `${bucket}:${key}`;
     if (inflight.has(id)) return inflight.get(id);
     const entry = cache[bucket][key];
-    if (entry && Date.now() - entry.at < TTL_MS) return Promise.resolve();
+    if (entry && Date.now() - entry.at < ttl) return Promise.resolve();
     if ((retryAfter.get(id) || 0) > Date.now()) return Promise.resolve();
 
     const job = (async () => {
@@ -81,7 +81,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     if (!role) {
       for (const r of guessRoles(champ)) {
         try {
-          return { ...(await client.analysis(champ, r, priority)), fromRole: r };
+          return { ...(await client.analysis(champ, r, priority, tierArg())), fromRole: r };
         } catch (err) {
           if (!/invalid|position|champion|vazia/i.test(err.message)) throw err;
         }
@@ -89,12 +89,12 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       throw new Error(`o OP.GG ainda não tem dados de ${champ.name || champ.id}`);
     }
     try {
-      return await client.analysis(champ, role, priority);
+      return await client.analysis(champ, role, priority, tierArg());
     } catch (err) {
       if (!/invalid|position|champion|vazia/i.test(err.message)) throw err;
       for (const r of ROLES.filter((x) => x !== role)) {
         try {
-          const data = await client.analysis(champ, r, priority);
+          const data = await client.analysis(champ, r, priority, tierArg());
           return { ...data, fromRole: r };
         } catch { /* tenta a próxima */ }
       }
@@ -102,9 +102,15 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     }
   }
 
-  const buildKey = (champ, role) => `${norm(champ.id)}:${role || 'none'}`;
+  // Elo das builds: o padrão do OP.GG (Esmeralda+) mantém a chave antiga do cache.
+  const tierArg = () => { const t = getTier(); return t && t !== 'EMERALD_PLUS' ? t : null; };
+  const buildKey = (champ, role) => `${norm(champ.id)}:${role || 'none'}${tierArg() ? `:${tierArg()}` : ''}`;
 
   return {
+    /** Tier list ranqueada de todas as rotas, atualizada a cada 3 h (segue o patch atual do OP.GG). */
+    ensureTierList: (onDone, force = false) => refresh('tierlist', 'all', () => client.tierList(), onDone, force ? 60 * 1000 : 3 * 3600 * 1000),
+    getTierList: () => cache.tierlist.all || null,
+    tierListError: () => failures.get('tierlist:all') || null,
     ensureTiers: (role, onDone) => (role ? refresh('tiers', role, () => client.laneMeta(role), onDone) : Promise.resolve()),
     ensureBuild: (champ, role, onDone, priority = 0) =>
       champ ? refresh('builds', buildKey(champ, role), () => analysisWithFallback(champ, role, priority), onDone) : Promise.resolve(),

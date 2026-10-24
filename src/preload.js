@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('overlay', {
   winToggleMax: () => ipcRenderer.invoke('win:toggle-max'),
   winClose: () => ipcRenderer.invoke('win:close'),
   onMaximized: (cb) => ipcRenderer.on('win:maximized', (_e, v) => cb(v)),
+  getTierList: (force) => ipcRenderer.invoke('tierlist:get', force),
+  onTierListUpdated: (cb) => ipcRenderer.on('tierlist-updated', () => cb()),
   setMatchup: (id) => ipcRenderer.invoke('matchup:set', id),
   onAutoImport: (cb) => ipcRenderer.on('auto-import', (_e, r) => cb(r)),
   getUpdate: () => ipcRenderer.invoke('update:get'),

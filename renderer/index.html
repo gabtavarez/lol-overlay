@@ -12,6 +12,10 @@
     <img src="logo.png" class="bar-logo" alt="">
     <strong class="brand">LoL <span>Overlay</span></strong>
     <span class="status-pill"><span id="dot" class="dot"></span><span id="status" class="muted"></span></span>
+    <nav class="tabs">
+      <button id="nav-home" class="tab on" type="button">Início</button>
+      <button id="nav-tier" class="tab" type="button">Tier List</button>
+    </nav>
     <span class="spacer"></span>
     <span id="clock"></span>
     <button id="update-btn" class="tb-btn wide" title="Procurar atualizações"><i data-ico="refresh"></i><span id="update-label">Procurar atualizações</span></button>
@@ -118,6 +122,33 @@
     </section>
   </main>
 
+  <!-- Tier list -->
+  <main id="tierlist" hidden>
+    <section class="panel">
+      <div class="tl-head">
+        <div>
+          <h1 class="tl-title">Tier List · Ranked Solo/Duo</h1>
+          <div id="tl-meta" class="chips"></div>
+        </div>
+        <button id="tl-refresh" class="btn"><i data-ico="refresh"></i>Atualizar</button>
+      </div>
+      <div class="tl-filters">
+        <div id="tl-roles" class="seg"></div>
+        <input id="tl-search" type="text" placeholder="Buscar campeão" maxlength="30">
+        <select id="tl-sort">
+          <option value="tier">Ordenar: tier</option>
+          <option value="winRate">Win rate</option>
+          <option value="pickRate">Pick rate</option>
+          <option value="banRate">Ban rate</option>
+        </select>
+        <select id="tl-elo" disabled title="O OP.GG só publica a tier list de Esmeralda+"><option>Esmeralda+</option></select>
+        <select id="tl-region" disabled title="O OP.GG só publica a tier list global"><option>Global</option></select>
+      </div>
+      <p class="muted tl-note">Elo e região: o OP.GG só publica a tier list Esmeralda+ global. O elo das builds pode ser trocado em Configurações.</p>
+    </section>
+    <div id="tl-body"></div>
+  </main>
+
   <!-- Configurações -->
   <section id="settings" class="panel" hidden>
     <h2>Configurações de pick</h2>
@@ -145,6 +176,17 @@
     </label>
     <label class="field">Flash ao importar feitiços
       <select id="set-flash"><option value="F">Tecla F</option><option value="D">Tecla D</option></select>
+    </label>
+    <label class="field">Elo das builds (OP.GG)
+      <select id="set-tier">
+        <option value="ALL">Todos os elos</option>
+        <option value="GOLD">Ouro</option>
+        <option value="PLATINUM_PLUS">Platina+</option>
+        <option value="EMERALD_PLUS">Esmeralda+ (padrão)</option>
+        <option value="DIAMOND_PLUS">Diamante+</option>
+        <option value="MASTER_PLUS">Mestre+</option>
+        <option value="CHALLENGER">Desafiante</option>
+      </select>
     </label>
     <label class="field">Overlay em partida
       <select id="set-overlay-mode">

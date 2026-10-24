@@ -32,7 +32,9 @@ function renderBuyList(container, buys, version) {
         h('div', { class: 'buy-body' },
           h('div', { class: 'buy-name', text: it.name }),
           h('div', { class: 'buy-reason', text: it.reason }),
-          h('div', { class: 'buy-gold', text: it.canBuy ? 'Já dá para comprar' : `Faltam ${it.missing} g` }),
+          h('div', { class: 'buy-gold', text: it.canBuy
+            ? `Já dá para comprar (${it.missing} g)`
+            : `Faltam ${it.needGold ?? it.missing} g (custa ${it.missing} g${it.parts && it.parts.length ? `, já descontando ${it.parts.join(' + ')}` : ''})` }),
         ),
         h('div', { class: 'buy-score', text: String(it.score) }),
       ),

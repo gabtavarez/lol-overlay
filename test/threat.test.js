@@ -30,3 +30,14 @@ test('bota: ofensiva se a rota está controlada; defensiva se perdendo; Mercúri
   const cc = buyAdvice({ dd, flags, build, state: { gameTime: 700, me: me(1, 1), enemies: [enemy('Leona', ['Tank'], 0, 1, 2), enemy('Nautilus', ['Tank'], 0, 1, 1), enemy('Lissandra', ['Mage'], 1, 1, 0)] } });
   assert.equal(bootOf(cc).id, 3111);
 });
+
+const { missingGold } = require('../src/buys');
+test('ouro faltando desconta componentes (inclusive de componentes) e mostra quais', () => {
+  const I = { 6655: { gold: { base: 950 }, from: ['3802', '1052'] }, 3802: { gold: { base: 450 }, from: ['1052', '1027'] }, 1052: { gold: { total: 400 } }, 1027: { gold: { total: 300 } } };
+  const d = { item: (id) => I[String(id)] };
+  assert.equal(missingGold(d, 6655, []), 950 + 450 + 400 + 300 + 400);
+  const used = [];
+  assert.equal(missingGold(d, 6655, [3802], used), 950 + 400);
+  assert.deepEqual(used, [3802]);
+  assert.equal(missingGold(d, 6655, [1052, 1027]), 950 + 450 + 400);
+});

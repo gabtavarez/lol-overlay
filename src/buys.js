@@ -20,7 +20,7 @@ function ownedIds(me) {
 }
 
 /** Ouro que ainda falta: custo de combinar + partes que você ainda não tem (recursivo). */
-function missingGold(dd, id, owned) {
+function missingGold(dd, id, owned, used = []) {
   if (!dd.item(id)) return null;
   const pool = [...owned];
   const cost = (itemId) => {
@@ -29,7 +29,7 @@ function missingGold(dd, id, owned) {
     let sum = it.from && it.from.length ? (it.gold && it.gold.base) || 0 : (it.gold && it.gold.total) || 0;
     for (const part of it.from || []) {
       const idx = pool.indexOf(Number(part));
-      if (idx >= 0) pool.splice(idx, 1);
+      if (idx >= 0) { pool.splice(idx, 1); used.push(Number(part)); }
       else sum += cost(part);
     }
     return sum;
@@ -161,13 +161,16 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const items = [...cands.entries()]
     .map(([id, c]) => {
       const it = dd.item(id);
-      const missing = missingGold(dd, id, owned);
+      const used = [];
+      const missing = missingGold(dd, id, owned, used);
       const afford = missing !== null && me.gold >= missing ? 8 : 0;
       return {
         id,
         name: it.name,
         cost: (it.gold && it.gold.total) || 0,
         missing,
+        needGold: missing === null ? null : Math.max(0, missing - me.gold),
+        parts: used.map((p) => (dd.item(p) || {}).name).filter(Boolean),
         canBuy: missing !== null && me.gold >= missing,
         score: Math.min(99, Math.round(c.score + afford)),
         reason: c.reason,

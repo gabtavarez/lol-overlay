@@ -537,6 +537,7 @@ function fillSettings() {
   $('set-update').checked = settings.autoUpdate !== false;
   $('set-import').checked = settings.autoImport !== false;
   $('set-tier').value = settings.buildTier || 'EMERALD_PLUS';
+  $('set-riotid').value = settings.myRiotId || '';
   $('set-flash').value = settings.flashKey || 'F';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
   fillRoleFields();
@@ -564,6 +565,7 @@ async function saveSettings() {
     autoUpdate: $('set-update').checked,
     autoImport: $('set-import').checked,
     buildTier: $('set-tier').value,
+    myRiotId: $('set-riotid').value.trim(),
     flashKey: $('set-flash').value,
     overlay: { mode: $('set-overlay-mode').value },
     picker: {
@@ -737,20 +739,124 @@ for (const id of ['nav-home', 'nav-select', 'nav-game']) $(id).addEventListener(
 /* ---------- histórico / pós-partida ---------- */
 
 let histSel = null;
-async function loadHistory() {
-  const list = await window.overlay.listHistory();
-  $('hist-list').replaceChildren(...(list.length ? list.map((r) => {
-    const win = r.result === 'Win';
-    const row = h('div', { class: `row-item${r.id === histSel ? ' sel' : ''}` },
-      h('span', { class: `res ${r.result ? (win ? 'win' : 'lose') : ''}`, text: r.result ? (win ? 'V' : 'D') : '–' }),
-      version && r.champion.id ? h('img', { class: 'ic', src: champIcon(version, r.champion.id), alt: '' }) : h('span', { class: 'ic' }),
-      h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: `${r.champion.name}${r.opponent ? ` vs ${r.opponent}` : ''}` }),
-        h('div', { class: 'why', text: `${r.final.kills}/${r.final.deaths}/${r.final.assists} · ${mmss(r.duration)} · ${new Date(r.at).toLocaleDateString('pt-BR')}` })),
-      h('span', { class: 'why', text: `+${r.good} −${r.bad}` }));
-    row.addEventListener('click', () => { histSel = r.id; loadHistory(); showHistory(r.id); });
+let histItems = [];
+
+/** Junta as partidas do OP.GG com as gravadas pelo app (que têm o gráfico de ouro minuto a minuto). */
+function mergeHistory(opgg, local) {
+  const used = new Set();
+  const out = (opgg.list || []).filter((g) => g.me).map((g) => {
+    const start = Date.parse(g.createdAt);
+    const loc = local.find((l) => !used.has(l.id) && l.champion.name === g.me.champion && Math.abs((l.at - l.duration * 1000) - start) < 30 * 60 * 1000);
+    if (loc) used.add(loc.id);
+    return { key: `o:${g.id}`, kind: 'opgg', g, local: loc || null, at: start };
+  });
+  for (const l of local) if (!used.has(l.id)) out.push({ key: `l:${l.id}`, kind: 'local', local: l, at: l.at });
+  return out.sort((a, b) => b.at - a.at);
+}
+
+const TYPE_PT = { SOLORANKED: 'Ranqueada solo', FLEXRANKED: 'Flex', NORMAL: 'Normal', ARAM: 'ARAM' };
+
+async function loadHistory(force = false) {
+  const [opgg, local] = await Promise.all([window.overlay.opggMatches(force), window.overlay.listHistory()]);
+  $('hist-who').textContent = opgg.riotId ? `${opgg.riotId} · OP.GG${opgg.error ? ` (${opgg.error})` : ''}` : opgg.error || '';
+  histItems = mergeHistory(opgg, local);
+  $('hist-list').replaceChildren(...(histItems.length ? histItems.map((it) => {
+    const g = it.g;
+    const me = g ? g.me : null;
+    const win = g ? me.stats.result === 'WIN' : it.local.result === 'Win';
+    const known = g ? Boolean(me.stats.result) : Boolean(it.local.result);
+    const champ = g ? me.champion : it.local.champion.name;
+    const id = g ? me.id : it.local.champion.id;
+    const kda = g ? `${me.stats.kills}/${me.stats.deaths}/${me.stats.assists}` : `${it.local.final.kills}/${it.local.final.deaths}/${it.local.final.assists}`;
+    const dur = g ? g.duration : it.local.duration;
+    const sub = [kda, mmss(dur), g ? TYPE_PT[g.type] || g.type : 'gravada pelo app', new Date(it.at).toLocaleDateString('pt-BR')].join(' · ');
+    const row = h('div', { class: `row-item${it.key === histSel ? ' sel' : ''}` },
+      h('span', { class: `res ${known ? (win ? 'win' : 'lose') : ''}`, text: known ? (win ? 'V' : 'D') : '–' }),
+      version && id ? h('img', { class: 'ic', src: champIcon(version, id), alt: '' }) : h('span', { class: 'ic' }),
+      h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: champ }), h('div', { class: 'why', text: sub })),
+      h('span', { class: 'why', text: g && me.stats.opScore ? `${me.stats.opScore}` : '' }));
+    row.addEventListener('click', () => { histSel = it.key; drawHistList(); showHistoryItem(it); });
     return row;
-  }) : [h('p', { class: 'muted pad', text: 'Nenhuma partida ainda. Jogue com o app aberto e o resumo aparece aqui no fim da partida.' })]));
-  if (!histSel && list[0]) { histSel = list[0].id; showHistory(histSel); loadHistory(); }
+  }) : [h('p', { class: 'muted pad', text: opgg.error || 'Nenhuma partida encontrada.' })]));
+  if (!histSel && histItems[0]) { histSel = histItems[0].key; showHistoryItem(histItems[0]); }
+  drawHistList();
+}
+function drawHistList() {
+  [...$('hist-list').children].forEach((el, i) => el.classList && histItems[i] && el.classList.toggle('sel', histItems[i].key === histSel));
+}
+$('hist-refresh').addEventListener('click', () => loadHistory(true));
+window.overlay.onMatchesUpdated(() => { if (page === 'history') loadHistory(); });
+
+function scoreChart(timeline) {
+  if (!timeline || timeline.length < 2) return h('p', { class: 'muted', text: 'Sem linha do tempo para esta partida.' });
+  const W = 600; const H = 120; const pad = 6;
+  const maxT = timeline[timeline.length - 1][0] || 1;
+  const vals = timeline.map((p) => p[1]);
+  const lo = Math.min(...vals) - 0.3; const hi = Math.max(...vals) + 0.3;
+  const x = (t) => pad + (t / maxT) * (W - pad * 2);
+  const y = (v) => H - pad - ((v - lo) / (hi - lo || 1)) * (H - pad * 2);
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  const p = document.createElementNS(ns, 'path');
+  p.setAttribute('d', timeline.map(([t, v], i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join(' '));
+  p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#f0587c'); p.setAttribute('stroke-width', '2'); p.setAttribute('vector-effect', 'non-scaling-stroke');
+  svg.append(p);
+  return h('div', {}, svg, h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:#f0587c' }), document.createTextNode('OP Score ao longo da partida')),
+    h('span', { text: `de ${vals[0]} a ${vals[vals.length - 1]}` })));
+}
+
+async function showHistoryItem(it) {
+  if (it.kind === 'local') return showHistory(it.local.id);
+  const box = $('hist-detail');
+  box.replaceChildren(h('p', { class: 'muted pad', text: 'Carregando a partida no OP.GG…' }));
+  const res = await window.overlay.opggReview(it.g.id, it.g.createdAt);
+  if (histSel !== it.key) return;
+  if (!res.ok) { box.replaceChildren(h('p', { class: 'muted pad', text: `Não consegui abrir a partida: ${res.error}` })); return; }
+  const r = res.review;
+  if (!r) { box.replaceChildren(h('p', { class: 'muted pad', text: 'Você não foi encontrado nesta partida.' })); return; }
+  const me = r.me; const o = r.opp; const s = me.stats;
+  const min = Math.max(1, res.detail.duration / 60);
+  const win = s.result === 'WIN';
+  const cmp = (label, a, b, fmt = (v) => fmtK(v), higherIsBetter = true) => {
+    const better = a === b ? '' : (a > b) === higherIsBetter ? 'up' : 'down';
+    return h('div', { class: 'cmp-row' }, h('span', { class: 'muted', text: label }), h('b', { class: better, text: fmt(a) }), h('span', { text: o ? fmt(b) : '—' }));
+  };
+  const items = (list) => h('div', { class: 'items' }, ...list.filter(Boolean).map((id) => icon(`${DD}/cdn/${version}/img/item/${id}.png`, 'it-icon', String(id), '')));
+  const t = r.teams;
+  const point = (p) => h('div', { class: 'h-point' }, h('b', { text: p.title }), h('span', { text: p.text }));
+  box.replaceChildren(
+    h('div', { class: 'card-h' },
+      h('h2', { text: `${me.champion}${o ? ` vs ${o.champion}` : ''}` }),
+      h('span', { class: `res ${win ? 'win' : 'lose'}`, text: win ? 'Vitória' : 'Derrota' }),
+      h('span', { class: 'muted small', text: `${TYPE_PT[res.detail.type] || res.detail.type} · ${mmss(res.detail.duration)} · OP Score ${s.opScore} (${s.opRank}º)` })),
+    h('div', { class: 'h-stats' },
+      h('div', { class: 'h-stat' }, h('b', { text: `${s.kills}/${s.deaths}/${s.assists}` }), h('span', { class: 'muted small', text: 'KDA' })),
+      h('div', { class: 'h-stat' }, h('b', { text: (s.cs / min).toFixed(1) }), h('span', { class: 'muted small', text: `CS/min (${s.cs})` })),
+      h('div', { class: 'h-stat' }, h('b', { text: fmtK(s.damage) }), h('span', { class: 'muted small', text: 'dano em campeões' })),
+      h('div', { class: 'h-stat' }, h('b', { text: t.mine && t.mine.kills ? `${Math.round(((s.kills + s.assists) / t.mine.kills) * 100)}%` : '–' }), h('span', { class: 'muted small', text: 'participação' }))),
+    h('div', { class: 'h-cols' },
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { text: o ? `Você x ${o.champion}` : 'Você' })),
+        h('div', { class: 'cmp-row head' }, h('span'), h('span', { class: 'muted small', text: 'você' }), h('span', { class: 'muted small', text: o ? o.champion : '' })),
+        cmp('Dano', s.damage, o ? o.stats.damage : 0),
+        cmp('Ouro', s.gold, o ? o.stats.gold : 0),
+        cmp('CS', s.cs, o ? o.stats.cs : 0, String),
+        cmp('Sentinelas', s.wards, o ? o.stats.wards : 0, String),
+        cmp('Controle', s.controlWards, o ? o.stats.controlWards : 0, String),
+        cmp('Mortes', s.deaths, o ? o.stats.deaths : 0, String, false),
+        cmp('Dano recebido', s.taken, o ? o.stats.taken : 0, (v) => fmtK(v), false)),
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { text: 'Objetivos · seu time x inimigo' })),
+        ...(t.mine && t.enemy ? [['Abates', 'kills'], ['Dragões', 'dragons'], ['Barões', 'barons'], ['Torres', 'towers'], ['Vastilarvas', 'grubs'], ['Arautos', 'heralds']]
+          .map(([label, key]) => cmp(label, t.mine[key], t.enemy[key], String)) : []),
+        h('div', { class: 'lbl', style: 'margin-top:14px' }, h('span', { text: 'Seus itens' })), items(me.items),
+        o ? h('div', { class: 'lbl', style: 'margin-top:12px' }, h('span', { text: `Itens de ${o.champion}` })) : null, o ? items(o.items) : null)),
+    h('div', { class: 'h-chart' }, it.local ? goldChart(it.local.samples || []) : scoreChart(it.g.me.stats.timeline)),
+    h('div', { class: 'h-cols' },
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'up', text: 'O que ajudou' })),
+        ...(r.good.length ? r.good.map(point) : [h('p', { class: 'muted small', text: 'Nada que se destacou.' })])),
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'down', text: 'O que prejudicou' })),
+        ...(r.bad.length ? r.bad.map(point) : [h('p', { class: 'muted small', text: 'Nenhum problema claro.' })]))));
 }
 
 function goldChart(samples) {
@@ -801,9 +907,10 @@ async function showHistory(id) {
 }
 
 window.overlay.onPostgame((rec) => {
-  histSel = rec.id;
+  histSel = `l:${rec.id}`;
   goPage('history');
   showHistory(rec.id);
+  setTimeout(() => loadHistory(true), 90 * 1000); // o OP.GG leva ~1 min para registrar a partida
 });
 $('tl-search').addEventListener('input', drawTierList);
 $('tl-sort').addEventListener('change', drawTierList);

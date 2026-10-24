@@ -176,15 +176,13 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   // Anti-cura: curandeiros nativos ou 2+ inimigos com roubo de vida. Começa pelo componente de 800 g.
   const healers = t.filter((x) => flags.healers.includes(x.e.championId));
   // Roubo de vida só conta com item LENDÁRIO de cura (ex.: Sedenta por Sangue); Lâmina de Doran e afins não.
-  const healItem = (e) => (e.items || []).find((i) => {
-    const meta = dd.item(i.id);
-    return meta && ((meta.gold && meta.gold.total) || 0) >= 2500 && (i.tags || []).some((tg) => tg === 'LifeSteal' || tg === 'SpellVamp');
-  });
+  const healIds = new Set((reactive.lifestealItems && reactive.lifestealItems.ids) || []);
+  const healItem = (e) => (e.items || []).map((i) => ({ ...i, meta: dd.item(i.id) })).find((i) => healIds.has(Number(i.id)) && i.meta);
   const lifesteal = t.filter((x) => !flags.healers.includes(x.e.championId) && healItem(x.e));
   if (healers.length || lifesteal.length >= 2) {
     const all = [...healers, ...(lifesteal.length >= 2 ? lifesteal : [])];
     const hw = all.reduce((s, x) => s + x.w, 0);
-    const why = all.map((x) => (healers.includes(x) ? x.e.champion : `${x.e.champion} (${healItem(x.e).name})`)).slice(0, 3).join(', ');
+    const why = all.map((x) => (healers.includes(x) ? x.e.champion : `${x.e.champion} (${healItem(x.e).meta.name})`)).slice(0, 3).join(', ');
     react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), `Anti-cura contra ${why} · o componente de 800 g já resolve`);
   }
 

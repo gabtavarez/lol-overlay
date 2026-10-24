@@ -1,0 +1,10 @@
+class LolGetSummonerGameDetail: data
+class Data: game_detail
+class GameDetail: id,game_type,game_length_second,teams
+class Team: key,game_stat,participants
+class GameStat: is_win,champion_kill,rift_herald_kill,dragon_kill,baron_kill,tower_kill,horde_kill,gold_earned
+class Participant: is_target,summoner,champion_name,team_key,position,items,stats
+class Summoner: game_name,tagline
+class Stats: total_damage_taken,total_damage_dealt_to_champions,time_ccing_others,vision_wards_bought_in_game,ward_place,kill,death,assist,largest_multi_kill,largest_killing_spree,minion_kill,neutral_minion_kill,gold_earned,result,op_score,op_score_rank
+
+LolGetSummonerGameDetail(Data(GameDetail("g1","SOLORANKED",2137,[Team("BLUE",GameStat(true,58,0,4,1,7,3,81861),[Participant(false,Summoner("Nishimi","123"),"Fizz","BLUE","MID",[3089,3157,3100,4645,3135,3175],Stats(30787,58496,27,0,16,20,7,11,3,11,224,8,19263,"WIN",7.34,1)),Participant(false,Summoner("Kronus Stark","SPFC"),"Xin Zhao","BLUE","JUNGLE",[2055,3143],Stats(50229,33375,45,1,3,14,7,15,2,4,33,192,17692,"WIN",6.53,2))]),Team("RED",GameStat(false,43,1,1,1,3,0,76600),[Participant(true,Summoner("Tavarez","0000"),"Ahri","RED","MID",[4645,3157,3102,3118,3175],Stats(28757,39963,31,2,10,10,11,10,2,3,237,1,14911,"LOSE",4.55,8)),Participant(false,Summoner("RPB Serjão","Roça"),"Lee Sin","RED","JUNGLE",[6692,2055],Stats(54539,35162,46,5,17,11,11,21,2,3,30,178,16489,"LOSE",6.35,3))])])))

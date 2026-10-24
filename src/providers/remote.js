@@ -21,7 +21,7 @@ function readJson(file) {
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -115,6 +115,24 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       const [name, tag] = String(riotId || '').split('#');
       if (!name || !tag) return Promise.resolve();
       return refresh('scout', `${region}:${riotId.toLowerCase()}`, () => client.summoner(name, tag, region), onDone, 3600 * 1000);
+    },
+    /** Partidas recentes no OP.GG (cache de 3 min). */
+    ensureMatches: (riotId, region, onDone, force = false) => {
+      const [name, tag] = String(riotId || '').split('#');
+      if (!name || !tag) return Promise.resolve();
+      return refresh('matches', `${region}:${riotId.toLowerCase()}`, () => client.matches(name, tag, region), onDone, force ? 0 : 3 * 60 * 1000);
+    },
+    getMatches: (riotId, region) => { const e = cache.matches[`${region}:${String(riotId).toLowerCase()}`]; return e ? { list: e.data, at: e.at } : null; },
+    matchesError: (riotId, region) => failures.get(`matches:${region}:${String(riotId).toLowerCase()}`) || null,
+    /** Detalhe de uma partida (não muda depois que acaba: cache permanente, até 60 partidas). */
+    async gameDetail(id, createdAt, riotId, region) {
+      if (cache.details[id]) return cache.details[id].data;
+      const data = await client.gameDetail(id, createdAt, riotId, region);
+      cache.details[id] = { at: Date.now(), data };
+      const keys = Object.keys(cache.details).sort((a, b) => cache.details[a].at - cache.details[b].at);
+      while (keys.length > 60) delete cache.details[keys.shift()];
+      save();
+      return data;
     },
     scoutError: (riotId, region) => failures.get(`scout:${region}:${String(riotId).toLowerCase()}`) || null,
     getScout: (riotId, region) => { const e = cache.scout[`${region}:${String(riotId).toLowerCase()}`]; return e ? e.data : null; },

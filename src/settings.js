@@ -43,6 +43,10 @@ function sanitize(input, base) {
     const t = String(input.buildTier || '').toUpperCase();
     if (BUILD_TIERS.includes(t)) out.buildTier = t;
   }
+  if ('myRiotId' in input) {
+    const id = String(input.myRiotId || '').trim();
+    if (!id || /^[^#]{1,32}#[^#]{1,8}$/.test(id)) out.myRiotId = id;
+  }
   if ('autoImport' in input) out.autoImport = input.autoImport !== false;
   if ('autoUpdate' in input) out.autoUpdate = input.autoUpdate !== false;
   if ('flashKey' in input) out.flashKey = input.flashKey === 'D' ? 'D' : 'F';

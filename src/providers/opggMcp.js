@@ -182,6 +182,41 @@ function parseSummoner(text) {
   };
 }
 
+const STAT_FIELDS = '{assist,death,kill,gold_earned,minion_kill,neutral_minion_kill,total_damage_dealt_to_champions,total_damage_taken,vision_wards_bought_in_game,ward_place,op_score,op_score_rank,result,time_ccing_others}';
+const TEAM_FIELDS = '{baron_kill,dragon_kill,tower_kill,horde_kill,rift_herald_kill,is_win,champion_kill,gold_earned}';
+
+function mapStats(s = {}) {
+  return {
+    kills: s.kill || 0, deaths: s.death || 0, assists: s.assist || 0, gold: s.gold_earned || 0,
+    cs: (s.minion_kill || 0) + (s.neutral_minion_kill || 0), damage: s.total_damage_dealt_to_champions || 0,
+    taken: s.total_damage_taken || 0, controlWards: s.vision_wards_bought_in_game || 0, wards: s.ward_place || 0,
+    opScore: s.op_score || 0, opRank: s.op_score_rank || 0, result: s.result || '', cc: s.time_ccing_others || 0,
+    timeline: Array.isArray(s.op_score_timeline) ? s.op_score_timeline.map((p) => [p.second, p.score]) : [],
+  };
+}
+const mapTeam = (t) => ({ key: t.key, win: Boolean(t.game_stat && t.game_stat.is_win), kills: (t.game_stat || {}).champion_kill || 0, gold: (t.game_stat || {}).gold_earned || 0,
+  dragons: (t.game_stat || {}).dragon_kill || 0, barons: (t.game_stat || {}).baron_kill || 0, towers: (t.game_stat || {}).tower_kill || 0,
+  grubs: (t.game_stat || {}).horde_kill || 0, heralds: (t.game_stat || {}).rift_herald_kill || 0 });
+const mapPart = (p) => ({ champion: p.champion_name, position: p.position || '', team: p.team_key, items: (p.items || []).filter(Boolean), target: Boolean(p.is_target),
+  name: p.summoner ? `${p.summoner.game_name || ''}#${p.summoner.tagline || ''}` : '', stats: mapStats(p.stats) });
+
+/** Partidas recentes do invocador (só a linha dele + placar dos times). */
+function parseMatches(text) {
+  const rows = (parseCompact(text).data || {}).game_history || [];
+  return rows.filter((g) => g && g.id).map((g) => ({
+    id: g.id, createdAt: g.created_at, type: g.game_type, duration: g.game_length_second || 0,
+    me: (g.participants || []).map(mapPart)[0] || null,
+    teams: (g.teams || []).map(mapTeam),
+  }));
+}
+
+/** Detalhe de uma partida: os 10 jogadores, com o foco marcado em `target`. */
+function parseGameDetail(text) {
+  const d = (parseCompact(text).data || {}).game_detail || {};
+  const teams = (d.teams || []).map((t) => ({ ...mapTeam(t), players: (t.participants || []).map(mapPart) }));
+  return { id: d.id, type: d.game_type, duration: d.game_length_second || 0, teams };
+}
+
 /** Guia de matchup (JSON): melhores runas/itens/feitiços CONTRA aquele oponente + dica. */
 function parseMatchup(text) {
   const d = (JSON.parse(text) || {}).data;
@@ -341,6 +376,24 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
         desired_output_fields: ['data.summoner.league_stats[].{game_type,is_hot_streak,lose,win}', 'data.summoner.league_stats[].tier_info.{division,lp,tier}',
           'data.summoner.most_champions.champion_stats[].{assist,champion_name,death,kill,lose,play,win}'],
       }, 15)),
+    matches: async (gameName, tagLine, region, limit = 15) =>
+      parseMatches(await call('lol_list_summoner_matches', {
+        game_name: gameName, tag_line: tagLine, region: String(region || 'BR').toUpperCase(), lang: 'en_US', limit,
+        desired_output_fields: ['data.game_history[].{created_at,game_length_second,game_type,id}',
+          'data.game_history[].participants[].{champion_name,items[],position,team_key}',
+          `data.game_history[].participants[].stats.${STAT_FIELDS}`,
+          'data.game_history[].participants[].stats.op_score_timeline[].{score,second}',
+          'data.game_history[].teams[].key', `data.game_history[].teams[].game_stat.${TEAM_FIELDS}`],
+      }, 8)),
+    gameDetail: async (id, createdAt, riotId, region) =>
+      parseGameDetail(await call('lol_get_summoner_game_detail', {
+        region: String(region || 'BR').toUpperCase(), lang: 'en_US', game_id: id, created_at: createdAt, focus_riot_id: riotId,
+        desired_output_fields: ['data.game_detail.{game_length_second,game_type,id}',
+          'data.game_detail.teams[].participants[].{champion_name,is_target,items[],position,team_key}',
+          'data.game_detail.teams[].participants[].summoner.{game_name,tagline}',
+          `data.game_detail.teams[].participants[].stats.${STAT_FIELDS.replace(',op_score_timeline', '')}`,
+          'data.game_detail.teams[].key', `data.game_detail.teams[].game_stat.${TEAM_FIELDS}`],
+      }, 20)),
     tierList: async () =>
       parseTierList(await call('lol_list_lane_meta_champions', { lang: 'en_US', position: 'all', desired_output_fields: TL_FIELDS }, 4)),
     laneMeta: async (role) =>
@@ -350,4 +403,4 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   };
 }
 
-module.exports = { createMcpClient, parseTierList, parseSummoner, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };
+module.exports = { createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };

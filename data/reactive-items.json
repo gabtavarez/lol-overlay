@@ -128,5 +128,16 @@
       3026
     ],
     "tank": []
+  },
+  "lifestealItems": {
+    "_note": "Itens lendários de cura que justificam anti-cura (Data Dragon 16.21).",
+    "ids": [
+      2517,
+      3072,
+      3074,
+      3146,
+      3153,
+      4633
+    ]
   }
 }

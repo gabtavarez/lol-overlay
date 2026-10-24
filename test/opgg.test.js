@@ -248,3 +248,28 @@ test('tier list do OP.GG: todas as rotas com WR, pick, ban e rank', () => {
   assert.equal(t.bottom[0].rankPrev, 3);
   assert.equal(t.bottom[0].banRate, 0.05);
 });
+
+const { parseGameDetail } = require('../src/providers/opggMcp');
+test('detalhe de partida do OP.GG: times, jogador em foco e oponente de rota', () => {
+  const d = parseGameDetail(require('fs').readFileSync(require('path').join(__dirname, 'fixtures', 'opgg-game-detail.txt'), 'utf8'));
+  assert.equal(d.duration, 2137);
+  const me = d.teams.flatMap((t) => t.players).find((p) => p.target);
+  assert.equal(me.champion, 'Ahri');
+  assert.equal(me.stats.damage, 39963);
+  assert.equal(me.stats.cs, 238);
+  const opp = d.teams.find((t) => t.key !== me.team).players.find((p) => p.position === me.position);
+  assert.equal(opp.champion, 'Fizz');
+  assert.equal(d.teams[0].dragons, 4);
+});
+
+const { reviewMatch } = require('../src/matchReview');
+test('revisão OP.GG: compara com o oponente de rota e objetivos', () => {
+  const d = parseGameDetail(require('fs').readFileSync(require('path').join(__dirname, 'fixtures', 'opgg-game-detail.txt'), 'utf8'));
+  const r = reviewMatch(d, { coreOf: () => [3157, 4645, 6655], itemName: (id) => `#${id}` });
+  assert.equal(r.opp.champion, 'Fizz');
+  const bad = r.bad.map((b) => b.title);
+  assert.ok(bad.includes('Menos dano que o oponente'), bad.join());
+  assert.ok(bad.includes('Atrás em ouro'));
+  assert.ok(bad.includes('Dragões perdidos'));
+  assert.ok(r.good.some((g) => g.title === 'Build do meta'));
+});

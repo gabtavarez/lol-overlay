@@ -19,6 +19,7 @@ const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit } = require('./fit');
+const { reviewMatch } = require('./matchReview');
 
 const USE_MOCK = process.argv.includes('--mock');
 const LIVE_URL = USE_MOCK ? 'http://127.0.0.1:2998' : 'https://127.0.0.1:2999';
@@ -545,6 +546,8 @@ function decorateLcu(state) {
     const profile = lcuEngine && lcuEngine.getProfile();
     const mainRole = state.home.roles && state.home.roles[0] && state.home.roles[0].role;
     state.home.fit = profile && tl ? championFit({ mastery: profile.mastery, dd, tierList: tl.data, mainRole }) : [];
+    const s = profile && profile.summoner;
+    if (s && s.gameName && s.tagLine && settings.get().myRiotId !== `${s.gameName}#${s.tagLine}`) settings.update({ myRiotId: `${s.gameName}#${s.tagLine}` });
     state.home.mainRole = mainRole || null;
   }
   return state;
@@ -593,6 +596,33 @@ function registerIpc() {
       }
     }
     return { data, at: e ? e.at : null, patch: dd ? dd.version : null, error: e ? null : remote.tierListError() };
+  });
+
+  // Pós-partida pelo OP.GG: lista de partidas recentes e revisão detalhada de uma partida.
+  ipcMain.handle('opgg:matches', (_e, force) => {
+    const riotId = settings.get().myRiotId;
+    const region = currentRegion();
+    if (!riotId) return { riotId: null, list: [], error: 'Abra o cliente do LoL uma vez (ou informe seu Riot ID em Configurações).' };
+    remote.ensureMatches(riotId, region, () => send('matches-updated', true), Boolean(force));
+    const m = remote.getMatches(riotId, region);
+    const ddId = (name) => { const c = dd && dd.championByRaw(null, name); return c ? c.id : null; };
+    const list = m ? m.list.map((g) => ({ ...g, me: g.me && { ...g.me, id: ddId(g.me.champion) } })) : [];
+    return { riotId, region, list, at: m ? m.at : null, error: m ? null : remote.matchesError(riotId, region) };
+  });
+  ipcMain.handle('opgg:review', async (_e, { id, createdAt }) => {
+    const riotId = settings.get().myRiotId;
+    try {
+      const detail = await remote.gameDetail(String(id), String(createdAt), riotId, currentRegion());
+      const ddId = (name) => { const c = dd && dd.championByRaw(null, name); return c ? c.id : null; };
+      for (const t of detail.teams) for (const p of t.players) p.id = ddId(p.champion);
+      const review = reviewMatch(detail, {
+        coreOf: (name, role) => { const id = ddId(name); const b = id && remote.getBuild({ id }, role); return b ? b.core : []; },
+        itemName: (itemId) => ((dd && dd.item(itemId)) || {}).name || String(itemId),
+      });
+      return { ok: true, detail, review };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
   });
 
   ipcMain.handle('history:list', () => recorder.list().map((r) => ({ id: r.id, at: r.at, champion: r.champion, result: r.result, duration: r.duration, final: r.final, role: r.role, opponent: r.opponent, mode: r.mode, good: r.analysis.good.length, bad: r.analysis.bad.length })));

@@ -201,7 +201,7 @@
           <div class="eyebrow">Pós-partida</div>
           <h1>Histórico</h1>
         </div>
-        <span class="muted small">Partidas jogadas com o app aberto</span>
+        <div class="row" style="margin:0;align-items:center"><span id="hist-who" class="muted small"></span><button id="hist-refresh" class="btn ghost"><i data-ico="refresh"></i>Atualizar</button></div>
       </div>
       <div class="history-grid">
         <section class="card"><div id="hist-list" class="list"></div></section>
@@ -251,6 +251,9 @@
               <option value="MASTER_PLUS">Mestre+</option>
               <option value="CHALLENGER">Desafiante</option>
             </select>
+          </label>
+          <label class="field">Seu Riot ID (histórico do OP.GG sem o cliente aberto)
+            <input type="text" id="set-riotid" placeholder="Nome#TAG" maxlength="42">
           </label>
           <label class="field">Flash ao importar feitiços
             <select id="set-flash"><option value="F">Tecla F</option><option value="D">Tecla D</option></select>

@@ -20,6 +20,7 @@ const { phaseCompare } = require('./power');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit } = require('./fit');
 const { reviewMatch } = require('./matchReview');
+const { hoverChampion } = require('./hover');
 
 const USE_MOCK = process.argv.includes('--mock');
 const LIVE_URL = USE_MOCK ? 'http://127.0.0.1:2998' : 'https://127.0.0.1:2999';
@@ -596,6 +597,20 @@ function registerIpc() {
       }
     }
     return { data, at: e ? e.at : null, patch: dd ? dd.version : null, error: e ? null : remote.tierListError() };
+  });
+
+  // Clique num campeão do app -> marca (hover) no cliente. Ban só na sua vez de banir.
+  ipcMain.handle('champselect:hover', async (_e, { championId, kind }) => {
+    const champ = champById(championId);
+    const creds = lcuEngine.getCreds();
+    if (!champ || !creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
+    try {
+      await hoverChampion(creds, champ.key, kind === 'ban' ? 'ban' : 'pick');
+      lcuEngine.tick();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
   });
 
   // Pós-partida pelo OP.GG: lista de partidas recentes e revisão detalhada de uma partida.

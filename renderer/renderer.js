@@ -69,12 +69,22 @@ function listRow({ rank, id, name, why, score, selected }) {
     h('span', { class: 'sc', text: score }));
 }
 
+/** Marca o campeão no cliente (sem travar). Não mexe se o seu pick já está travado. */
+async function hoverInClient(id, name, kind) {
+  const me = lastState && lastState.me;
+  if (kind === 'pick' && me && me.locked) return;
+  if (kind === 'ban' && lastState && lastState.action !== 'ban') return;
+  const res = await window.overlay.hoverChampion(id, kind);
+  els.impMsg.textContent = res.ok ? `${name} marcado no cliente${kind === 'ban' ? ' para banir' : ''} (falta travar).` : `Não consegui marcar ${name} no cliente: ${res.error}`;
+}
+
 function pickCard(c, selected, i = 0) {
   const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected });
-  card.title = c.reasons.join(' · ');
+  card.title = `${c.reasons.join(' · ')}\nClique para marcar no cliente`;
   card.addEventListener('click', () => {
     chosenId = c.id;
     if (lastState) renderSelect(lastState);
+    hoverInClient(c.id, c.name, 'pick');
   });
   return card;
 }
@@ -319,7 +329,12 @@ function renderSelect(state) {
 
   const bans = (state.advice && state.advice.bans) || [];
   $('bans').hidden = state.action !== 'ban' || !bans.length;
-  $('ban-row').replaceChildren(...bans.map((b, i) => listRow({ rank: String(i + 1), id: b.id, name: b.name, why: b.reasons.join(' · '), score: String(b.score) })));
+  $('ban-row').replaceChildren(...bans.map((b, i) => {
+    const row = listRow({ rank: String(i + 1), id: b.id, name: b.name, why: b.reasons.join(' · '), score: String(b.score) });
+    row.title = 'Clique para marcar o ban no cliente';
+    row.addEventListener('click', () => hoverInClient(b.id, b.name, 'ban'));
+    return row;
+  }));
 
   renderGuide(state, picks);
   showView('select');

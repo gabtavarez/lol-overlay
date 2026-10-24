@@ -34,43 +34,44 @@ function playerLabel(p) {
   return p.tagLine ? `${p.gameName}#${p.tagLine}` : p.gameName;
 }
 
-let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' = aba Tier List
+let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' | 'history' = abas fixas
 let lastView = 'waiting';
+const VIEWS = ['waiting', 'select', 'game', 'tierlist', 'history', 'settings'];
 function showView(name) {
-  lastView = name;
-  const v = settingsOpen ? null : page === 'tierlist' ? 'tierlist' : name;
-  els.waiting.hidden = v !== 'waiting';
-  els.select.hidden = v !== 'select';
-  els.game.hidden = v !== 'game';
-  $('tierlist').hidden = v !== 'tierlist';
-  $('nav-home').classList.toggle('on', page !== 'tierlist');
-  $('nav-tier').classList.toggle('on', page === 'tierlist');
-  $('nav-home').textContent = name === 'select' ? 'Champ select' : name === 'game' ? 'Partida' : 'Início';
+  if (name) lastView = name;
+  const v = settingsOpen ? 'settings' : page !== 'auto' ? page : lastView;
+  for (const id of VIEWS) $(id).hidden = v !== id;
+  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', tierlist: 'nav-tier', history: 'nav-history', settings: 'gear' };
+  for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
+  $('nav-select').querySelector('.live').hidden = lastView !== 'select';
+  $('nav-game').querySelector('.live').hidden = lastView !== 'game';
 }
 
 /* ---------- champ select ---------- */
 
-function slot(p, extraClass = '') {
+function slot(p) {
   const champName = p.champion ? p.champion.name : '';
-  const role = p.position ? ROLE_LABEL[p.position] : '';
-  return h('div', { class: `slot${p.isMe ? ' me' : ''} ${extraClass}` },
-    portrait(p.champion && p.champion.id, champName),
-    h('div', { class: 'slot-body' },
-      h('div', { class: 'slot-name', text: champName || '—' }),
-      h('div', { class: 'muted', text: [role, p.isMe ? 'você' : playerLabel(p)].filter(Boolean).join(' · ') }),
-    ),
-  );
+  const known = p.position ? ROLE_LABEL[p.position] : '';
+  const guess = !known && p.predicted ? `${ROLE_LABEL[p.predicted]}?` : '';
+  const el = h('div', { class: `dp${p.isMe ? ' me' : ''}` },
+    version && p.champion ? h('img', { src: champIcon(version, p.champion.id), alt: champName }) : h('span', { class: 'ph' }),
+    h('span', { class: `dp-role${guess ? ' guess' : ''}`, text: known || guess || '' }));
+  const flex = p.flex && p.flex.length ? ` · flex: ${p.flex.map((r) => ROLE_LABEL[r]).join('/')}` : '';
+  el.title = [champName || 'Escolhendo…', p.isMe ? 'você' : playerLabel(p), guess ? `rota prevista (${p.confidence}%)${flex}` : known].filter(Boolean).join(' · ');
+  return el;
+}
+
+function listRow({ rank, id, name, why, score, selected }) {
+  return h('div', { class: `row-item${selected ? ' sel' : ''}` },
+    h('span', { class: 'rk', text: rank }),
+    version && id ? h('img', { class: 'ic', src: champIcon(version, id), alt: '' }) : h('span', { class: 'ic' }),
+    h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: name }), h('div', { class: 'why', text: why })),
+    h('span', { class: 'sc', text: score }));
 }
 
 function pickCard(c, selected, i = 0) {
-  const card = h('button', { class: `card${selected ? ' selected' : ''}`, type: 'button' },
-    h('div', { class: 'card-art' }),
-    h('div', { class: 'card-rank', text: `#${i + 1}` }),
-    h('div', { class: 'card-score', text: String(c.score) }),
-    h('div', { class: 'card-name', text: c.name }),
-    h('div', { class: 'card-why', text: c.reasons[0] || 'Pelos seus dados' }),
-  );
-  if (version) card.firstChild.style.backgroundImage = `url("${champSplash(c.id)}")`;
+  const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected });
+  card.title = c.reasons.join(' · ');
   card.addEventListener('click', () => {
     chosenId = c.id;
     if (lastState) renderSelect(lastState);
@@ -86,6 +87,7 @@ function renderGuide(state, picks) {
   const cand = picks.candidates.find((c) => c.id === pickId);
 
   if (!pickId) {
+    $('guide-tabs').replaceChildren();
     els.guideTitle.textContent = 'Guia do campeão';
     els.guideWhy.textContent = 'Escolha um campeão para ver runas, feitiços e itens.';
     els.guideBody.replaceChildren();
@@ -93,8 +95,9 @@ function renderGuide(state, picks) {
     return;
   }
   const name = (cand && cand.name) || (mine && mine.id === pickId ? mine.name : pickId);
-  els.guideTitle.textContent = `Guia do campeão: ${name}`;
-  els.guideWhy.textContent = cand ? `Por que sugeri: ${cand.reasons.join(' · ') || 'seus dados de maestria'}` : '';
+  els.guideTitle.textContent = name;
+  els.guideWhy.textContent = cand ? cand.reasons.join(' · ') || 'seus dados de maestria' : '';
+  $('guide-ico').replaceChildren(version ? h('img', { src: champIcon(version, pickId), alt: '' }) : '');
 
   if (pickId !== shownId) {
     shownId = pickId;
@@ -132,13 +135,13 @@ function icon(src, cls, title, fallback) {
 }
 
 function badge(what) {
-  const b = h('button', { class: `badge${imported[what] ? ' on' : ''}`, text: imported[what] ? '✓ Selecionado' : '⬇ Importar' });
+  const b = h('button', { class: `badge${imported[what] ? ' on' : ''}`, text: imported[what] ? '✓ Importado' : 'Importar' });
   b.addEventListener('click', () => doImport(what));
   return b;
 }
 
 function head(title, what) {
-  return h('div', { class: 'g-head' }, h('h3', { text: title }), what ? badge(what) : null);
+  return h('div', { class: 'lbl' }, h('span', { text: title }), what ? badge(what) : null);
 }
 
 function runeRow(row, cls) {
@@ -221,12 +224,13 @@ function drawBuild(g) {
   const full = h('div', { class: 'items full' }, ...g.fullBuild.map((it, i) => h('div', { class: 'it' },
     h('span', { class: 'num', text: String(i + 1) }), icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name))));
   return h('div', { class: 'build' },
-    h('div', {}, h('div', { class: 'sub', text: 'Itens iniciais' }), starter),
-    h('div', {}, h('div', { class: 'sub', text: 'Build completa' }), full));
+    h('div', {}, head('Início'), starter),
+    h('div', {}, head('Build'), full));
 }
 
 function drawGuide() {
   if (!guide) {
+    $('guide-tabs').replaceChildren();
     els.guideBody.replaceChildren(h('p', { class: 'muted', text: 'Carregando dados do OP.GG…' }));
     setImportEnabled(false);
     return;
@@ -234,24 +238,27 @@ function drawGuide() {
   const root = guide;
   const g = (root.variants && root.variants[variant] && root.variants[variant].guide) || root;
   if (root.error) {
+    $('guide-tabs').replaceChildren();
     els.guideBody.replaceChildren(h('p', { class: 'muted', text: root.error }));
     setImportEnabled(false);
     return;
   }
+  // abas: build geral x matchup (ou itens alternativos)
+  $('guide-tabs').replaceChildren(...((root.variants || []).length > 1 ? root.variants.map((v, i) => {
+    const b = h('button', { class: i === variant ? 'on' : '', type: 'button', text: v.label });
+    b.title = v.sub || '';
+    b.addEventListener('click', () => { variant = i; imported.runes = false; imported.spells = false; drawGuide(); });
+    return b;
+  }) : []));
+
   const parts = [];
-  if (root.variants && root.variants.length > 1) {
-    parts.push(h('div', { class: 'variants' }, ...root.variants.map((v, i) => {
-      const b = h('button', { class: `variant${i === variant ? ' on' : ''}`, type: 'button' },
-        h('span', { class: 'v-label', text: v.label }), h('span', { class: 'v-sub', text: v.sub || '' }));
-      b.addEventListener('click', () => { variant = i; imported.runes = false; imported.spells = false; drawGuide(); });
-      return b;
-    })));
-  }
+  const sub = [];
+  if (root.variants && root.variants[variant] && root.variants[variant].sub) sub.push(h('span', { text: root.variants[variant].sub }));
   if (root.opponents && root.opponents.length) {
-    const sel = h('select', { class: 'mu-select' },
-      h('option', { value: 'auto', text: root.opponent && root.matchupMode === 'auto' ? `Automático (${root.opponent})` : 'Automático (oponente da rota)' }),
+    const sel = h('select', {},
+      h('option', { value: 'auto', text: root.opponent && root.matchupMode === 'auto' ? `Automático (${root.opponent})` : 'Automático' }),
       ...root.opponents.map((o) => h('option', { value: o.id, text: o.name })),
-      h('option', { value: 'none', text: 'Nenhum: só a build geral' }));
+      h('option', { value: 'none', text: 'Nenhum' }));
     sel.value = root.matchupMode || 'auto';
     sel.addEventListener('change', async () => {
       await window.overlay.setMatchup(sel.value);
@@ -259,26 +266,28 @@ function drawGuide() {
       guide = await window.overlay.getGuide(shownId);
       drawGuide();
     });
-    parts.push(h('div', { class: 'mu-row' }, svgIcon('sword', 'ico'), h('span', { text: 'Matchup contra' }), sel,
-      root.pending ? h('span', { class: 'muted', text: root.pending }) : null));
+    sub.push(h('span', { class: 'spacer' }), h('span', { text: 'Matchup contra' }), sel);
+    if (root.pending) sub.push(h('span', { text: root.pending }));
   }
-  if (root.roleNote) parts.push(h('p', { class: 'muted', text: root.roleNote }));
-  if (g.matchup) {
-    const vs = g.matchup.advantage ? ` · vantagem de rota: ${g.matchup.advantage}` : '';
-    parts.push(h('div', { class: 'tip' }, h('b', { text: `Matchup vs ${g.matchup.vs}${vs}` }), h('div', { text: g.matchup.tip || '' }),
-      g.matchup.used.length ? h('div', { class: 'muted', text: `Ajustado ao matchup: ${g.matchup.used.join(', ')}` }) : null));
-  }
-  const left = h('div', { class: 'g-left' });
-  if (g.runeTree) left.append(head('Runas', 'runes'), drawRunes(g.runeTree));
+  if (sub.length) parts.push(h('div', { class: 'g-sub' }, ...sub));
+  if (root.roleNote) parts.push(h('div', { class: 'g-tip', text: root.roleNote }));
+  if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
+
+  const left = h('div', { class: 'g-sec' });
+  if (g.runeTree) left.append(head(`Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
   else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
-  if (g.skills.length) left.append(head('Caminho da habilidade'), drawSkills(g));
-
-  const right = h('div', { class: 'g-right' });
-  if (g.spells.length) right.append(head('Invocador', 'spells'), drawSpells(g));
-  right.append(head('Build'), drawBuild(g));
-  if (typeof g.winRate === 'number') right.append(h('p', { class: 'muted', text: `Taxa de vitória: ${(g.winRate * 100).toFixed(1)}%` }));
-
+  const right = h('div', { class: 'g-sec' });
+  if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
+  right.append(drawBuild(g));
   parts.push(h('div', { class: 'g-grid' }, left, right));
+  if (g.skills.length) {
+    // ordem em que cada habilidade chega ao nível máximo (5)
+    const cnt = {};
+    const order = [];
+    for (const x of skillOrder18(g.skills)) if (x !== 'R' && (cnt[x] = (cnt[x] || 0) + 1) === 5) order.push(x);
+    for (const x of ['Q', 'W', 'E']) if (!order.includes(x)) order.push(x);
+    parts.push(h('div', { class: 'g-full' }, head(`Ordem de habilidades · ${order.slice(0, 3).join(' › ')}`), drawSkills(g)));
+  }
   els.guideBody.replaceChildren(...parts);
   setImportEnabled(Boolean(g.runes || g.spells.length));
 }
@@ -300,16 +309,17 @@ function renderSelect(state) {
   els.pickNotes.replaceChildren(...picks.notes.map((n) => h('p', { text: n })));
 
   els.team.replaceChildren(...[state.me, ...state.allies].filter(Boolean).map((p) => slot(p)));
-  els.selEnemies.replaceChildren(...state.enemies.map((p) => slot(p, 'enemy')));
+  els.selEnemies.replaceChildren(...state.enemies.map((p) => slot(p)));
+  const flexes = state.enemies.filter((p) => p.flex && p.flex.length && p.champion).map((p) => `${p.champion.name} (${p.flex.map((r) => ROLE_LABEL[r]).join('/')})`);
+  const guessed = state.enemies.some((p) => p.predicted);
+  $('enemy-roles').textContent = [guessed ? 'Rotas inimigas com "?" são previsões' : '', flexes.length ? `Flex: ${flexes.join(', ')}` : ''].filter(Boolean).join(' · ');
   const opgg = state.opgg || {};
   els.opggAllies.disabled = !opgg.allies;
   els.opggEnemies.hidden = !opgg.enemies;
 
   const bans = (state.advice && state.advice.bans) || [];
   $('bans').hidden = state.action !== 'ban' || !bans.length;
-  $('ban-row').replaceChildren(...bans.map((b, i) => h('div', { class: 'ban' },
-    portrait(b.id, b.name),
-    h('div', {}, h('div', { class: 'slot-name' }, h('span', { class: 'ban-rank', text: `#${i + 1}` }), document.createTextNode(` ${b.name} · ${b.score}`)), h('div', { class: 'muted', text: b.reasons.join(' · ') })))));
+  $('ban-row').replaceChildren(...bans.map((b, i) => listRow({ rank: String(i + 1), id: b.id, name: b.name, why: b.reasons.join(' · '), score: String(b.score) })));
 
   renderGuide(state, picks);
   showView('select');
@@ -317,23 +327,71 @@ function renderSelect(state) {
 
 /* ---------- em partida ---------- */
 
+const fmtK = (g) => (Math.abs(g) >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(g));
+const signedK = (d) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmtK(Math.abs(d))}`;
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
 function renderGame(state) {
   version = state.assets.version;
   els.dot.className = 'dot ok';
-  const m = Math.floor(state.gameTime / 60);
-  els.clock.textContent = `${m}:${String(state.gameTime % 60).padStart(2, '0')}`;
+  els.clock.textContent = mmss(state.gameTime);
   $('who').textContent = `${state.me.champion} · nível ${state.me.level}`;
-  $('gold').textContent = `${state.me.gold} g`;
-  renderBuyList($('buys'), state.advice && state.advice.buys, version);
-  renderExtras({ recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') }, state.advice);
-  $('enemies').replaceChildren(
-    ...state.enemies.map((e) => h('div', { class: `slot enemy${e.isDead ? ' dead' : ''}` },
-      portrait(e.championId, e.champion),
-      h('div', { class: 'slot-body' },
-        h('div', { class: 'slot-name', text: `${e.champion} · ${e.level}` }),
-        h('div', { class: 'muted', text: `${e.scores.kills}/${e.scores.deaths}/${e.scores.assists}` }),
-      ))),
-  );
+  $('gold').textContent = `· ${state.me.gold} g`;
+  const adv = state.advice || {};
+  renderBuyList($('buys'), adv.buys, version);
+  renderExtras({ recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') }, adv);
+
+  // ouro cara a cara
+  const gold = adv.gold;
+  if (gold) {
+    $('g-team').textContent = `Time ${signedK(gold.team.diff)}`;
+    $('g-team').className = `small ${gold.team.diff >= 0 ? 'up' : 'down'}`;
+    const max = Math.max(1000, ...gold.lanes.map((l) => Math.abs(l.diff)));
+    const side = (p, cls) => h('div', { class: `g-side ${cls}${p && p.me ? ' me' : ''}` },
+      p && p.champId ? h('img', { class: 'g-champ', src: champIcon(version, p.champId), alt: '' }) : h('span', { class: 'g-champ' }),
+      h('span', { class: 'g-val', text: p ? fmtK(p.gold) : '—' }));
+    $('g-rows').replaceChildren(...gold.lanes.map((l) => {
+      const pct = Math.round((Math.abs(l.diff) / max) * 50);
+      return h('div', { class: 'g-row' }, side(l.ally, 'ally'),
+        h('div', { class: 'g-mid' }, h('div', { class: `g-diff ${l.diff >= 0 ? 'up' : 'down'}`, text: signedK(l.diff) }),
+          h('div', { class: 'g-bar' }, h('div', { class: `g-fill ${l.diff >= 0 ? 'up' : 'down'}`, style: l.diff >= 0 ? `left:50%;width:${pct}%` : `right:50%;width:${pct}%` }))),
+        side(l.enemy, 'enemy'));
+    }));
+  }
+
+  // objetivos
+  $('obj-timers').replaceChildren(...(adv.timers || []).map((t) => h('div', { class: `timer${t.in === 0 ? ' live' : ''}` },
+    h('b', { text: t.label }), h('span', { text: t.in === 0 ? 'Vivo' : mmss(t.in) }))));
+  if (!(adv.timers || []).length) $('obj-timers').replaceChildren(h('p', { class: 'muted', text: 'Timers só em Summoner\'s Rift.' }));
+
+  // fases do matchup
+  const ph = adv.phases;
+  $('phase-vs').textContent = state.laneOpponent ? `vs ${state.laneOpponent.champion} · estimativa` : '';
+  $('phases').replaceChildren(...(ph ? ph.map((p) => h('div', { class: `phase ${p.verdict}` }, h('b', { text: p.label }), h('span', { text: p.text })))
+    : [h('p', { class: 'muted pad', text: 'Aparece quando o oponente de rota for conhecido.' })]));
+
+  // lane scouting
+  const sc = adv.scout || [];
+  $('scout').replaceChildren(...(sc.length ? sc.map((x) => {
+    const p = x.profile;
+    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''} · ${p.lp} PDL` : p ? 'Sem elo solo' : 'Carregando…';
+    const wr = p && p.wins + p.losses ? `${Math.round((p.wins / (p.wins + p.losses)) * 100)}% em ${p.wins + p.losses} jogos` : '';
+    const mains = p ? p.champs.slice(0, 3).map((c) => c.name).join(', ') : '';
+    const on = x.onChamp ? `${x.onChamp.games} jogos de ${x.champion} (${Math.round((x.onChamp.wins / x.onChamp.games) * 100)}%)` : p ? `primeira vez de ${x.champion} na temporada?` : '';
+    return h('div', { class: 'scout' },
+      x.championId ? h('img', { class: 'ic', src: champIcon(version, x.championId), alt: '' }) : h('span', { class: 'ic' }),
+      h('div', { style: 'min-width:0' },
+        h('div', { class: 'nm', text: `${x.who} · ${x.riotId}` }),
+        h('div', { class: 'why', text: [rank, wr].filter(Boolean).join(' · ') }),
+        h('div', { class: 'why', text: [on, mains && `mais joga: ${mains}`].filter(Boolean).join(' · ') })),
+      p && p.hot ? h('span', { class: 'hot', text: 'em sequência' }) : h('span'));
+  }) : [h('p', { class: 'muted pad', text: 'Sem oponente de rota ou caçador identificado (ou Riot ID oculto).' })]));
+
+  $('enemies').replaceChildren(...state.enemies.map((e) => {
+    const r = listRow({ rank: String(e.level), id: e.championId, name: e.champion, why: `${e.scores.kills}/${e.scores.deaths}/${e.scores.assists} · ${e.scores.cs || 0} CS`, score: e.isDead ? `☠ ${Math.ceil(e.respawnTimer)}s` : '' });
+    if (e.isDead) r.classList.add('dead');
+    return r;
+  }));
   showView('game');
 }
 
@@ -383,34 +441,32 @@ let homeKey = '';
 function renderHome(state) {
   const home = state.home || {};
   const v = home.version || version;
+  if (v) version = version || v;
   const chips = [
     [state.client === 'open' ? 'Cliente conectado' : 'Cliente fechado', state.client === 'open' ? 'ok' : 'warn'],
     [v ? `Patch ${v.split('.').slice(0, 2).join('.')}` : 'Carregando dados…', ''],
-    [`Versão ${appVersion || '…'}`, ''],
+    [`v${appVersion || '…'}`, ''],
   ];
   $('home-chips').replaceChildren(...chips.map(([t, c]) => h('span', { class: `chip ${c}`, text: t })));
 
-  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, v]);
+  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v]);
   if (key === homeKey) return; // evita redesenhar a cada 1,5 s
   homeKey = key;
 
   const s = home.summoner;
-  $('home-hello').textContent = s && s.gameName ? `Olá, ${s.gameName}` : 'Bem-vindo ao LoL Overlay';
-  const box = $('home-summoner');
-  box.hidden = !s;
-  if (s) {
-    box.replaceChildren(
-      v && s.iconId ? h('img', { class: 'sum-icon', src: `${DD}/cdn/${v}/img/profileicon/${s.iconId}.png`, alt: '' }) : h('div', { class: 'sum-icon' }),
-      h('div', {}, h('div', { class: 'sum-name', text: `${s.gameName}${s.tagLine ? ` #${s.tagLine}` : ''}` }),
-        h('div', { class: 'muted', text: s.level ? `Nível ${s.level}` : '' })));
-  }
+  $('home-hello').textContent = s && s.gameName ? `Olá, ${s.gameName}` : 'Bem-vindo';
+  $('side-name').textContent = s && s.gameName ? s.gameName : 'Invocador';
+  $('side-sub').textContent = s ? `#${s.tagLine || ''}${s.level ? ` · nível ${s.level}` : ''}` : state.client === 'open' ? 'Carregando…' : 'Cliente fechado';
+  $('side-avatar').replaceWith(v && s && s.iconId
+    ? Object.assign(h('img', { id: 'side-avatar', class: 'avatar', src: `${DD}/cdn/${v}/img/profileicon/${s.iconId}.png`, alt: '' }))
+    : h('div', { id: 'side-avatar', class: 'avatar' }));
 
   const champs = home.top || [];
   $('home-champs').replaceChildren(...(champs.length
     ? champs.map((c) => h('div', { class: 'hc' },
-      v ? h('img', { src: champIcon(v, c.id), alt: c.name }) : h('div'),
-      h('div', {}, h('div', { class: 'hc-name', text: c.name }), h('div', { class: 'muted', text: `M${c.level} · ${fmtPts(c.points)} pts` }))))
-    : [h('p', { class: 'muted', text: state.client === 'open' ? (home.loading ? 'Carregando sua maestria…' : 'Sem dados de maestria.') : 'Abra o cliente do LoL para ver sua maestria.' })]));
+      v ? h('img', { src: champIcon(v, c.id), alt: c.name }) : h('span', { class: 'ic' }),
+      h('div', {}, h('div', { class: 'hc-name', text: c.name }), h('div', { class: 'muted small', text: `Maestria ${c.level} · ${fmtPts(c.points)} pts` }))))
+    : [h('p', { class: 'muted pad', text: state.client === 'open' ? (home.loading ? 'Carregando sua maestria…' : 'Sem dados de maestria.') : 'Abra o cliente do LoL para ver sua maestria.' })]));
 
   const roles = home.roles || [];
   const max = Math.max(1, ...roles.map((r) => r.games));
@@ -418,9 +474,16 @@ function renderHome(state) {
     ? [...roles.map((r) => h('div', { class: 'role-row' },
       h('span', { class: 'role-name' }, svgIcon(r.role, 'ico role-ico'), document.createTextNode(ROLE_LABEL[r.role] || r.role)),
       h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((r.games / max) * 100)}%` })),
-      h('span', { class: 'muted', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}% vit.` }))),
-      h('p', { class: 'muted', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
+      h('span', { class: 'muted small', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}%` }))),
+      h('p', { class: 'muted small', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
     : [h('p', { class: 'muted', text: 'Calculado do seu histórico recente quando o cliente estiver aberto.' })]));
+
+  const fit = home.fit || [];
+  $('home-fit').replaceChildren(...(fit.length ? fit.map((c) => h('div', { class: 'fit' },
+    v ? h('img', { class: 'ic', src: champIcon(v, c.id), alt: '' }) : h('span', { class: 'ic' }),
+    h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: c.name }),
+      h('div', { class: 'why', text: `${c.reason} · ${['', 'S', 'A'][c.tier] || ''} ${(c.winRate * 100).toFixed(1)}% WR` }))))
+    : [h('p', { class: 'muted pad', text: state.client === 'open' ? 'Calculando com sua maestria e a tier list…' : 'Aparece quando o cliente estiver aberto.' })]));
 }
 
 let appVersion = '';
@@ -482,7 +545,6 @@ function fillSettings() {
 async function openSettings() {
   settings = await window.overlay.getSettings();
   settingsOpen = true;
-  els.settings.hidden = false;
   els.setMsg.textContent = '';
   fillSettings();
   showView(null);
@@ -490,7 +552,7 @@ async function openSettings() {
 
 function closeSettings() {
   settingsOpen = false;
-  els.settings.hidden = true;
+  showView(null);
   if (lastState) render(lastState);
 }
 
@@ -661,17 +723,87 @@ async function loadTierList(force = false) {
   drawTierList();
 }
 window.overlay.onTierListUpdated(() => { if (page === 'tierlist') loadTierList(); });
-$('nav-tier').addEventListener('click', () => {
-  if (settingsOpen) closeSettings();
-  page = 'tierlist';
-  showView(lastView);
-  tlRoleButtons();
-  loadTierList();
-});
-$('nav-home').addEventListener('click', () => {
-  if (settingsOpen) closeSettings();
-  page = 'auto';
-  showView(lastView);
+function goPage(p) {
+  settingsOpen = false;
+  page = p;
+  showView(null);
+  if (p === 'tierlist') { tlRoleButtons(); loadTierList(); }
+  if (p === 'history') loadHistory();
+}
+$('nav-tier').addEventListener('click', () => goPage('tierlist'));
+$('nav-history').addEventListener('click', () => goPage('history'));
+for (const id of ['nav-home', 'nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
+
+/* ---------- histórico / pós-partida ---------- */
+
+let histSel = null;
+async function loadHistory() {
+  const list = await window.overlay.listHistory();
+  $('hist-list').replaceChildren(...(list.length ? list.map((r) => {
+    const win = r.result === 'Win';
+    const row = h('div', { class: `row-item${r.id === histSel ? ' sel' : ''}` },
+      h('span', { class: `res ${r.result ? (win ? 'win' : 'lose') : ''}`, text: r.result ? (win ? 'V' : 'D') : '–' }),
+      version && r.champion.id ? h('img', { class: 'ic', src: champIcon(version, r.champion.id), alt: '' }) : h('span', { class: 'ic' }),
+      h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: `${r.champion.name}${r.opponent ? ` vs ${r.opponent}` : ''}` }),
+        h('div', { class: 'why', text: `${r.final.kills}/${r.final.deaths}/${r.final.assists} · ${mmss(r.duration)} · ${new Date(r.at).toLocaleDateString('pt-BR')}` })),
+      h('span', { class: 'why', text: `+${r.good} −${r.bad}` }));
+    row.addEventListener('click', () => { histSel = r.id; loadHistory(); showHistory(r.id); });
+    return row;
+  }) : [h('p', { class: 'muted pad', text: 'Nenhuma partida ainda. Jogue com o app aberto e o resumo aparece aqui no fim da partida.' })]));
+  if (!histSel && list[0]) { histSel = list[0].id; showHistory(histSel); loadHistory(); }
+}
+
+function goldChart(samples) {
+  const W = 600; const H = 150; const pad = 6;
+  const pts = samples.filter((s) => typeof s.team === 'number');
+  if (pts.length < 2) return h('p', { class: 'muted', text: 'Poucos dados de ouro nesta partida.' });
+  const maxT = pts[pts.length - 1].t || 1;
+  const maxV = Math.max(1000, ...pts.map((s) => Math.abs(s.team)), ...pts.map((s) => Math.abs(s.lane || 0)));
+  const x = (t) => pad + (t / maxT) * (W - pad * 2);
+  const y = (v) => H / 2 - (v / maxV) * (H / 2 - pad);
+  const path = (key) => pts.filter((s) => s[key] !== null && s[key] !== undefined).map((s, i) => `${i ? 'L' : 'M'}${x(s.t).toFixed(1)},${y(s[key]).toFixed(1)}`).join(' ');
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  const line = (d, color, w = 2, dash = '') => { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); p.setAttribute('fill', 'none'); p.setAttribute('stroke', color); p.setAttribute('stroke-width', w); if (dash) p.setAttribute('stroke-dasharray', dash); p.setAttribute('vector-effect', 'non-scaling-stroke'); svg.append(p); };
+  line(`M0,${H / 2} L${W},${H / 2}`, '#2e3038', 1, '4 4');
+  line(path('team'), '#f0587c', 2);
+  line(path('lane'), '#8b8d98', 1.5);
+  return h('div', {}, svg, h('div', { class: 'legend' },
+    h('span', {}, h('i', { style: 'background:#f0587c' }), document.createTextNode('Ouro do time (itens)')),
+    h('span', {}, h('i', { style: 'background:#8b8d98' }), document.createTextNode('Sua rota')),
+    h('span', { text: `escala ±${fmtK(maxV)}` })));
+}
+
+async function showHistory(id) {
+  const r = await window.overlay.getHistory(id);
+  const box = $('hist-detail');
+  if (!r) { box.replaceChildren(h('p', { class: 'muted pad', text: 'Partida não encontrada.' })); return; }
+  const f = r.final;
+  const min = Math.max(1, r.duration / 60);
+  const point = (p) => h('div', { class: 'h-point' }, h('b', { text: p.title }), h('span', { text: p.text }));
+  box.replaceChildren(
+    h('div', { class: 'card-h' }, h('h2', { text: `${r.champion.name}${r.opponent ? ` vs ${r.opponent}` : ''}` }),
+      h('span', { class: `res ${r.result === 'Win' ? 'win' : r.result === 'Lose' ? 'lose' : ''}`, text: r.result === 'Win' ? 'Vitória' : r.result === 'Lose' ? 'Derrota' : 'Resultado desconhecido' }),
+      h('span', { class: 'muted small', text: `${mmss(r.duration)} · ${new Date(r.at).toLocaleString('pt-BR')}` })),
+    h('div', { class: 'h-stats' },
+      h('div', { class: 'h-stat' }, h('b', { text: `${f.kills}/${f.deaths}/${f.assists}` }), h('span', { class: 'muted small', text: 'KDA' })),
+      h('div', { class: 'h-stat' }, h('b', { text: (f.cs / min).toFixed(1) }), h('span', { class: 'muted small', text: `CS/min (${f.cs})` })),
+      h('div', { class: 'h-stat' }, h('b', { text: r.teamKills ? `${Math.round(((f.kills + f.assists) / r.teamKills) * 100)}%` : '–' }), h('span', { class: 'muted small', text: 'participação' })),
+      h('div', { class: 'h-stat' }, h('b', { text: String(Math.round(f.wards || 0)) }), h('span', { class: 'muted small', text: 'placar de visão' }))),
+    h('div', { class: 'h-chart' }, goldChart(r.samples || [])),
+    h('div', { class: 'h-cols' },
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'up', text: 'O que ajudou' })),
+        ...(r.analysis.good.length ? r.analysis.good.map(point) : [h('p', { class: 'muted small', text: 'Nada que se destacou.' })])),
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'down', text: 'O que prejudicou' })),
+        ...(r.analysis.bad.length ? r.analysis.bad.map(point) : [h('p', { class: 'muted small', text: 'Nenhum problema claro.' })]))));
+}
+
+window.overlay.onPostgame((rec) => {
+  histSel = rec.id;
+  goPage('history');
+  showHistory(rec.id);
 });
 $('tl-search').addEventListener('input', drawTierList);
 $('tl-sort').addEventListener('change', drawTierList);

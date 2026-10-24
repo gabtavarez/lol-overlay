@@ -1,50 +1,71 @@
 @font-face { font-family: "Inter"; src: url("fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
-@font-face { font-family: "Outfit"; src: url("fonts/outfit.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
-/* Paleta inspirada em K/DA FIRESTARTER: preto, vinho, carmim e rosa neon */
-:root { --bg: rgba(14, 4, 10, .93); --line: #5c1630; --accent: #ff4d79; --accent2: #ff9ab5; --text: #fdeef3; --muted: #bf93a3; --green: #6ee7b7; --gold: #ffb3c7; }
+/* Mesmo visual limpo do app: grafite, bordas finas, uma cor de destaque. */
+:root { --bg: rgba(18, 19, 23, .94); --line: #2a2c33; --text: #e8e8ec; --muted: #8b8d98; --dim: #5d606b; --acc: #f0587c; --good: #3fbf7f; --bad: #e5484d; --warn: #e5a83d; }
 [hidden] { display: none !important; }
-html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font: 13px/1.35 "Segoe UI", system-ui, sans-serif; color: var(--text); }
-.box { position: fixed; width: 330px; transform-origin: top left; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 0 10px 12px; box-shadow: 0 6px 24px rgba(0,0,0,.6), 0 0 18px rgba(255, 77, 121, .12); }
-.box header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; letter-spacing: .1em; color: var(--accent); padding: 9px 0 8px; cursor: grab; user-select: none; touch-action: none; }
-.box header small { color: var(--accent2); font-size: 12px; }
-.box.moving { outline: 2px dashed var(--accent); }
-.grip { position: absolute; right: 2px; bottom: 2px; width: 16px; height: 16px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, var(--accent) 50%, var(--accent) 60%, transparent 60%, transparent 72%, var(--accent) 72%, var(--accent) 82%, transparent 82%); opacity: .8; }
-.buy { display: flex; gap: 10px; align-items: center; padding: 7px; border: 1px solid transparent; border-radius: 8px; margin-bottom: 4px; }
-.buy.best { background: rgba(255, 77, 121, .12); border-color: rgba(255, 77, 121, .45); }
-.buy-icon { width: 38px; height: 38px; border-radius: 6px; flex: none; background: #1a0710; }
+html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font: 12.5px/1.4 "Inter", "Segoe UI", sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; }
+.box { position: fixed; width: 320px; transform-origin: top left; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 0 12px 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, .55); }
+.box header { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: var(--muted); padding: 10px 0 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); cursor: grab; user-select: none; touch-action: none; }
+.box header small { color: var(--dim); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+.box.moving { outline: 2px dashed var(--acc); }
+.grip { position: absolute; right: 3px; bottom: 3px; width: 12px; height: 12px; cursor: nwse-resize; touch-action: none; border-right: 2px solid var(--dim); border-bottom: 2px solid var(--dim); border-radius: 0 0 3px 0; opacity: .7; }
+
+.buy { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.buy:last-child { border-bottom: 0; }
+.buy-icon { width: 34px; height: 34px; border-radius: 6px; flex: none; background: #23252c; }
 .buy-body { flex: 1; min-width: 0; }
 .buy-name { font-weight: 600; }
-.buy-reason { color: var(--muted); font-size: 12px; }
-.buy-gold { font-size: 11px; color: var(--muted); }
-.buy.afford .buy-gold { color: var(--green); }
-.buy-score { font-family: Consolas, monospace; font-weight: 700; color: var(--accent2); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
-.recall { background: rgba(255, 154, 181, .13); border: 1px solid rgba(255, 154, 181, .5); color: var(--gold); border-radius: 8px; padding: 6px 8px; margin-bottom: 6px; font-weight: 600; }
-.note { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
-.alert { margin-top: 6px; padding: 6px 8px; border-left: 3px solid var(--accent); background: rgba(255, 77, 121, .1); border-radius: 0 6px 6px 0; font-size: 12px; }
-#edit-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; background: var(--bg); border: 1px solid var(--accent); border-radius: 10px; padding: 8px 14px; color: var(--text); }
-#edit-bar button { background: #7a1636; color: var(--text); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+.buy-reason { color: var(--muted); font-size: 11.5px; }
+.buy-gold { font-size: 11px; color: var(--dim); }
+.buy.afford .buy-gold { color: var(--good); }
+.buy-score { font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.buy.best .buy-score { color: var(--acc); }
+.recall { margin: 6px 0; padding: 6px 8px; border-radius: 6px; background: rgba(240, 88, 124, .12); color: #f7a3b7; font-weight: 500; }
+.note { color: var(--muted); font-size: 11.5px; margin: 6px 0; }
+.alert { margin-top: 6px; padding: 5px 8px; border-left: 2px solid var(--warn); background: rgba(229, 168, 61, .08); font-size: 11.5px; }
 .muted { color: var(--muted); }
+#edit-bar { position: fixed; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; background: var(--bg); border: 1px solid var(--acc); border-radius: 8px; padding: 8px 14px; }
+#edit-bar button { background: var(--acc); color: #fff; border: 0; border-radius: 6px; padding: 4px 12px; cursor: pointer; font-weight: 600; }
 
-body, button { font-family: "Inter", "Segoe UI", sans-serif; }
-.panel-title, h2, .buy-name { font-family: "Outfit", "Inter", sans-serif; }
+/* rota: fases + scouting */
+.phases { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+.ph { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.ph b { display: block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); }
+.ph span { font-size: 11.5px; }
+.ph.mine span { color: var(--good); } .ph.theirs span { color: var(--bad); }
+.sc-row { padding: 5px 0; border-top: 1px solid var(--line); font-size: 11.5px; }
+.sc-row b { display: block; font-weight: 600; }
+.sc-row span { color: var(--muted); }
 
 /* ouro cara a cara */
 .gold-box { width: 270px; }
-#team-diff.up, .g-diff.up { color: #4ade80; } #team-diff.down, .g-diff.down { color: #ff6b8a; }
-#team-diff { font: 700 13px "Outfit", sans-serif; }
-.g-row { display: grid; grid-template-columns: 62px 1fr 62px; align-items: center; gap: 6px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,.05); }
-.g-row:first-child { border-top: 0; }
+#team-diff { font-weight: 700; }
+#team-diff.up, .g-diff.up { color: var(--good); } #team-diff.down, .g-diff.down { color: var(--bad); }
+.g-row { display: grid; grid-template-columns: 62px 1fr 62px; align-items: center; gap: 6px; padding: 4px 0; }
 .g-side { display: flex; align-items: center; gap: 5px; }
 .g-side.enemy { flex-direction: row-reverse; }
-.g-champ { width: 26px; height: 26px; border-radius: 7px; background: #1a0710; flex: none; }
-.g-side.ally .g-champ { box-shadow: 0 0 0 1.5px #4aa8ff; } .g-side.enemy .g-champ { box-shadow: 0 0 0 1.5px #ff4d6d; }
-.g-side.me .g-champ { box-shadow: 0 0 0 2px #ffd166; }
-.g-val { font: 600 12px "Outfit", sans-serif; color: #f3dbe4; }
+.g-champ { width: 24px; height: 24px; border-radius: 5px; background: #23252c; flex: none; }
+.g-side.me .g-champ { outline: 2px solid var(--acc); }
+.g-val { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .g-mid { text-align: center; }
-.g-diff { font: 700 13px "Outfit", sans-serif; line-height: 1; }
-.g-bar { position: relative; height: 5px; margin: 4px 0 2px; border-radius: 99px; background: rgba(255,255,255,.08); }
-.g-bar::after { content: ""; position: absolute; left: 50%; top: -2px; width: 1px; height: 9px; background: rgba(255,255,255,.3); }
+.g-diff { font-weight: 600; font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.g-bar { position: relative; height: 4px; margin: 4px 0 2px; border-radius: 99px; background: #23252c; }
+.g-bar::after { content: ""; position: absolute; left: 50%; top: -2px; width: 1px; height: 8px; background: var(--dim); }
 .g-fill { position: absolute; top: 0; bottom: 0; border-radius: 99px; }
-.g-fill.up { background: linear-gradient(90deg, #22c55e, #4ade80); } .g-fill.down { background: linear-gradient(270deg, #e11d48, #ff6b8a); }
-.g-role { font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; color: #a98896; }
-.gold-foot { font-size: 10px; color: #8d6b79; text-align: center; margin-top: 4px; }
+.g-fill.up { background: var(--good); } .g-fill.down { background: var(--bad); }
+.g-role { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); }
+.gold-foot { font-size: 10px; color: var(--dim); text-align: center; margin-top: 4px; }
+
+/* timers */
+.timers-box { width: 250px; }
+#obj { display: flex; gap: 6px; margin: 6px 0 8px; }
+.t-obj { flex: 1; padding: 5px 7px; border: 1px solid var(--line); border-radius: 6px; }
+.t-obj span { display: block; font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .05em; }
+.t-obj b { font-variant-numeric: tabular-nums; font-size: 14px; }
+.t-obj.live b { color: var(--good); }
+.t-enemy { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.t-champ { width: 26px; height: 26px; border-radius: 6px; background: #23252c; flex: none; margin-right: 4px; }
+.t-spell { position: relative; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 5px; background: #23252c; cursor: pointer; overflow: hidden; }
+.t-spell img { width: 100%; height: 100%; display: block; }
+.t-spell.down img { filter: grayscale(1) brightness(.4); }
+.t-left { position: absolute; inset: 0; display: grid; place-items: center; font-size: 9.5px; font-weight: 700; color: #fff; }

@@ -21,7 +21,7 @@ function readJson(file) {
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -110,6 +110,13 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     /** Tier list ranqueada de todas as rotas, atualizada a cada 3 h (segue o patch atual do OP.GG). */
     ensureTierList: (onDone, force = false) => refresh('tierlist', 'all', () => client.tierList(), onDone, force ? 60 * 1000 : 3 * 3600 * 1000),
     getTierList: () => cache.tierlist.all || null,
+    /** Lane scouting: perfil OP.GG de um Riot ID (cache de 1 h). */
+    ensureScout: (riotId, region, onDone) => {
+      const [name, tag] = String(riotId || '').split('#');
+      if (!name || !tag) return Promise.resolve();
+      return refresh('scout', `${region}:${riotId.toLowerCase()}`, () => client.summoner(name, tag, region), onDone, 3600 * 1000);
+    },
+    getScout: (riotId, region) => { const e = cache.scout[`${region}:${String(riotId).toLowerCase()}`]; return e ? e.data : null; },
     tierListError: () => failures.get('tierlist:all') || null,
     ensureTiers: (role, onDone) => (role ? refresh('tiers', role, () => client.laneMeta(role), onDone) : Promise.resolve()),
     ensureBuild: (champ, role, onDone, priority = 0) =>

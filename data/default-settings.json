@@ -12,7 +12,8 @@
     "panels": {
       "buys": null,
       "info": null,
-      "gold": null
+      "gold": null,
+      "timers": null
     }
   },
   "picker": {

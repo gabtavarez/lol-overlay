@@ -5,7 +5,7 @@ const { toOpggRegion } = require('./opgg');
 const { clamp } = require('./util');
 
 const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
-const PANELS = ['buys', 'info', 'gold'];
+const PANELS = ['buys', 'info', 'gold', 'timers'];
 const BUILD_TIERS = ['ALL', 'GOLD', 'PLATINUM_PLUS', 'EMERALD_PLUS', 'DIAMOND_PLUS', 'MASTER_PLUS', 'CHALLENGER'];
 const WEIGHT_KEYS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 

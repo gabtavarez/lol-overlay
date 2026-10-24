@@ -166,6 +166,22 @@ function parseTierList(text) {
   return out;
 }
 
+/** Perfil do invocador (lane scouting): elo solo, vitórias, sequência e campeões mais jogados. */
+function parseSummoner(text) {
+  const s = (parseCompact(text).data || {}).summoner || {};
+  const solo = (s.league_stats || []).find((l) => l && l.game_type === 'SOLORANKED') || null;
+  const ti = (solo && solo.tier_info) || {};
+  const champs = ((s.most_champions || {}).champion_stats || []).filter((c) => c && c.champion_name).map((c) => ({
+    name: c.champion_name, games: c.play || 0, wins: c.win || 0,
+    kda: c.death ? Number(((c.kill + c.assist) / c.death).toFixed(2)) : (c.kill || 0) + (c.assist || 0),
+  }));
+  return {
+    tier: ti.tier || null, division: ti.division || null, lp: ti.lp || 0,
+    wins: (solo && solo.win) || 0, losses: (solo && solo.lose) || 0, hot: Boolean(solo && solo.is_hot_streak),
+    champs,
+  };
+}
+
 /** Guia de matchup (JSON): melhores runas/itens/feitiços CONTRA aquele oponente + dica. */
 function parseMatchup(text) {
   const d = (JSON.parse(text) || {}).data;
@@ -319,6 +335,12 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
         synergy_position: POSITION[myRole] || 'none', lang: 'en_US',
         desired_output_fields: ['data.synergies[].{champion_name,synergy_champion_name,win_rate,play}'],
       })),
+    summoner: async (gameName, tagLine, region) =>
+      parseSummoner(await call('lol_get_summoner_profile', {
+        game_name: gameName, tag_line: tagLine, region: String(region || 'BR').toUpperCase(), lang: 'en_US',
+        desired_output_fields: ['data.summoner.league_stats[].{game_type,is_hot_streak,lose,win}', 'data.summoner.league_stats[].tier_info.{division,lp,tier}',
+          'data.summoner.most_champions.champion_stats[].{assist,champion_name,death,kill,lose,play,win}'],
+      }, 15)),
     tierList: async () =>
       parseTierList(await call('lol_list_lane_meta_champions', { lang: 'en_US', position: 'all', desired_output_fields: TL_FIELDS }, 4)),
     laneMeta: async (role) =>
@@ -328,4 +350,4 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   };
 }
 
-module.exports = { createMcpClient, parseTierList, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };
+module.exports = { createMcpClient, parseTierList, parseSummoner, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };

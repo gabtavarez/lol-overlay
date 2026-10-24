@@ -1,12 +1,12 @@
 const $ = (id) => document.getElementById(id);
-const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox') };
+const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox'), timers: $('timersbox') };
 const extras = { recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') };
 
 const BASE_WIDTH = 330;
 let lastState = null;
 let moving = false;
 let previewing = false;
-let panels = { buys: null, info: null, gold: null };
+let panels = { buys: null, info: null, gold: null, timers: null };
 let dragging = false;
 
 const SAMPLE = { items: [
@@ -42,9 +42,66 @@ function renderGold(gold, version) {
   }));
 }
 
+/* ---------- rota: fases + scouting ---------- */
+function renderInfo(advice, state) {
+  const ph = advice.phases;
+  $('phases').hidden = !ph;
+  if (ph) $('phases').replaceChildren(...ph.map((p) => h('div', { class: `ph ${p.verdict}` }, h('b', { text: p.label }), h('span', { text: p.text }))));
+  $('info-vs').textContent = state && state.laneOpponent ? `vs ${state.laneOpponent.champion}` : '';
+  const sc = advice.scout || [];
+  $('scout').hidden = !sc.length;
+  $('scout').replaceChildren(...sc.map((x) => {
+    const p = x.profile;
+    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''}` : p ? 'Sem elo' : '…';
+    const wr = p && p.wins + p.losses ? ` · ${Math.round((p.wins / (p.wins + p.losses)) * 100)}%` : '';
+    const on = x.onChamp ? ` · ${x.onChamp.games} jogos de ${x.champion}` : p ? ` · novo de ${x.champion}?` : '';
+    return h('div', { class: 'sc-row' }, h('b', { text: `${x.who}: ${x.champion}` }), h('span', { text: `${rank}${wr}${on}${p && p.hot ? ' · em sequência' : ''}` }));
+  }));
+}
+
+/* ---------- timers: objetivos + feitiços do inimigo (clique ou Ctrl+Shift+1..5 para o Flash) ---------- */
+const marks = new Map(); // `${riotId}:${spell}` -> pronto no tempo de jogo
+let markGame = 0;
+const SPELL_NAME = { SummonerFlash: 'Flash', SummonerDot: 'Incendiar', SummonerHeal: 'Curar', SummonerBarrier: 'Barreira', SummonerExhaust: 'Exaustão', SummonerBoost: 'Purificar', SummonerHaste: 'Fantasma', SummonerTeleport: 'Teleporte', SummonerSmite: 'Golpear', SummonerMana: 'Clareza', SummonerSnowball: 'Marcar' };
+const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+function markSpell(enemy, spell) {
+  const cd = (lastState.spellCd || {})[spell] || 300;
+  const key = `${enemy.riotId || enemy.champion}:${spell}`;
+  if (marks.has(key) && marks.get(key) > lastState.gameTime) marks.delete(key); // clicar de novo desmarca
+  else marks.set(key, lastState.gameTime + cd);
+  renderTimers(lastState);
+}
+
+function renderTimers(state) {
+  if (!state) {
+    $('obj').replaceChildren(h('div', { class: 't-obj' }, h('span', { text: 'Dragão' }), h('b', { text: '1:20' })), h('div', { class: 't-obj' }, h('span', { text: 'Barão' }), h('b', { text: '12:40' })));
+    $('spells').replaceChildren(h('div', { class: 'note', text: 'Feitiços dos inimigos aparecem aqui.' }));
+    return;
+  }
+  if (state.gameTime + 30 < markGame) marks.clear(); // nova partida
+  markGame = state.gameTime;
+  const v = state.assets.version;
+  $('obj').replaceChildren(...((state.advice && state.advice.timers) || []).map((t) => h('div', { class: `t-obj${t.in === 0 ? ' live' : ''}` }, h('span', { text: t.label }), h('b', { text: t.in === 0 ? 'vivo' : mm(t.in) }))));
+  $('spells').replaceChildren(...state.enemies.map((e) => h('div', { class: 't-enemy' },
+    e.championId && v ? h('img', { class: 't-champ', src: champIcon(v, e.championId), alt: '' }) : h('span', { class: 't-champ' }),
+    ...(e.spells || []).map((sp) => {
+      const left = (marks.get(`${e.riotId || e.champion}:${sp}`) || 0) - state.gameTime;
+      const b = h('button', { class: `t-spell${left > 0 ? ' down' : ''}`, type: 'button', title: SPELL_NAME[sp] || sp },
+        v ? h('img', { src: `https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${sp}.png`, alt: '' }) : h('span'),
+        left > 0 ? h('span', { class: 't-left', text: mm(left) }) : null);
+      b.addEventListener('click', () => markSpell(e, sp));
+      return b;
+    }))));
+}
+window.overlay.onSpellMark(({ index, spell }) => {
+  const e = lastState && lastState.enemies && lastState.enemies[index];
+  if (e && lastState.phase === 'ingame') markSpell(e, (e.spells || []).includes(spell) ? spell : (e.spells || [])[0]);
+});
+
 function defaults() {
   const y = Math.round(window.innerHeight * 0.3);
-  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 } };
+  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 }, timers: { x: window.innerWidth - 300, y: Math.max(10, y - 250), scale: 1 } };
 }
 
 function apply(name) {
@@ -58,12 +115,13 @@ function apply(name) {
 function draw() {
   const inGame = lastState && lastState.phase === 'ingame';
   const advice = (lastState && lastState.advice) || {};
-  const hasInfo = Boolean((advice.buys && advice.buys.matchup) || (advice.alerts && advice.alerts.length));
+  const hasInfo = Boolean((advice.buys && advice.buys.matchup) || (advice.alerts && advice.alerts.length) || advice.phases || (advice.scout && advice.scout.length));
 
   const sample = moving || previewing;
   boxes.buys.hidden = !inGame && !sample;
   boxes.info.hidden = !(sample || (inGame && hasInfo));
   boxes.gold.hidden = !(sample || (inGame && advice.gold));
+  boxes.timers.hidden = !(sample || (inGame && ((advice.timers && advice.timers.length) || lastState.enemies.length)));
   for (const b of Object.values(boxes)) b.classList.toggle('moving', moving);
   $('edit-bar').hidden = !moving;
 
@@ -72,10 +130,14 @@ function draw() {
     renderBuyList($('list'), advice.buys, lastState.assets.version);
     renderExtras(extras, advice);
     renderGold(advice.gold, lastState.assets.version);
+    renderInfo(advice, lastState);
+    renderTimers(lastState);
   } else if (sample) {
     $('gold').textContent = '';
     renderBuyList($('list'), SAMPLE, null);
     renderGold(SAMPLE_GOLD, null);
+    renderInfo({ phases: [{ label: 'Early', verdict: 'theirs', text: 'Oponente mais forte' }, { label: 'Mid', verdict: 'even', text: 'Equilibrado' }, { label: 'Late', verdict: 'mine', text: 'Você mais forte' }] }, null);
+    renderTimers(null);
     renderExtras(extras, { buys: { recall: 'Aviso de recall aparece aqui', items: [1], matchup: { vs: 'Campeão', tip: 'Dica do matchup aparece aqui.' } }, alerts: [{ text: 'Alertas de itens inimigos' }] });
   }
 }
@@ -148,13 +210,9 @@ window.overlay.onState((state) => { lastState = state; draw(); });
 window.overlay.onMoveMode((on) => { moving = on; draw(); });
 window.overlay.onPreview((on) => { previewing = on; draw(); });
 window.overlay.getSettings().then((s) => {
-  if (s && s.overlay && s.overlay.panels) panels = { buys: s.overlay.panels.buys, info: s.overlay.panels.info, gold: s.overlay.panels.gold };
-  apply('buys');
-  apply('info');
-  apply('gold');
+  if (s && s.overlay && s.overlay.panels) panels = { buys: s.overlay.panels.buys, info: s.overlay.panels.info, gold: s.overlay.panels.gold, timers: s.overlay.panels.timers };
+  Object.keys(boxes).forEach(apply);
 });
-window.addEventListener('resize', () => { apply('buys'); apply('info'); apply('gold'); });
-apply('buys');
-apply('info');
-apply('gold');
+window.addEventListener('resize', () => Object.keys(boxes).forEach(apply));
+Object.keys(boxes).forEach(apply);
 window.overlay.ready();

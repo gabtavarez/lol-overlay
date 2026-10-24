@@ -189,6 +189,8 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
     },
     tick,
     getCreds: () => creds,
+    getProfile: () => profile,
+    getRegion: () => region,
   };
 }
 

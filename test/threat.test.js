@@ -78,3 +78,30 @@ test('Live API com itens em formato estranho não derruba o overlay', () => {
   assert.equal(s.phase, 'ingame');
   assert.equal(s.me.items.length, 1);
 });
+
+const { analyze } = require('../src/postgame');
+test('pós-partida: aponta throw, farm e rota com evidência', () => {
+  const rec = { duration: 1800, role: 'middle', result: 'Lose', opponent: 'Zed', teamKills: 30, firstDeath: 200,
+    final: { kills: 2, deaths: 8, assists: 4, cs: 120, wards: 10 },
+    samples: [{ t: 600, lane: -900, team: 500 }, { t: 900, lane: -1200, team: 3500 }, { t: 1500, lane: 0, team: -2000 }] };
+  const a = analyze(rec);
+  const titles = a.bad.map((b) => b.title);
+  for (const t of ['Farm baixo', 'Muitas mortes', 'Rota perdida aos 10 min', 'Throw', 'Morte cedo']) assert.ok(titles.includes(t), t);
+});
+
+const { predictRoles } = require('../src/roles');
+const { phaseCompare } = require('../src/power');
+const { objectiveTimers } = require('../src/timers');
+test('rotas inimigas previstas, flex, fases e timers', () => {
+  const idx = { Zed: { middle: 0.9, top: 0.1 }, Yone: { middle: 0.5, top: 0.45, jungle: 0.05 }, LeeSin: { jungle: 1 } };
+  const out = predictRoles([{ champion: { id: 'Zed' }, position: '' }, { champion: { id: 'Yone' }, position: '' }, { champion: { id: 'LeeSin' }, position: '' }], idx);
+  assert.equal(out[0].predicted, 'middle');
+  assert.equal(out[1].predicted, 'top');
+  assert.deepEqual(out[1].flex, ['middle', 'top']);
+  assert.equal(out[2].predicted, 'jungle');
+  const ph = phaseCompare({ id: 'Draven', name: 'Draven', tags: [] }, { id: 'Kayle', name: 'Kayle', tags: [] });
+  assert.equal(ph[0].verdict, 'mine');
+  assert.equal(ph[2].verdict, 'theirs');
+  const t = objectiveTimers({ phase: 'ingame', gameMode: 'CLASSIC', gameTime: 400, events: [{ name: 'DragonKill', time: 320 }] });
+  assert.equal(t.find((x) => x.key === 'dragon').in, 220);
+});

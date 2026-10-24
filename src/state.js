@@ -18,6 +18,16 @@ function mapItem(item, dd) {
   };
 }
 
+/** "GeneralUtility_Flash" / "SummonerFlash" / "Flash" -> 'SummonerFlash' (chave do Data Dragon). */
+const SPELL_NAMES = { flash: 'SummonerFlash', ignite: 'SummonerDot', dot: 'SummonerDot', heal: 'SummonerHeal', barrier: 'SummonerBarrier', exhaust: 'SummonerExhaust',
+  cleanse: 'SummonerBoost', boost: 'SummonerBoost', ghost: 'SummonerHaste', haste: 'SummonerHaste', teleport: 'SummonerTeleport', smite: 'SummonerSmite', clarity: 'SummonerMana', mark: 'SummonerSnowball', snowball: 'SummonerSnowball' };
+function spellKey(s) {
+  if (!s) return null;
+  const raw = String(s.rawDisplayName || s.displayName || '').toLowerCase();
+  for (const [k, v] of Object.entries(SPELL_NAMES)) if (raw.includes(k)) return v;
+  return null;
+}
+
 function mapPlayer(p, dd) {
   const champ = dd ? dd.championByRaw(p.rawChampionName, p.championName) : null;
   const scores = p.scores || {};
@@ -39,6 +49,10 @@ function mapPlayer(p, dd) {
       cs: scores.creepScore || 0,
     },
     items: list(p.items).filter((it) => it && it.itemID).map((it) => mapItem(it, dd)),
+    riotId: p.riotId || '',
+    wards: scores.wardScore || 0,
+    spells: [p.summonerSpells && p.summonerSpells.summonerSpellOne, p.summonerSpells && p.summonerSpells.summonerSpellTwo]
+      .map((s) => spellKey(s)).filter(Boolean),
   };
 }
 
@@ -97,6 +111,8 @@ function buildState(raw, dd) {
     enemies,
     laneOpponent,
     objectives: countObjectives((raw.events || {}).Events, players),
+    events: list((raw.events || {}).Events).map((e) => ({ name: e.EventName, time: e.EventTime || 0, killer: e.KillerName || '', victim: e.VictimName || '', result: e.Result || '', assisters: list(e.Assisters) })),
+    teamKills: { mine: players.filter((p) => p.team === me.team).reduce((s, p) => s + p.scores.kills, 0) },
   };
 }
 

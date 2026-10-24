@@ -15,6 +15,10 @@ const { createLogger } = require('./log');
 const { createUpdater } = require('./updater');
 const { laterItems } = require('./buildPath');
 const { spawn } = require('child_process');
+const { createRecorder } = require('./postgame');
+const { phaseCompare } = require('./power');
+const { predictRoles, roleIndex } = require('./roles');
+const { championFit } = require('./fit');
 
 const USE_MOCK = process.argv.includes('--mock');
 const LIVE_URL = USE_MOCK ? 'http://127.0.0.1:2998' : 'https://127.0.0.1:2999';
@@ -280,6 +284,8 @@ function registerShortcuts() {
     updateOverlayVisibility();
   });
   globalShortcut.register('CommandOrControl+Shift+Q', () => app.quit());
+  // Ctrl+Shift+1..5: marca o Flash do inimigo n (na ordem do placar) no painel de timers.
+  for (let n = 1; n <= 5; n++) globalShortcut.register(`CommandOrControl+Shift+${n}`, () => send('spell-mark', { index: n - 1, spell: 'SummonerFlash' }));
 }
 
 /* ---------- dados ---------- */
@@ -317,6 +323,8 @@ function champById(id) {
 }
 
 /** Oponente de rota já revelado no champ select (ou null). */
+let lastRegion = null;
+let recorder = null;
 let matchupPick = null; // { session, id } oponente escolhido à mão no guia (quando a rota inimiga não aparece)
 function laneEnemy() {
   const enemies = (lcuState.enemies || []).filter((x) => x.champion);
@@ -326,7 +334,7 @@ function laneEnemy() {
     if (picked) return picked.champion;
   }
   const role = lastRole || lcuState.myPosition;
-  const e = enemies.find((x) => x.position === role);
+  const e = enemies.find((x) => x.position === role) || enemies.find((x) => !x.position && x.predicted === role && x.confidence >= 50);
   return e ? e.champion : null;
 }
 
@@ -447,10 +455,61 @@ function prefetchChampSelect(state, done) {
   for (const a of state.allies) if (a.champion && a.position) remote.ensureSynergy(a.champion, a.position, role, done);
 }
 
+function currentRegion() {
+  const s = settings.get().region;
+  if (s && s !== 'auto') return s;
+  const r = (lcuState.opgg && lcuState.opgg.region) || (lcuEngine && lcuEngine.getRegion());
+  if (r) lastRegion = r;
+  return lastRegion || 'br';
+}
+
+/** Jogadores para o lane scouting: oponente de rota e o caçador inimigo (quem tem Golpear). */
+function scoutTargets(state) {
+  const out = [];
+  if (state.laneOpponent) out.push({ who: 'Rota', p: state.laneOpponent });
+  const jg = (state.enemies || []).find((e) => (e.spells || []).includes('SummonerSmite') && e !== state.laneOpponent);
+  if (jg) out.push({ who: 'Selva', p: jg });
+  return out.filter((x) => x.p.riotId && x.p.riotId.includes('#'));
+}
+
+/** Acrescenta ao estado da partida: lane scouting e fases (early/mid/late) do matchup. */
+function decorateLive(state) {
+  if (state.phase !== 'ingame' || !state.advice) return state;
+  const region = currentRegion();
+  state.advice.scout = scoutTargets(state).map(({ who, p }) => {
+    const prof = remote.getScout(p.riotId, region);
+    const onChamp = prof && prof.champs.find((c) => c.name.toLowerCase() === String(p.champion).toLowerCase());
+    return { who, champion: p.champion, championId: p.championId, riotId: p.riotId, profile: prof, onChamp: onChamp || null };
+  });
+  const meC = dd && dd.champions[state.me.championId];
+  const opC = dd && state.laneOpponent && dd.champions[state.laneOpponent.championId];
+  state.advice.phases = meC && opC ? phaseCompare(meC, opC) : null;
+  return state;
+}
+
 function prefetchInGame(state, me, opp) {
+  const region = currentRegion();
+  for (const t of scoutTargets(state)) remote.ensureScout(t.p.riotId, region, () => liveEngine.tick());
   // a Live API muitas vezes não informa a rota: sem rota, o OP.GG escolhe a mais comum do campeão
   remote.ensureBuild(me, state.myRole, () => liveEngine.tick());
   if (opp) remote.ensureMatchup(me, opp, state.myRole, () => liveEngine.tick());
+}
+
+/** Champ select: rotas previstas do time inimigo; tela inicial: champion fit. */
+function decorateLcu(state) {
+  const tl = remote.getTierList();
+  if (state.phase === 'champselect') {
+    remote.ensureTierList(() => lcuEngine.tick());
+    if (tl) state.enemies = predictRoles(state.enemies || [], roleIndex(tl.data, dd));
+  }
+  if (state.home && !state.home.loading) {
+    if (!tl) remote.ensureTierList(() => lcuEngine.tick());
+    const profile = lcuEngine && lcuEngine.getProfile();
+    const mainRole = state.home.roles && state.home.roles[0] && state.home.roles[0].role;
+    state.home.fit = profile && tl ? championFit({ mastery: profile.mastery, dd, tierList: tl.data, mainRole }) : [];
+    state.home.mainRole = mainRole || null;
+  }
+  return state;
 }
 
 /* ---------- IPC ---------- */
@@ -497,6 +556,9 @@ function registerIpc() {
     }
     return { data, at: e ? e.at : null, patch: dd ? dd.version : null, error: e ? null : remote.tierListError() };
   });
+
+  ipcMain.handle('history:list', () => recorder.list().map((r) => ({ id: r.id, at: r.at, champion: r.champion, result: r.result, duration: r.duration, final: r.final, role: r.role, opponent: r.opponent, mode: r.mode, good: r.analysis.good.length, bad: r.analysis.bad.length })));
+  ipcMain.handle('history:get', (_e, id) => recorder.get(String(id)));
 
   // Escolha manual do oponente do matchup ('auto' volta à detecção pela rota, 'none' = só a build geral).
   ipcMain.handle('matchup:set', (_e, id) => {
@@ -554,6 +616,7 @@ app.whenReady().then(() => {
   settings = createSettingsStore(path.join(userData, 'settings.json'));
   meta = loadMeta([path.join(__dirname, '..', 'data', 'meta.json'), path.join(userData, 'meta.json')]);
 
+  recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
   remote = createRemoteData({
     cacheDir: path.join(userData, 'remote'),
     isEnabled: () => !USE_MOCK && settings.get().remoteData.enabled,
@@ -580,7 +643,13 @@ app.whenReady().then(() => {
     onError: (err) => logger.log(`erro nas sugestões: ${err.stack || err.message}`),
     prefetch: prefetchInGame,
     onState: (state) => {
-      liveState = state;
+      const was = liveState.phase;
+      liveState = decorateLive(state);
+      if (state.phase === 'ingame') recorder.sample(state, state.myRole);
+      else if (was === 'ingame') {
+        const rec = recorder.finish();
+        if (rec) send('postgame', rec);
+      }
       publish();
     },
   });
@@ -592,7 +661,7 @@ app.whenReady().then(() => {
     getBuild: (champ, role) => remote.getBuild(champ, role),
     prefetch: (state, done) => prefetchChampSelect(state, done),
     onState: (state) => {
-      lcuState = state;
+      lcuState = decorateLcu(state);
       publish();
       maybeAutoImport(state);
     },

@@ -5,7 +5,7 @@ const { toOpggRegion } = require('./opgg');
 const { clamp } = require('./util');
 
 const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
-const PANELS = ['buys', 'info'];
+const PANELS = ['buys', 'info', 'gold'];
 const WEIGHT_KEYS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 
 function cleanList(value) {

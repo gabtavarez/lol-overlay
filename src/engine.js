@@ -1,3 +1,4 @@
+const { goldCompare } = require('./goldDiff');
 const { fetchAllGameData } = require('./liveClient');
 const { buildState } = require('./state');
 const { recommend } = require('./recommender');
@@ -40,6 +41,7 @@ function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatch
           );
           state.advice.buys = buyAdvice({ state, build, dd: getDd() });
           state.advice.alerts = alerts.update(state, getDd());
+          state.advice.gold = goldCompare(state, getDd());
           prefetch(state, me, opp);
         } catch (err) {
           // uma falha nas sugestões não pode esconder a partida inteira nem o overlay

@@ -1,12 +1,12 @@
 const $ = (id) => document.getElementById(id);
-const boxes = { buys: $('buys'), info: $('info') };
+const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox') };
 const extras = { recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') };
 
 const BASE_WIDTH = 330;
 let lastState = null;
 let moving = false;
 let previewing = false;
-let panels = { buys: null, info: null };
+let panels = { buys: null, info: null, gold: null };
 let dragging = false;
 
 const SAMPLE = { items: [
@@ -15,9 +15,36 @@ const SAMPLE = { items: [
   { id: 3146, name: 'Item sugerido', reason: 'Build do meta', score: 60, missing: 900, canBuy: false },
 ] };
 
+const SAMPLE_GOLD = { team: { ally: 21400, enemy: 19900, diff: 1500 }, lanes: ['Topo', 'Selva', 'Meio', 'Atirador', 'Suporte'].map((role, i) => ({
+  role, ally: { name: 'Aliado', gold: 4000 + i * 300 }, enemy: { name: 'Inimigo', gold: 4200 - i * 100 }, diff: 4000 + i * 300 - (4200 - i * 100) })) };
+
+const fmtK = (g) => (g >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(g));
+const signed = (d) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmtK(Math.abs(d))}`;
+
+function goldSide(p, version, cls) {
+  const img = p && p.champId && version ? h('img', { class: 'g-champ', src: champIcon(version, p.champId), alt: p.name, title: p.name }) : h('span', { class: 'g-champ' });
+  return h('div', { class: `g-side ${cls}${p && p.me ? ' me' : ''}` }, img, h('span', { class: 'g-val', text: p ? fmtK(p.gold) : '—' }));
+}
+
+function renderGold(gold, version) {
+  if (!gold) return;
+  const td = $('team-diff');
+  td.textContent = signed(gold.team.diff);
+  td.className = gold.team.diff >= 0 ? 'up' : 'down';
+  const max = Math.max(1000, ...gold.lanes.map((l) => Math.abs(l.diff)));
+  $('gold-rows').replaceChildren(...gold.lanes.map((l) => {
+    const pct = Math.round((Math.abs(l.diff) / max) * 50);
+    const bar = h('div', { class: 'g-bar' }, h('div', { class: `g-fill ${l.diff >= 0 ? 'up' : 'down'}`, style: l.diff >= 0 ? `left:50%;width:${pct}%` : `right:50%;width:${pct}%` }));
+    return h('div', { class: 'g-row' },
+      goldSide(l.ally, version, 'ally'),
+      h('div', { class: 'g-mid' }, h('div', { class: `g-diff ${l.diff >= 0 ? 'up' : 'down'}`, text: signed(l.diff) }), bar, h('div', { class: 'g-role', text: l.role })),
+      goldSide(l.enemy, version, 'enemy'));
+  }));
+}
+
 function defaults() {
   const y = Math.round(window.innerHeight * 0.3);
-  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 } };
+  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 } };
 }
 
 function apply(name) {
@@ -36,6 +63,7 @@ function draw() {
   const sample = moving || previewing;
   boxes.buys.hidden = !inGame && !sample;
   boxes.info.hidden = !(sample || (inGame && hasInfo));
+  boxes.gold.hidden = !(sample || (inGame && advice.gold));
   for (const b of Object.values(boxes)) b.classList.toggle('moving', moving);
   $('edit-bar').hidden = !moving;
 
@@ -43,9 +71,11 @@ function draw() {
     $('gold').textContent = `${lastState.me.gold} g`;
     renderBuyList($('list'), advice.buys, lastState.assets.version);
     renderExtras(extras, advice);
+    renderGold(advice.gold, lastState.assets.version);
   } else if (sample) {
     $('gold').textContent = '';
     renderBuyList($('list'), SAMPLE, null);
+    renderGold(SAMPLE_GOLD, null);
     renderExtras(extras, { buys: { recall: 'Aviso de recall aparece aqui', items: [1], matchup: { vs: 'Campeão', tip: 'Dica do matchup aparece aqui.' } }, alerts: [{ text: 'Alertas de itens inimigos' }] });
   }
 }
@@ -118,11 +148,13 @@ window.overlay.onState((state) => { lastState = state; draw(); });
 window.overlay.onMoveMode((on) => { moving = on; draw(); });
 window.overlay.onPreview((on) => { previewing = on; draw(); });
 window.overlay.getSettings().then((s) => {
-  if (s && s.overlay && s.overlay.panels) panels = { buys: s.overlay.panels.buys, info: s.overlay.panels.info };
+  if (s && s.overlay && s.overlay.panels) panels = { buys: s.overlay.panels.buys, info: s.overlay.panels.info, gold: s.overlay.panels.gold };
   apply('buys');
   apply('info');
+  apply('gold');
 });
-window.addEventListener('resize', () => { apply('buys'); apply('info'); });
+window.addEventListener('resize', () => { apply('buys'); apply('info'); apply('gold'); });
 apply('buys');
 apply('info');
+apply('gold');
 window.overlay.ready();

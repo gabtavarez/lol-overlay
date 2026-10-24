@@ -41,3 +41,15 @@ test('ouro faltando desconta componentes (inclusive de componentes) e mostra qua
   assert.deepEqual(used, [3802]);
   assert.equal(missingGold(d, 6655, [1052, 1027]), 950 + 450 + 400);
 });
+
+const { goldCompare } = require('../src/goldDiff');
+test('ouro cara a cara: soma o valor dos itens por rota e do time', () => {
+  const ddG = { item: (id) => ({ 1: { gold: { total: 1000 } }, 2: { gold: { total: 3000 } } })[id] };
+  const pl = (champion, position, items) => ({ champion, championId: champion, position, items: items.map((id) => ({ id })), scores: { kills: 0, deaths: 0, assists: 0 } });
+  const g = goldCompare({ me: pl('Ahri', 'MIDDLE', [2]), allies: [pl('Garen', 'TOP', [1])], enemies: [pl('Zed', 'MIDDLE', [1]), pl('Darius', 'TOP', [2, 1])] }, ddG);
+  assert.equal(g.lanes[0].role, 'Topo');
+  assert.equal(g.lanes[0].diff, -3000);
+  assert.equal(g.lanes[1].diff, 2000);
+  assert.equal(g.team.diff, -1000);
+  assert.ok(g.lanes[1].ally.me);
+});

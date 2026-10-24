@@ -27,3 +27,24 @@ html, body { margin: 0; height: 100%; background: transparent; overflow: hidden;
 
 body, button { font-family: "Inter", "Segoe UI", sans-serif; }
 .panel-title, h2, .buy-name { font-family: "Outfit", "Inter", sans-serif; }
+
+/* ouro cara a cara */
+.gold-box { width: 270px; }
+#team-diff.up, .g-diff.up { color: #4ade80; } #team-diff.down, .g-diff.down { color: #ff6b8a; }
+#team-diff { font: 700 13px "Outfit", sans-serif; }
+.g-row { display: grid; grid-template-columns: 62px 1fr 62px; align-items: center; gap: 6px; padding: 5px 0; border-top: 1px solid rgba(255,255,255,.05); }
+.g-row:first-child { border-top: 0; }
+.g-side { display: flex; align-items: center; gap: 5px; }
+.g-side.enemy { flex-direction: row-reverse; }
+.g-champ { width: 26px; height: 26px; border-radius: 7px; background: #1a0710; flex: none; }
+.g-side.ally .g-champ { box-shadow: 0 0 0 1.5px #4aa8ff; } .g-side.enemy .g-champ { box-shadow: 0 0 0 1.5px #ff4d6d; }
+.g-side.me .g-champ { box-shadow: 0 0 0 2px #ffd166; }
+.g-val { font: 600 12px "Outfit", sans-serif; color: #f3dbe4; }
+.g-mid { text-align: center; }
+.g-diff { font: 700 13px "Outfit", sans-serif; line-height: 1; }
+.g-bar { position: relative; height: 5px; margin: 4px 0 2px; border-radius: 99px; background: rgba(255,255,255,.08); }
+.g-bar::after { content: ""; position: absolute; left: 50%; top: -2px; width: 1px; height: 9px; background: rgba(255,255,255,.3); }
+.g-fill { position: absolute; top: 0; bottom: 0; border-radius: 99px; }
+.g-fill.up { background: linear-gradient(90deg, #22c55e, #4ade80); } .g-fill.down { background: linear-gradient(270deg, #e11d48, #ff6b8a); }
+.g-role { font-size: 9.5px; text-transform: uppercase; letter-spacing: .08em; color: #a98896; }
+.gold-foot { font-size: 10px; color: #8d6b79; text-align: center; margin-top: 4px; }

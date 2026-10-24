@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; font-src 'self'; img-src 'self' https://ddragon.leagueoflegends.com data:; style-src 'self'; script-src 'self'">
+        content="default-src 'none'; font-src 'self'; img-src 'self' https://ddragon.leagueoflegends.com https://raw.communitydragon.org data:; style-src 'self'; script-src 'self'">
   <title>LoL Overlay</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -145,6 +145,9 @@
           <section class="card">
             <div class="card-h"><h2>Fases do matchup</h2><span id="phase-vs" class="muted small"></span></div>
             <div id="phases" class="phases"><p class="muted pad">Aparece quando o oponente de rota for conhecido.</p></div>
+          </section>
+          <section class="card" id="kit-card" hidden>
+            <div id="kit-body" class="pad"></div>
           </section>
           <section class="card">
             <div class="card-h"><h2>Lane scouting</h2><span class="muted small">OP.GG</span></div>

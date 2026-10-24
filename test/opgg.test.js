@@ -273,3 +273,11 @@ test('revisão OP.GG: compara com o oponente de rota e objetivos', () => {
   assert.ok(bad.includes('Dragões perdidos'));
   assert.ok(r.good.some((g) => g.title === 'Build do meta'));
 });
+
+const { summarize, ultRank } = require('../src/providers/meraki');
+test('Meraki: recargas por nível e rank da ult', () => {
+  const s = summarize({ positions: ['MIDDLE'], adaptiveType: 'MAGIC_DAMAGE', abilities: { Q: [{ name: 'Orb', cooldown: { modifiers: [{ values: [7, 7, 7, 7, 7] }] } }], R: [{ name: 'Spirit Rush', cooldown: { modifiers: [{ values: [130, 115, 100] }] } }] } });
+  assert.deepEqual(s.abilities[3].cooldowns, [130, 115, 100]);
+  assert.equal(s.adaptiveType, 'MAGIC_DAMAGE');
+  assert.equal(ultRank(11), 2);
+});

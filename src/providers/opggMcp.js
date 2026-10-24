@@ -198,7 +198,19 @@ const mapTeam = (t) => ({ key: t.key, win: Boolean(t.game_stat && t.game_stat.is
   dragons: (t.game_stat || {}).dragon_kill || 0, barons: (t.game_stat || {}).baron_kill || 0, towers: (t.game_stat || {}).tower_kill || 0,
   grubs: (t.game_stat || {}).horde_kill || 0, heralds: (t.game_stat || {}).rift_herald_kill || 0 });
 const mapPart = (p) => ({ champion: p.champion_name, position: p.position || '', team: p.team_key, items: (p.items || []).filter(Boolean), target: Boolean(p.is_target),
+  spells: p.spells || [], keystone: p.rune ? p.rune.primary_rune_id : null, secondary: p.rune ? p.rune.secondary_page_id : null,
   name: p.summoner ? `${p.summoner.game_name || ''}#${p.summoner.tagline || ''}` : '', stats: mapStats(p.stats) });
+
+/** Ranking de um campeão: melhores jogadores (one-tricks) com Riot ID, elo e partidas. */
+function parseLeaderboard(text) {
+  const rows = (parseCompact(text) || {}).leaderboard || [];
+  return rows.filter((r) => r && r.summoner && r.summoner.game_name).map((r) => {
+    const solo = (r.summoner.league_stats || []).find((l) => l && l.game_type === 'SOLORANKED') || {};
+    const ti = solo.tier_info || {};
+    const st = r.most_champion_stat || {};
+    return { rank: r.rank, riotId: `${r.summoner.game_name}#${r.summoner.tagline}`, tier: ti.tier || null, division: ti.division || null, lp: ti.lp || 0, games: st.play || 0, wins: st.win || 0 };
+  });
+}
 
 /** Partidas recentes do invocador (só a linha dele + placar dos times). */
 function parseMatches(text) {
@@ -376,15 +388,22 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
         desired_output_fields: ['data.summoner.league_stats[].{game_type,is_hot_streak,lose,win}', 'data.summoner.league_stats[].tier_info.{division,lp,tier}',
           'data.summoner.most_champions.champion_stats[].{assist,champion_name,death,kill,lose,play,win}'],
       }, 15)),
-    matches: async (gameName, tagLine, region, limit = 15) =>
+    leaderboard: async (champ, region) =>
+      parseLeaderboard(await call('lol_list_champion_leaderboard', {
+        region: String(region || 'BR').toUpperCase(), champion: String(champ.id).toUpperCase(),
+        desired_output_fields: ['leaderboard[].rank', 'leaderboard[].most_champion_stat.{play,win}', 'leaderboard[].summoner.{game_name,tagline}',
+          'leaderboard[].summoner.league_stats[].game_type', 'leaderboard[].summoner.league_stats[].tier_info.{division,lp,tier}'],
+      }, 3)),
+    matches: async (gameName, tagLine, region, limit = 15, priority = 8) =>
       parseMatches(await call('lol_list_summoner_matches', {
         game_name: gameName, tag_line: tagLine, region: String(region || 'BR').toUpperCase(), lang: 'en_US', limit,
         desired_output_fields: ['data.game_history[].{created_at,game_length_second,game_type,id}',
-          'data.game_history[].participants[].{champion_name,items[],position,team_key}',
+          'data.game_history[].participants[].{champion_name,items[],position,spells[],team_key}',
+          'data.game_history[].participants[].rune.{primary_page_id,primary_rune_id,secondary_page_id}',
           `data.game_history[].participants[].stats.${STAT_FIELDS}`,
           'data.game_history[].participants[].stats.op_score_timeline[].{score,second}',
           'data.game_history[].teams[].key', `data.game_history[].teams[].game_stat.${TEAM_FIELDS}`],
-      }, 8)),
+      }, priority)),
     gameDetail: async (id, createdAt, riotId, region) =>
       parseGameDetail(await call('lol_get_summoner_game_detail', {
         region: String(region || 'BR').toUpperCase(), lang: 'en_US', game_id: id, created_at: createdAt, focus_riot_id: riotId,
@@ -403,4 +422,4 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   };
 }
 
-module.exports = { createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };
+module.exports = { createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseLeaderboard, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };

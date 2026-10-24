@@ -133,3 +133,11 @@ Matchup específico (build contra o oponente de rota) e macro mais fina (timing 
 3. O GitHub Actions gera o Release `vX.Y.Z` com `LoL-Overlay-Setup-X.Y.Z.exe`. Quem tem o app instalado recebe a atualização (ou clica em "Procurar atualizações").
 
 Use sempre o Setup gerado pelo GitHub Release para a primeira instalação (o `npm run dist:local` gera um instalador só para teste local, sem canal de atualização).
+
+## Fontes de dados
+
+- **Data Dragon** (Riot): campeões, itens, runas, ícones (validado no CI a cada release).
+- **OP.GG MCP**: tier list, builds, runas, counters, matchups, sinergias, perfil (lane scouting), histórico/detalhe de partidas e one-tricks (ranking por campeão).
+- **CommunityDragon**: ícones oficiais de rota e de elo.
+- **Meraki Analytics**: habilidades e recargas por nível (com o Data Dragon de reserva para campeões novos).
+- Leaguepedia ficou de fora: a API pública dela bloqueia consultas anônimas por limite de requisições.

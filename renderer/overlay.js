@@ -48,9 +48,11 @@ function renderInfo(advice, state) {
   $('phases').hidden = !ph;
   if (ph) $('phases').replaceChildren(...ph.map((p) => h('div', { class: `ph ${p.verdict}` }, h('b', { text: p.label }), h('span', { text: p.text }))));
   $('info-vs').textContent = state && state.laneOpponent ? `vs ${state.laneOpponent.champion}` : '';
+  const kit = advice.oppKit;
+  const ultLine = kit && kit.ult && kit.ult.cd ? h('div', { class: 'note', text: `Ult de ${kit.champion}: ${kit.ult.cd} s de recarga (rank ${kit.ult.rank})` }) : null;
   const sc = advice.scout || [];
-  $('scout').hidden = !sc.length;
-  $('scout').replaceChildren(...sc.map((x) => {
+  $('scout').hidden = !sc.length && !ultLine;
+  $('scout').replaceChildren(...(ultLine ? [ultLine] : []), ...sc.map((x) => {
     const p = x.profile;
     const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''}` : p ? 'Sem elo' : x.error || '…';
     const wr = p && p.wins + p.losses ? ` · ${Math.round((p.wins / (p.wins + p.losses)) * 100)}%` : '';
@@ -115,7 +117,7 @@ function apply(name) {
 function draw() {
   const inGame = lastState && lastState.phase === 'ingame';
   const advice = (lastState && lastState.advice) || {};
-  const hasInfo = Boolean((advice.buys && advice.buys.matchup) || (advice.alerts && advice.alerts.length) || advice.phases || (advice.scout && advice.scout.length));
+  const hasInfo = Boolean((advice.buys && advice.buys.matchup) || (advice.alerts && advice.alerts.length) || advice.phases || (advice.scout && advice.scout.length) || advice.oppKit);
 
   const sample = moving || previewing;
   boxes.buys.hidden = !inGame && !sample;

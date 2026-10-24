@@ -55,7 +55,7 @@ function slot(p) {
   const guess = !known && p.predicted ? `${ROLE_LABEL[p.predicted]}?` : '';
   const el = h('div', { class: `dp${p.isMe ? ' me' : ''}` },
     version && p.champion ? h('img', { src: champIcon(version, p.champion.id), alt: champName }) : h('span', { class: 'ph' }),
-    h('span', { class: `dp-role${guess ? ' guess' : ''}`, text: known || guess || '' }));
+    h('span', { class: `dp-role${guess ? ' guess' : ''}` }, (p.position || p.predicted) ? roleImg(p.position || p.predicted, 'dp-ico') : '', document.createTextNode(guess ? '?' : '')));
   const flex = p.flex && p.flex.length ? ` · flex: ${p.flex.map((r) => ROLE_LABEL[r]).join('/')}` : '';
   el.title = [champName || 'Escolhendo…', p.isMe ? 'você' : playerLabel(p), guess ? `rota prevista (${p.confidence}%)${flex}` : known].filter(Boolean).join(' · ');
   return el;
@@ -298,9 +298,53 @@ function drawGuide() {
     for (const x of ['Q', 'W', 'E']) if (!order.includes(x)) order.push(x);
     parts.push(h('div', { class: 'g-full' }, head(`Ordem de habilidades · ${order.slice(0, 3).join(' › ')}`), drawSkills(g)));
   }
+  if (root.oppKit) parts.push(abilityBlock(root.oppKit, 'g-full'));
+  parts.push(otpBlock());
   els.guideBody.replaceChildren(...parts);
   setImportEnabled(Boolean(g.runes || g.spells.length));
 }
+
+/** Recarga das habilidades do oponente (Meraki / Data Dragon). */
+function abilityBlock(kit, cls) {
+  return h('div', { class: cls },
+    head(`Habilidades de ${kit.champion} · recarga do nível 1 ao máximo`),
+    h('div', { class: 'abil' }, ...kit.abilities.map((a) => h('div', { class: 'abil-i' }, h('b', { text: a.key }), h('span', { class: 'nm', text: a.name }), h('span', { class: 'muted small', text: a.cd })))),
+    kit.ult && kit.ult.cd ? h('p', { class: 'small', style: 'margin-top:8px', text: `Ult no rank ${kit.ult.rank}: ${kit.ult.cd} s de recarga (sem aceleração)` }) : null,
+    h('p', { class: 'muted small', style: 'margin-top:6px', text: `Fonte: ${kit.source}` }));
+}
+
+/* one-tricks */
+let otp = { id: null, data: null };
+function otpBlock() {
+  const box = h('div', { class: 'g-full', id: 'otp-box' });
+  if (otp.id !== shownId) {
+    otp = { id: shownId, data: null };
+    const id = shownId;
+    window.overlay.getOtp(id).then((d) => { if (otp.id === id) { otp.data = d; fillOtp(); } });
+  }
+  setTimeout(fillOtp, 0);
+  return box;
+}
+function fillOtp() {
+  const box = $('otp-box');
+  if (!box) return;
+  const d = otp.data;
+  const rows = d && d.list && d.list.length ? d.list.map((p) => {
+    const b = p.build;
+    const wr = p.games ? `${Math.round((p.wins / p.games) * 100)}% em ${p.games}` : '';
+    const tier = p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()}${p.division ? ` ${p.division}` : ''} · ${p.lp} PDL` : '';
+    return h('div', { class: 'otp' },
+      h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: `#${p.rank} ${p.riotId}` }), h('div', { class: 'why', text: [tier, wr].filter(Boolean).join(' · ') })),
+      b ? h('div', { class: 'otp-build' },
+        b.keystoneIcon ? icon(ddImg(b.keystoneIcon), 'otp-rune', b.keystoneName) : null,
+        ...b.spellKeys.map((k) => icon(ddVerImg(`spell/${k}.png`), 'otp-sp', k)),
+        ...b.items.slice(0, 6).map((id) => icon(ddVerImg(`item/${id}.png`), 'otp-it', String(id), ''))) : h('span', { class: 'muted small', text: 'sem partida recente com ele' }));
+  }) : [h('p', { class: 'muted small', text: d ? (d.error ? `Sem dados: ${d.error}` : 'Buscando os melhores jogadores…') : 'Buscando os melhores jogadores…' })];
+  box.replaceChildren(head(`One-tricks · melhores do ranking${d && d.region ? ` (${String(d.region).toUpperCase()})` : ''} · última build`), ...rows);
+}
+window.overlay.onOtpUpdated((p) => {
+  if (otp.id && p.championId === otp.id) window.overlay.getOtp(otp.id).then((d) => { otp.data = d; fillOtp(); });
+});
 
 function renderSelect(state) {
   version = state.assets.version;
@@ -385,6 +429,10 @@ function renderGame(state) {
   $('phases').replaceChildren(...(ph ? ph.map((p) => h('div', { class: `phase ${p.verdict}` }, h('b', { text: p.label }), h('span', { text: p.text })))
     : [h('p', { class: 'muted pad', text: 'Aparece quando o oponente de rota for conhecido.' })]));
 
+  // habilidades do oponente
+  $('kit-card').hidden = !adv.oppKit;
+  if (adv.oppKit) $('kit-body').replaceChildren(abilityBlock(adv.oppKit, ''));
+
   // lane scouting
   const sc = adv.scout || [];
   $('scout').replaceChildren(...(sc.length ? sc.map((x) => {
@@ -399,7 +447,7 @@ function renderGame(state) {
         h('div', { class: 'nm', text: `${x.who} · ${x.riotId}` }),
         h('div', { class: 'why', text: [rank, wr].filter(Boolean).join(' · ') }),
         h('div', { class: 'why', text: [on, mains && `mais joga: ${mains}`].filter(Boolean).join(' · ') })),
-      p && p.hot ? h('span', { class: 'hot', text: 'em sequência' }) : h('span'));
+      h('div', { class: 'scout-r' }, p && p.tier ? rankImg(p.tier) : '', p && p.hot ? h('span', { class: 'hot', text: 'em sequência' }) : ''));
   }) : [h('p', { class: 'muted pad', text: 'Sem oponente de rota ou caçador identificado (ou Riot ID oculto).' })]));
 
   $('enemies').replaceChildren(...state.enemies.map((e) => {
@@ -471,7 +519,11 @@ function renderHome(state) {
   const s = home.summoner;
   $('home-hello').textContent = s && s.gameName ? `Olá, ${s.gameName}` : 'Bem-vindo';
   $('side-name').textContent = s && s.gameName ? s.gameName : 'Invocador';
-  $('side-sub').textContent = s ? `#${s.tagLine || ''}${s.level ? ` · nível ${s.level}` : ''}` : state.client === 'open' ? 'Carregando…' : 'Cliente fechado';
+  const rk = s && s.rank;
+  $('side-sub').textContent = s ? (rk ? `${rk.tier[0]}${rk.tier.slice(1).toLowerCase()} ${rk.division || ''} · ${rk.lp} PDL` : `#${s.tagLine || ''}${s.level ? ` · nível ${s.level}` : ''}`) : state.client === 'open' ? 'Carregando…' : 'Cliente fechado';
+  const old = document.getElementById('side-rank');
+  if (old) old.remove();
+  if (rk) $('side-me').append(Object.assign(rankImg(rk.tier, 'rank-img side-rank'), { id: 'side-rank', title: `${rk.wins}V ${rk.losses}D` }));
   $('side-avatar').replaceWith(v && s && s.iconId
     ? Object.assign(h('img', { id: 'side-avatar', class: 'avatar', src: `${DD}/cdn/${v}/img/profileicon/${s.iconId}.png`, alt: '' }))
     : h('div', { id: 'side-avatar', class: 'avatar' }));
@@ -487,7 +539,7 @@ function renderHome(state) {
   const max = Math.max(1, ...roles.map((r) => r.games));
   $('home-roles').replaceChildren(...(roles.length
     ? [...roles.map((r) => h('div', { class: 'role-row' },
-      h('span', { class: 'role-name' }, svgIcon(r.role, 'ico role-ico'), document.createTextNode(ROLE_LABEL[r.role] || r.role)),
+      h('span', { class: 'role-name' }, roleImg(r.role), document.createTextNode(ROLE_LABEL[r.role] || r.role)),
       h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((r.games / max) * 100)}%` })),
       h('span', { class: 'muted small', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}%` }))),
       h('p', { class: 'muted small', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
@@ -666,7 +718,7 @@ els.opggEnemies.addEventListener('click', () => window.overlay.openMultisearch('
 window.overlay.onState(render);
 window.overlay.onStatus((s) => { els.status.textContent = s.text; });
 window.overlay.onGuideUpdated((p) => {
-  if (p.championId === shownId) window.overlay.getGuide(shownId).then((g) => { guide = g; drawGuide(); });
+  if (shownId && (p.championId === shownId || p.championId === '*')) window.overlay.getGuide(shownId).then((g) => { guide = g; drawGuide(); });
 });
 window.overlay.ready();
 
@@ -681,7 +733,7 @@ const pc = (x) => `${(x * 100).toFixed(1)}%`;
 function tlRoleButtons() {
   $('tl-roles').replaceChildren(...TL_ROLES.map(([k, label]) => {
     const b = h('button', { class: `seg-btn${k === tlRole ? ' on' : ''}`, type: 'button', title: label });
-    b.append(k === 'all' ? svgIcon('spark') : svgIcon(k), h('span', { text: label }));
+    b.append(k === 'all' ? svgIcon('spark') : roleImg(k, 'seg-role'), h('span', { text: label }));
     b.addEventListener('click', () => { tlRole = k; tlRoleButtons(); drawTierList(); });
     return b;
   }));
@@ -693,7 +745,7 @@ function tlTile(r, showRole) {
   const tile = h('div', { class: 'tl-tile' },
     h('div', { class: 'tl-ico' },
       v && r.id ? h('img', { src: champIcon(v, r.id), alt: r.name }) : h('span'),
-      showRole ? svgIcon(r.role, 'ico tl-role') : null),
+      showRole ? roleImg(r.role, 'tl-role') : null),
     h('div', { class: 'tl-info' },
       h('div', { class: 'tl-name', text: r.name }),
       h('div', { class: 'tl-wr', text: pc(r.winRate) }),

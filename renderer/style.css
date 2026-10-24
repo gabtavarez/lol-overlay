@@ -290,3 +290,24 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .cmp-row:last-child { border-bottom: 0; }
 .cmp-row b { font-weight: 600; }
 .cmp-row.head { padding-top: 0; }
+
+.abil { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.abil-i { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.abil-i b { color: var(--acc); font-size: 12px; }
+.abil-i .nm { font-size: 12px; }
+.otp { display: grid; grid-template-columns: minmax(160px, 1fr) auto; gap: 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.otp:last-child { border-bottom: 0; }
+.otp-build { display: flex; gap: 4px; align-items: center; }
+.otp-rune { width: 26px; height: 26px; border-radius: 50%; margin-right: 4px; }
+.otp-sp { width: 22px; height: 22px; border-radius: 4px; }
+.otp-sp + .otp-it { margin-left: 6px; }
+.otp-it { width: 26px; height: 26px; border-radius: 5px; }
+
+.role-img { width: 15px; height: 15px; opacity: .8; }
+.dp-ico { width: 12px; height: 12px; vertical-align: -2px; opacity: .75; }
+.seg-role { width: 14px; height: 14px; opacity: .8; }
+.seg-btn.on .seg-role { opacity: 1; }
+.tl-role { position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; padding: 2px; border-radius: 4px; background: var(--card); }
+.rank-img { width: 26px; height: 26px; }
+.side-rank { margin-left: auto; width: 24px; height: 24px; }
+.scout-r { display: flex; align-items: center; gap: 6px; }

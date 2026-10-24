@@ -70,7 +70,7 @@ class DataDragon {
     const c = json.data[id];
     const out = {
       passive: c.passive ? { name: c.passive.name, icon: `passive/${c.passive.image.full}` } : null,
-      spells: c.spells.slice(0, 4).map((s, i) => ({ key: 'QWER'[i], name: s.name, icon: `spell/${s.image.full}` })),
+      spells: c.spells.slice(0, 4).map((s, i) => ({ key: 'QWER'[i], name: s.name, icon: `spell/${s.image.full}`, cooldowns: Array.isArray(s.cooldown) ? s.cooldown : [] })),
     };
     this._skills.set(id, out);
     return out;

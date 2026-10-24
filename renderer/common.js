@@ -15,6 +15,13 @@ function h(tag, props = {}, ...children) {
   return el;
 }
 
+// CommunityDragon: ícones oficiais de rota e de elo (mesmos do cliente).
+const CD = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default';
+const roleIconUrl = (role) => `${CD}/svg/position-${role}.svg`;
+const rankIconUrl = (tier) => `${CD}/images/ranked-mini-crests/${String(tier || 'unranked').toLowerCase()}.svg`;
+function roleImg(role, cls = 'role-img') { return h('img', { class: cls, src: roleIconUrl(role), alt: '' }); }
+function rankImg(tier, cls = 'rank-img') { return h('img', { class: cls, src: rankIconUrl(tier), alt: tier || '' }); }
+
 const itemIcon = (version, id) => `${DD}/cdn/${version}/img/item/${id}.png`;
 const champIcon = (version, id) => `${DD}/cdn/${version}/img/champion/${id}.png`;
 const champSplash = (id) => `${DD}/cdn/img/champion/splash/${id}_0.jpg`;

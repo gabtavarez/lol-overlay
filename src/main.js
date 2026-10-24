@@ -21,6 +21,7 @@ const { predictRoles, roleIndex } = require('./roles');
 const { championFit } = require('./fit');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
+const { createMeraki, ultRank } = require('./providers/meraki');
 
 const USE_MOCK = process.argv.includes('--mock');
 const LIVE_URL = USE_MOCK ? 'http://127.0.0.1:2998' : 'https://127.0.0.1:2999';
@@ -327,6 +328,7 @@ function champById(id) {
 /** Oponente de rota já revelado no champ select (ou null). */
 let lastRegion = null;
 let recorder = null;
+let meraki = null;
 let matchupPick = null; // { session, id } oponente escolhido à mão no guia (quando a rota inimiga não aparece)
 function laneEnemy() {
   const enemies = (lcuState.enemies || []).filter((x) => x.champion);
@@ -437,7 +439,8 @@ async function guideFor(championId) {
   const opponents = (lcuState.enemies || []).filter((x) => x.champion).map((x) => ({ id: x.champion.id, name: x.champion.name }));
   const mode = matchupPick && matchupPick.session === lcuState.sessionId ? matchupPick.id : 'auto';
   const pending = opp && !remote.getMatchup(champ, opp, role) ? `Buscando o matchup contra ${opp.name}…` : null;
-  return { ...variants[0].guide, variants, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending };
+  const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
+  return { ...variants[0].guide, variants, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
@@ -509,6 +512,38 @@ function scoutTargets(state) {
   return out.map((x) => ({ ...x, riotId: riotIdOf(x.p) }));
 }
 
+/** Habilidades do campeão (nome + recarga por nível): Meraki, ou Data Dragon se o Meraki ainda não tiver o campeão. */
+const kits = new Map();
+function kitOf(champId) {
+  if (!champId) return null;
+  if (kits.has(champId)) return kits.get(champId);
+  kits.set(champId, null);
+  (async () => {
+    let k = await meraki.champion(champId);
+    let source = 'Meraki';
+    if (!k || !k.abilities.some((a) => a.cooldowns.length)) {
+      const s = dd && (await dd.championSkills(champId).catch(() => null));
+      if (s) { k = { abilities: s.spells.map((a) => ({ key: a.key, name: a.name, cooldowns: a.cooldowns })) }; source = 'Data Dragon'; }
+    }
+    if (k) kits.set(champId, { ...k, source });
+    if (liveEngine) liveEngine.tick();
+    send('guide-updated', { championId: '*' });
+  })();
+  return null;
+}
+const cdText = (cds) => (!cds || !cds.length ? '—' : cds[0] === cds[cds.length - 1] ? `${cds[0]} s` : `${cds[0]}→${cds[cds.length - 1]} s`);
+/** Resumo para a UI: recarga de cada habilidade e a da ult no nível atual do oponente. */
+function abilityCard(champ, level) {
+  const kit = kitOf(champ && champ.id);
+  if (!kit) return null;
+  const r = ultRank(level || 1);
+  return {
+    champion: champ.name, id: champ.id, source: kit.source,
+    abilities: kit.abilities.map((a) => ({ key: a.key, name: a.name, cd: cdText(a.cooldowns) })),
+    ult: r ? { rank: r, cd: kit.abilities[3] && kit.abilities[3].cooldowns[r - 1] } : null,
+  };
+}
+
 /** Acrescenta ao estado da partida: lane scouting e fases (early/mid/late) do matchup. */
 function decorateLive(state) {
   if (state.phase !== 'ingame' || !state.advice) return state;
@@ -522,6 +557,7 @@ function decorateLive(state) {
   const meC = dd && dd.champions[state.me.championId];
   const opC = dd && state.laneOpponent && dd.champions[state.laneOpponent.championId];
   state.advice.phases = meC && opC ? phaseCompare(meC, opC) : null;
+  state.advice.oppKit = opC ? abilityCard(opC, state.laneOpponent.level) : null;
   return state;
 }
 
@@ -597,6 +633,26 @@ function registerIpc() {
       }
     }
     return { data, at: e ? e.at : null, patch: dd ? dd.version : null, error: e ? null : remote.tierListError() };
+  });
+
+  // One-tricks do campeão (OP.GG): ranking + última build de cada um.
+  ipcMain.handle('otp:get', (_e, championId) => {
+    const champ = champById(championId);
+    if (!champ) return { list: [] };
+    const region = currentRegion();
+    remote.ensureOtp(champ, region, () => send('otp-updated', { championId: champ.id }));
+    const spellsData = require('../data/spells.json');
+    const list = (remote.getOtp(champ, region) || []).map((p) => ({
+      ...p,
+      build: p.build && {
+        ...p.build,
+        keystoneIcon: runeIndex[p.build.keystone] ? runeIndex[p.build.keystone].icon : null,
+        keystoneName: runeIndex[p.build.keystone] ? runeIndex[p.build.keystone].name : '',
+        secondaryIcon: runeIndex[p.build.secondary] ? runeIndex[p.build.secondary].icon : null,
+        spellKeys: (p.build.spells || []).map((id) => (spellsData[id] || {}).key).filter(Boolean),
+      },
+    }));
+    return { list, region, error: list.length ? null : remote.otpError(champ, region) };
   });
 
   // Clique num campeão do app -> marca (hover) no cliente. Ban só na sua vez de banir.
@@ -699,6 +755,7 @@ app.whenReady().then(() => {
   settings = createSettingsStore(path.join(userData, 'settings.json'));
   meta = loadMeta([path.join(__dirname, '..', 'data', 'meta.json'), path.join(userData, 'meta.json')]);
 
+  meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
   remote = createRemoteData({
     cacheDir: path.join(userData, 'remote'),

@@ -21,7 +21,7 @@ function readJson(file) {
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -116,6 +116,26 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       if (!name || !tag) return Promise.resolve();
       return refresh('scout', `${region}:${riotId.toLowerCase()}`, () => client.summoner(name, tag, region), onDone, 3600 * 1000);
     },
+    /**
+     * One-tricks: os 3 melhores do ranking do campeão na região e a build da última partida de cada um com ele
+     * (itens finais, runa principal e feitiços). Cache de 12 h.
+     */
+    ensureOtp: (champ, region, onDone) => refresh('otp', `${region}:${norm(champ.id)}`, async () => {
+      const top = (await client.leaderboard(champ, region)).slice(0, 3);
+      const out = [];
+      for (const p of top) {
+        const [name, tag] = p.riotId.split('#');
+        let game = null;
+        try {
+          const games = await client.matches(name, tag, region, 10, 2);
+          game = games.find((g) => g.me && g.me.champion.replace(/\W/g, '').toLowerCase() === String(champ.id).toLowerCase() || (g.me && g.me.champion.toLowerCase() === String(champ.name || '').toLowerCase()));
+        } catch { /* jogador sem partidas visíveis */ }
+        out.push({ ...p, build: game ? { items: game.me.items, keystone: game.me.keystone, secondary: game.me.secondary, spells: game.me.spells, win: game.me.stats.result === 'WIN', kda: `${game.me.stats.kills}/${game.me.stats.deaths}/${game.me.stats.assists}`, at: game.createdAt } : null });
+      }
+      return out;
+    }, onDone, 12 * 3600 * 1000),
+    getOtp: (champ, region) => { const e = cache.otp[`${region}:${norm(champ.id)}`]; return e ? e.data : null; },
+    otpError: (champ, region) => failures.get(`otp:${region}:${norm(champ.id)}`) || null,
     /** Partidas recentes no OP.GG (cache de 3 min). */
     ensureMatches: (riotId, region, onDone, force = false) => {
       const [name, tag] = String(riotId || '').split('#');

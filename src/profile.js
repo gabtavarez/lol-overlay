@@ -64,6 +64,13 @@ async function loadProfile(creds) {
     ]),
   );
 
+  let rank = null;
+  try {
+    const r = await lcuGetJson(creds, '/lol-ranked/v1/current-ranked-stats');
+    const solo = r && r.queueMap && r.queueMap.RANKED_SOLO_5x5;
+    if (solo && solo.tier && solo.tier !== 'NONE') rank = { tier: solo.tier, division: solo.division, lp: solo.leaguePoints || 0, wins: solo.wins || 0, losses: solo.losses || 0 };
+  } catch { /* sem elo */ }
+
   const pages = [];
   for (let i = 0; i < MAX_PAGES; i++) {
     try {
@@ -87,6 +94,7 @@ async function loadProfile(creds) {
       tagLine: summoner.tagLine || '',
       level: summoner.summonerLevel || 0,
       iconId: summoner.profileIconId || 0,
+      rank,
     },
     mastery,
     roleStats,

@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('overlay', {
   onMaximized: (cb) => ipcRenderer.on('win:maximized', (_e, v) => cb(v)),
   getTierList: (force) => ipcRenderer.invoke('tierlist:get', force),
   onTierListUpdated: (cb) => ipcRenderer.on('tierlist-updated', () => cb()),
+  getOtp: (championId) => ipcRenderer.invoke('otp:get', championId),
+  onOtpUpdated: (cb) => ipcRenderer.on('otp-updated', (_e, p) => cb(p)),
   hoverChampion: (championId, kind) => ipcRenderer.invoke('champselect:hover', { championId, kind }),
   opggMatches: (force) => ipcRenderer.invoke('opgg:matches', force),
   opggReview: (id, createdAt) => ipcRenderer.invoke('opgg:review', { id, createdAt }),

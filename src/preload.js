@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('overlay', {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('settings:set', patch),
   getGuide: (championId) => ipcRenderer.invoke('guide:get', championId),
-  importBuild: (championId, what) => ipcRenderer.invoke('import:build', { championId, what }),
+  importBuild: (championId, what, variant = 0) => ipcRenderer.invoke('import:build', { championId, what, variant }),
   onGuideUpdated: (cb) => ipcRenderer.on('guide-updated', (_e, p) => cb(p)),
   setInteractive: (on) => ipcRenderer.send('overlay:interactive', Boolean(on)),
   winMinimize: () => ipcRenderer.invoke('win:minimize'),

@@ -55,13 +55,16 @@ const SHARDS = [
   [[5011, 'Vida', 'StatModsHealthPlusIcon'], [5013, 'Tenacidade e resistência a lentidão', 'StatModsTenacityIcon'], [5001, 'Vida por nível', 'StatModsHealthScalingIcon']],
 ];
 
+/** Tira as tags do texto da Riot (<b>, <lol-uikit-…>) para virar texto puro. */
+const plain = (s) => String(s || '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
 /** Árvore completa de runas (todas as opções, marcando as escolhidas), no formato da tela do cliente. */
 function runeTree(styles, runes) {
   if (!Array.isArray(styles) || !styles.length) return null;
   const chosen = new Set(runes.perks);
   const styleBtn = (s, sel) => ({ id: s.id, name: s.name, icon: s.icon, selected: s.id === sel });
   const slotRows = (style, from) => (style ? style.slots.slice(from).map((slot) =>
-    slot.runes.map((r) => ({ id: r.id, name: r.name, icon: r.icon, selected: chosen.has(r.id) }))) : []);
+    slot.runes.map((r) => ({ id: r.id, name: r.name, icon: r.icon, desc: plain(r.shortDesc), selected: chosen.has(r.id) }))) : []);
   const primary = styles.find((s) => s.id === runes.primaryStyleId);
   const secondary = styles.find((s) => s.id === runes.subStyleId);
   const statIds = runes.perks.slice(-3);

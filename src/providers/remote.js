@@ -70,11 +70,28 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
 
   // Campeão sem dados na rota pedida (ex.: off-meta ou recém-lançado): tenta as outras rotas.
   const ROLES = ['middle', 'top', 'jungle', 'bottom', 'utility'];
+  // Sem rota (modo treino, ARAM, personalizada): começa pela rota mais provável pelas tags do campeão.
+  function guessRoles(champ) {
+    const t = (champ && champ.tags) || [];
+    const first = t.includes('Marksman') ? 'bottom' : t.includes('Support') ? 'utility'
+      : t.includes('Mage') || t.includes('Assassin') ? 'middle' : t.includes('Tank') || t.includes('Fighter') ? 'top' : 'middle';
+    return [first, ...ROLES.filter((r) => r !== first)];
+  }
   async function analysisWithFallback(champ, role, priority) {
+    if (!role) {
+      for (const r of guessRoles(champ)) {
+        try {
+          return { ...(await client.analysis(champ, r, priority)), fromRole: r };
+        } catch (err) {
+          if (!/invalid|position|champion|vazia/i.test(err.message)) throw err;
+        }
+      }
+      throw new Error(`o OP.GG ainda não tem dados de ${champ.name || champ.id}`);
+    }
     try {
       return await client.analysis(champ, role, priority);
     } catch (err) {
-      if (!/invalid position|champion specified|resposta vazia/i.test(err.message)) throw err;
+      if (!/invalid|position|champion|vazia/i.test(err.message)) throw err;
       for (const r of ROLES.filter((x) => x !== role)) {
         try {
           const data = await client.analysis(champ, r, priority);

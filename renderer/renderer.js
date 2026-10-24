@@ -18,6 +18,8 @@ let currentRole = '';
 let settingsOpen = false;
 let settings = null;
 let chosenId = null; // clique do usuário no carrossel
+let lastMine = null; // campeão que você está hoverando/travou: quando muda, o guia volta a segui-lo
+let variant = 0; // build escolhida (0 = mais jogada, 1 = alternativa)
 let shownId = null;
 let guide = null;
 
@@ -71,6 +73,8 @@ function pickCard(c, selected, i = 0) {
 
 function renderGuide(state, picks) {
   const mine = state.me && state.me.champion;
+  const mineId = mine ? mine.id : null;
+  if (mineId !== lastMine) { lastMine = mineId; if (mineId) chosenId = null; }
   const pickId = chosenId || (mine && mine.id) || (picks.candidates[0] && picks.candidates[0].id) || null;
   const cand = picks.candidates.find((c) => c.id === pickId);
 
@@ -88,6 +92,7 @@ function renderGuide(state, picks) {
   if (pickId !== shownId) {
     shownId = pickId;
     guide = null;
+    variant = 0;
     imported.runes = false;
     imported.spells = false;
     els.impMsg.textContent = '';
@@ -130,7 +135,26 @@ function head(title, what) {
 }
 
 function runeRow(row, cls) {
-  return h('div', { class: 'r-row' }, ...row.map((r) => icon(ddImg(r.icon), `${cls}${r.selected ? ' sel' : ''}`, r.name)));
+  return h('div', { class: 'r-row' }, ...row.map((r) => {
+    const el = icon(ddImg(r.icon), `${cls}${r.selected ? ' sel' : ''}`, '');
+    tipOn(el, r.name, r.desc);
+    return el;
+  }));
+}
+
+/* tooltip próprio (nome + descrição), como nos apps de build */
+const tipBox = h('div', { class: 'tipbox', hidden: '' });
+document.body.append(tipBox);
+function tipOn(el, title, desc) {
+  el.addEventListener('mouseenter', () => {
+    tipBox.replaceChildren(h('b', { text: title }), desc ? h('div', { text: desc }) : null);
+    tipBox.hidden = false;
+    const r = el.getBoundingClientRect();
+    const w = 260;
+    tipBox.style.left = `${Math.min(window.innerWidth - w - 10, Math.max(10, r.left + r.width / 2 - w / 2))}px`;
+    tipBox.style.top = `${r.bottom + 8}px`;
+  });
+  el.addEventListener('mouseleave', () => { tipBox.hidden = true; });
 }
 
 function drawRunes(t) {
@@ -200,13 +224,23 @@ function drawGuide() {
     setImportEnabled(false);
     return;
   }
-  const g = guide;
-  if (g.error) {
-    els.guideBody.replaceChildren(h('p', { class: 'muted', text: g.error }));
+  const root = guide;
+  const g = (root.variants && root.variants[variant] && root.variants[variant].guide) || root;
+  if (root.error) {
+    els.guideBody.replaceChildren(h('p', { class: 'muted', text: root.error }));
     setImportEnabled(false);
     return;
   }
   const parts = [];
+  if (root.variants && root.variants.length > 1) {
+    parts.push(h('div', { class: 'variants' }, ...root.variants.map((v, i) => {
+      const b = h('button', { class: `variant${i === variant ? ' on' : ''}`, type: 'button' },
+        h('span', { class: 'v-label', text: v.label }), h('span', { class: 'v-sub', text: v.sub || '' }));
+      b.addEventListener('click', () => { variant = i; imported.runes = false; imported.spells = false; drawGuide(); });
+      return b;
+    })));
+  }
+  if (root.roleNote) parts.push(h('p', { class: 'muted', text: root.roleNote }));
   if (g.matchup) {
     const vs = g.matchup.advantage ? ` · vantagem de rota: ${g.matchup.advantage}` : '';
     parts.push(h('div', { class: 'tip' }, h('b', { text: `Matchup vs ${g.matchup.vs}${vs}` }), h('div', { text: g.matchup.tip || '' }),
@@ -380,7 +414,7 @@ window.overlay.onAutoImport((r) => {
 async function doImport(what) {
   if (!shownId) return;
   els.impMsg.textContent = 'Importando…';
-  const res = await window.overlay.importBuild(shownId, what);
+  const res = await window.overlay.importBuild(shownId, what, variant);
   els.impMsg.textContent = res.ok ? `Importado: ${res.done.join(' e ')}.` : `Não consegui importar: ${res.error}`;
   if (res.ok) {
     if (res.done.includes('runas')) imported.runes = true;

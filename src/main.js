@@ -13,6 +13,7 @@ const { importRunes, importSpells, importItemSet } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
 const { createUpdater } = require('./updater');
+const { laterItems } = require('./buildPath');
 const { spawn } = require('child_process');
 
 const USE_MOCK = process.argv.includes('--mock');
@@ -324,11 +325,36 @@ function buildFor(champ, role) {
   return withMatchup(remote.getBuild(champ, role), opp && remote.getMatchup(champ, opp, role), opp && opp.name);
 }
 
+const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte' };
+const pctTxt = (x) => (typeof x === 'number' && x > 0 ? `${Math.round(x * (x <= 1 ? 100 : 1))}%` : null);
+
+/** Até 2 builds para escolher: a mais jogada e, se houver, a do matchup; senão uma rota de itens alternativa. */
+function buildVariants(champ, role) {
+  const base = remote.getBuild(champ, role);
+  if (!base) return [];
+  const opp = laneEnemy();
+  const mu = opp && remote.getMatchup(champ, opp, role);
+  const wr = pctTxt(base.winRate);
+  const out = [{ label: 'Mais jogada', sub: [pctTxt(base.corePick) && `${pctTxt(base.corePick)} dos jogadores`, wr && `WR ${wr}`].filter(Boolean).join(' · ') || 'OP.GG', build: base }];
+  const vsMu = mu && withMatchup(base, mu, opp.name);
+  if (vsMu && vsMu.matchup && vsMu.matchup.used.length) {
+    out.push({ label: `Contra ${opp.name}`, sub: `ajusta ${vsMu.matchup.used.join(', ')}`, build: vsMu });
+  } else {
+    const later = laterItems(base);
+    if (base.core.length >= 2 && later.length >= 2) {
+      const alt = { ...base, core: [base.core[0], ...later.slice(0, 2)], later: [base.core.slice(1).map((id) => ({ ids: [id], pick: 1 })), ...base.later] };
+      out.push({ label: 'Itens alternativos', sub: 'mesmas runas, outro caminho de itens', build: alt });
+    }
+  }
+  return out;
+}
+
 /** Importa runas/feitiços/itens do OP.GG para o cliente. `what`: runes | spells | items | both. */
-async function importBuild(championId, what) {
+async function importBuild(championId, what, variant = 0) {
   const champ = champById(championId);
   const role = lastRole || lcuState.myPosition;
-  const build = champ && buildFor(champ, role);
+  const variants = champ ? buildVariants(champ, role) : [];
+  const build = (variants[variant] || variants[0] || {}).build;
   const creds = lcuEngine.getCreds();
   if (!build) return { ok: false, error: 'Ainda não há dados do OP.GG para este campeão.' };
   if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
@@ -382,7 +408,12 @@ async function guideFor(championId) {
     return error ? { error: `Sem dados do OP.GG: ${error}`, champion: { id: champ.id, name: champ.name } } : null;
   }
   const skills = await dd.championSkills(champ.id).catch(() => null);
-  return buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills });
+  const variants = buildVariants(champ, role).map((v) => ({
+    label: v.label, sub: v.sub, guide: buildGuide({ champ, role, build: v.build, dd, runeIndex, runeStyles, skills }),
+  }));
+  const fromRole = remote.getBuild(champ, role) && remote.getBuild(champ, role).fromRole;
+  const roleNote = fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;
+  return { ...variants[0].guide, variants, roleNote };
 }
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
@@ -433,7 +464,7 @@ function registerIpc() {
     return guideFor(championId);
   });
 
-  ipcMain.handle('import:build', (_e, { championId, what }) => importBuild(championId, what));
+  ipcMain.handle('import:build', (_e, { championId, what, variant }) => importBuild(championId, what, Number(variant) || 0));
 
   ipcMain.handle('overlay:toggle-move', () => toggleMoveMode());
   ipcMain.handle('win:minimize', () => mainWin && mainWin.minimize());

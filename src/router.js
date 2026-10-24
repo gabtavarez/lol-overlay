@@ -6,7 +6,9 @@ function pickState(liveState, lcuState) {
   if (liveState.phase === 'ingame') return liveState;
   if (lcuState.phase === 'champselect') return lcuState;
   if (liveState.phase === 'error') return liveState;
-  return { phase: 'waiting', client: lcuState.client || 'closed' };
+  const out = { phase: 'waiting', client: lcuState.client || 'closed' };
+  if (lcuState.home) out.home = lcuState.home; // dados da tela inicial (invocador, maestria, rotas)
+  return out;
 }
 
 module.exports = { pickState };

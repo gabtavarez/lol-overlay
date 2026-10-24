@@ -10,13 +10,16 @@
 <body>
   <header id="bar">
     <img src="logo.png" class="bar-logo" alt="">
-    <span id="dot" class="dot"></span>
-    <strong>LoL Overlay</strong>
-    <span id="status" class="muted"></span>
+    <strong class="brand">LoL <span>Overlay</span></strong>
+    <span class="status-pill"><span id="dot" class="dot"></span><span id="status" class="muted"></span></span>
     <span class="spacer"></span>
-    <button id="update-btn" class="btn">Procurar atualizações</button>
     <span id="clock"></span>
-    <button id="gear" class="icon-btn" title="Configurações">⚙</button>
+    <button id="update-btn" class="tb-btn wide" title="Procurar atualizações"><i data-ico="refresh"></i><span id="update-label">Procurar atualizações</span></button>
+    <button id="gear" class="tb-btn" title="Configurações"><i data-ico="gear"></i></button>
+    <span class="tb-sep"></span>
+    <button id="win-min" class="win-btn" title="Minimizar"><i data-ico="min"></i></button>
+    <button id="win-max" class="win-btn" title="Maximizar"><i data-ico="max"></i></button>
+    <button id="win-close" class="win-btn close" title="Fechar"><i data-ico="close"></i></button>
   </header>
 
   <main id="waiting" class="home">
@@ -32,25 +35,25 @@
 
     <div class="home-grid">
       <section class="panel">
-        <h2>Seus campeões</h2>
+        <h2 class="ih"><i data-ico="sword"></i>Seus campeões</h2>
         <div id="home-champs" class="home-champs"><p class="muted">Abra o cliente do LoL para ver sua maestria.</p></div>
       </section>
       <section class="panel">
-        <h2>Suas rotas</h2>
+        <h2 class="ih"><i data-ico="route"></i>Suas rotas</h2>
         <div id="home-roles"><p class="muted">Calculado do seu histórico recente.</p></div>
       </section>
     </div>
 
     <section class="panel">
-      <h2>Como funciona</h2>
+      <h2 class="ih"><i data-ico="spark"></i>Como funciona</h2>
       <div class="steps">
-        <div class="step"><b>1 · Champ select</b><span>Sugestões de pick e ban, runas, feitiços e build para importar com um clique.</span></div>
-        <div class="step"><b>2 · Em partida</b><span>Segure <kbd>TAB</kbd> para ver as 3 próximas compras com o motivo de cada uma.</span></div>
-        <div class="step"><b>3 · Ajustar overlay</b><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> move e redimensiona; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> deixa sempre visível.</span></div>
+        <div class="step"><i data-ico="user" class="step-ico"></i><b>Champ select</b><span>Sugestões de pick e ban, runas, feitiços e build para importar com um clique.</span></div>
+        <div class="step"><i data-ico="keyboard" class="step-ico"></i><b>Em partida</b><span>Segure <kbd>TAB</kbd> para ver as 3 próximas compras com o motivo de cada uma.</span></div>
+        <div class="step"><i data-ico="move" class="step-ico"></i><b>Ajustar overlay</b><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> move e redimensiona; <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>O</kbd> deixa sempre visível.</span></div>
       </div>
       <div class="row">
-        <button id="home-test" class="btn">Testar overlay</button>
-        <button id="home-settings" class="btn">Configurações</button>
+        <button id="home-test" class="btn primary"><i data-ico="play"></i>Testar overlay</button>
+        <button id="home-settings" class="btn"><i data-ico="sliders"></i>Configurações</button>
       </div>
     </section>
   </main>
@@ -78,7 +81,7 @@
         <p id="guide-why" class="muted"></p>
         <div id="guide-body"></div>
         <div class="row">
-          <button id="imp-all" class="btn primary" disabled>Importar tudo (runas, feitiços, itens)</button>
+          <button id="imp-all" class="btn primary" disabled><i data-ico="download"></i>Importar tudo (runas, feitiços, itens)</button>
           <button id="imp-items" class="btn" disabled>Só itens da loja</button>
         </div>
         <p id="imp-msg" class="muted"></p>
@@ -169,6 +172,7 @@
     <p class="muted">Seu meta.json (pasta de dados) sempre vence os dados da internet.</p>
   </section>
 
+  <script src="icons.js"></script>
   <script src="common.js"></script>
   <script src="renderer.js"></script>
 </body>

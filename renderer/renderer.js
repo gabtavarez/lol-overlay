@@ -295,6 +295,18 @@ function render(state) {
   return showView('waiting');
 }
 
+/* ---------- barra de título ---------- */
+
+hydrateIcons();
+$('win-min').addEventListener('click', () => window.overlay.winMinimize());
+$('win-max').addEventListener('click', () => window.overlay.winToggleMax());
+$('win-close').addEventListener('click', () => window.overlay.winClose());
+$('bar').addEventListener('dblclick', (e) => { if (!e.target.closest('button')) window.overlay.winToggleMax(); });
+window.overlay.onMaximized((max) => {
+  $('win-max').replaceChildren(svgIcon(max ? 'restore' : 'max'));
+  $('win-max').title = max ? 'Restaurar' : 'Maximizar';
+});
+
 /* ---------- tela inicial ---------- */
 
 const fmtPts = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} mi` : n >= 1e3 ? `${Math.round(n / 1e3)} mil` : String(n));
@@ -336,7 +348,7 @@ function renderHome(state) {
   const max = Math.max(1, ...roles.map((r) => r.games));
   $('home-roles').replaceChildren(...(roles.length
     ? [...roles.map((r) => h('div', { class: 'role-row' },
-      h('span', { class: 'role-name', text: ROLE_LABEL[r.role] || r.role }),
+      h('span', { class: 'role-name' }, svgIcon(r.role, 'ico role-ico'), document.createTextNode(ROLE_LABEL[r.role] || r.role)),
       h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((r.games / max) * 100)}%` })),
       h('span', { class: 'muted', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}% vit.` }))),
       h('p', { class: 'muted', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
@@ -458,7 +470,7 @@ function showUpdate(u) {
   const btn = $('update-btn');
   btn.classList.toggle('primary', u.state === 'ready');
   btn.disabled = u.state === 'checking' || u.state === 'downloading';
-  btn.textContent = {
+  $('update-label').textContent = {
     checking: 'Procurando…',
     downloading: `Baixando ${u.version || ''} ${u.percent || 0}%`,
     ready: `Reiniciar e atualizar (${u.version})`,
@@ -469,8 +481,8 @@ function showUpdate(u) {
 }
 $('update-btn').addEventListener('click', async () => {
   const btn = $('update-btn');
-  if (btn.textContent.startsWith('Reiniciar')) return window.overlay.installUpdate();
-  btn.textContent = 'Procurando…';
+  if ($('update-label').textContent.startsWith('Reiniciar')) return window.overlay.installUpdate();
+  $('update-label').textContent = 'Procurando…';
   showUpdate(await window.overlay.checkUpdate());
 });
 $('set-update-now').addEventListener('click', async () => {

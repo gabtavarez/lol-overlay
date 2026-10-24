@@ -115,13 +115,17 @@ function createMainWindow() {
     minHeight: 600,
     title: 'LoL Overlay',
     icon: app.isPackaged ? path.join(process.resourcesPath, 'icon.ico') : path.join(__dirname, '..', 'build', 'icon.ico'),
-    backgroundColor: '#070d18',
+    backgroundColor: '#0b0309',
+    frame: false, // barra de título própria (renderer/index.html #bar)
     autoHideMenuBar: true,
     webPreferences: webPrefs(),
   });
   lockDownWindow(mainWin);
   mainWin.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   mainWin.on('closed', () => app.quit());
+  const sendMax = () => send('win:maximized', mainWin.isMaximized());
+  mainWin.on('maximize', sendMax);
+  mainWin.on('unmaximize', sendMax);
 }
 
 function createOverlayWindow() {
@@ -406,6 +410,9 @@ function registerIpc() {
   });
 
   ipcMain.handle('overlay:toggle-move', () => toggleMoveMode());
+  ipcMain.handle('win:minimize', () => mainWin && mainWin.minimize());
+  ipcMain.handle('win:toggle-max', () => { if (mainWin) (mainWin.isMaximized() ? mainWin.unmaximize() : mainWin.maximize()); });
+  ipcMain.handle('win:close', () => mainWin && mainWin.close());
   ipcMain.handle('update:get', () => (updater ? updater.get() : { state: 'idle' }));
   ipcMain.handle('update:check', () => (updater ? updater.check({ manual: true }) : { state: 'error', message: 'Atualização só funciona no app instalado.' }));
   ipcMain.handle('update:install', () => { if (updater) updater.install(); return true; });

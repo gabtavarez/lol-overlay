@@ -1,5 +1,12 @@
 const { championIdFromRaw } = require('./ddragon');
 
+/** A Live API às vezes manda objeto/null no lugar de lista (ex.: itens em transição). Nunca quebra. */
+function list(x) {
+  if (Array.isArray(x)) return x;
+  if (x && typeof x === 'object') return Object.values(x).filter((v) => v && typeof v === 'object');
+  return [];
+}
+
 function mapItem(item, dd) {
   const meta = dd ? dd.item(item.itemID) : null;
   return {
@@ -31,7 +38,7 @@ function mapPlayer(p, dd) {
       assists: scores.assists || 0,
       cs: scores.creepScore || 0,
     },
-    items: (p.items || []).map((it) => mapItem(it, dd)),
+    items: list(p.items).filter((it) => it && it.itemID).map((it) => mapItem(it, dd)),
   };
 }
 
@@ -50,7 +57,7 @@ function countObjectives(events, players) {
     teamByName.set(p.gameName, p.team);
   }
   const out = { dragons: { ORDER: 0, CHAOS: 0 }, barons: { ORDER: 0, CHAOS: 0 } };
-  for (const e of events || []) {
+  for (const e of list(events)) {
     const team = teamByName.get(e.KillerName);
     if (!team) continue;
     if (e.EventName === 'DragonKill') out.dragons[team] += 1;
@@ -65,7 +72,7 @@ function countObjectives(events, players) {
  * a própria Live API informa.
  */
 function buildState(raw, dd) {
-  const players = (raw.allPlayers || []).map((p) => mapPlayer(p, dd));
+  const players = list(raw.allPlayers).map((p) => mapPlayer(p, dd));
   const me = findActivePlayer(raw, players);
   if (!me) {
     return { phase: 'waiting', reason: 'jogador ativo não encontrado (modo espectador?)' };

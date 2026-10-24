@@ -246,7 +246,10 @@ function startKeyPoller() {
       if (last === '1') setTab('poll', true);
       if (last === '0') setTab('poll', false);
     });
-    keyPoller.stderr.on('data', (buf) => logger.log(`leitor de teclas: ${String(buf).slice(0, 200)}`));
+    keyPoller.stderr.on('data', (buf) => {
+      const msg = String(buf).replace(/#< CLIXML/g, '').replace(/<[^>]+>/g, ' ').trim(); // ruído de progresso do PowerShell
+      if (msg) logger.log(`leitor de teclas: ${msg.slice(0, 200)}`);
+    });
     keyPoller.on('exit', (code) => {
       hook.poller = `encerrado (${code})`;
       logger.log(`leitor de teclas encerrou (${code})`);

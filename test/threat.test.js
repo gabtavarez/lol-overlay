@@ -68,3 +68,13 @@ test('heurísticas: time todo AD puxa armadura; anti-cura começa pelo component
   const losing = buyAdvice({ dd: ddH, flags: fl, build, state: { gameTime: 600, me: meH(0, 3), enemies: [E('Zed', ['Assassin'], 3, 0, 'MIDDLE')], laneOpponent: { champion: 'Zed' } } });
   assert.ok(losing.items.some((i) => i.id === 1029), 'componente defensivo contra o Zed');
 });
+
+const { buildState } = require('../src/state');
+test('Live API com itens em formato estranho não derruba o overlay', () => {
+  const raw = { activePlayer: { riotId: 'Eu#BR1', currentGold: 500 }, gameData: { gameTime: 300 },
+    allPlayers: [{ riotId: 'Eu#BR1', team: 'ORDER', championName: 'Ahri', rawChampionName: 'game_character_displayname_Ahri', items: { 0: { itemID: 1056 } }, scores: {} },
+      { riotId: 'X#1', team: 'CHAOS', championName: 'Zed', rawChampionName: 'game_character_displayname_Zed', items: null, scores: {} }], events: { Events: {} } };
+  const s = buildState(raw, null);
+  assert.equal(s.phase, 'ingame');
+  assert.equal(s.me.items.length, 1);
+});

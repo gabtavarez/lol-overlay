@@ -340,3 +340,6 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .ov-prev { width: 360px; height: 330px; border: 0; transform: scale(.82); transform-origin: top left; pointer-events: none; background: transparent; }
 .ov-text { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; cursor: pointer; }
 .ov-item .link { align-self: flex-start; }
+/* ícone de rota (CommunityDragon) é <img> também: não pode herdar o tamanho do ícone do campeão */
+.tl-ico img.tl-role { position: absolute; right: -5px; bottom: -5px; width: 17px; height: 17px; padding: 2px; border-radius: 5px; background: var(--card); border: 1px solid var(--line2); }
+.dp img.dp-ico { display: inline-block; width: 12px; height: 12px; border-radius: 0; background: none; outline: none; vertical-align: -2px; }

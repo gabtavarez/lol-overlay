@@ -88,6 +88,7 @@
     "tank": []
   },
   "antiburst": {
+    "_note": "burst AP -> Banshee/Zhonya (mago) ou Malmortius (AD); burst AD -> Zhonya (mago) ou Bordo da Noite (AD)",
     "ap": [
       3102,
       3157
@@ -97,8 +98,8 @@
       3814
     ],
     "ad": [
-      3814,
-      3156
+      3156,
+      3814
     ],
     "tank": []
   },
@@ -113,5 +114,19 @@
     "mixed": [
       1011
     ]
+  },
+  "antiburstAd": {
+    "ap": [
+      3157
+    ],
+    "adc": [
+      3814,
+      3026
+    ],
+    "ad": [
+      3814,
+      3026
+    ],
+    "tank": []
   }
 }

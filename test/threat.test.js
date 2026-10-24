@@ -120,3 +120,18 @@ test('Ahri contra Fizz no começo: Fizz é AP, 1/1/0 não é fed, sugere Véu da
   assert.ok(!ids.includes(3047), 'sem Aço contra Fizz');
   assert.ok(!adv.notes.some((n) => /fed/.test(n)));
 });
+
+test('mago contra Zed na rota: Zhonya (não Banshee)', () => {
+  const flagsReal = require('../data/champion-flags.json');
+  const I = { 3102: { name: 'Banshee', tags: [], gold: { total: 3000 } }, 3157: { name: 'Zhonya', tags: [], gold: { total: 3250 } }, 1056: { name: 'Doran', tags: [], gold: { total: 400 } } };
+  const ddZ = { item: (id) => I[id] || null };
+  const E = (champion, tags, position = '') => ({ champion, championId: champion, tags, level: 6, position, scores: { kills: 1, deaths: 1, assists: 0 }, items: [] });
+  const adv = buyAdvice({ dd: ddZ, flags: flagsReal, build: { damageType: 'AP', core: [], boots: [] }, state: {
+    gameTime: 700, laneOpponent: { champion: 'Zed' },
+    me: { champion: 'Ahri', championId: 'Ahri', tags: ['Mage'], position: 'MIDDLE', level: 6, gold: 500, items: [{ id: 1056 }], scores: { kills: 1, deaths: 1, assists: 0 } },
+    enemies: [E('Zed', ['Assassin'], 'MIDDLE'), E('Lux', ['Mage']), E('Garen', ['Fighter'])] } });
+  const z = adv.items.find((i) => i.id === 3157);
+  assert.ok(z, `Zhonya esperado, veio ${adv.items.map((i) => i.id)}`);
+  assert.match(z.reason, /Zed/);
+  assert.ok(!adv.items.some((i) => i.id === 3102));
+});

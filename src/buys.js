@@ -185,8 +185,13 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const lane = bursts.find((x) => x.lane);
     const early = legendaries === 0;
     const score = (60 + Math.min(25, bursts.reduce((s, x) => s + x.w, 0) * 10) + (lane ? 8 : 0)) * (early ? 0.8 : 1);
+    // o assassino mais perigoso define a resposta: AD (Zed, Talon…) -> Zhonya / Bordo; AP (Fizz, LeBlanc…) -> Banshee / Malmortius
+    const main = [...bursts].sort((a, b) => (b.lane ? 1 : 0) - (a.lane ? 1 : 0) || b.w - a.w)[0];
+    const adBurst = main.d.ad >= 0.6;
     const names = who(bursts, (x) => x.w);
-    react('antiburst', score, cls === 'ap' ? `Escudo de feitiço contra o combo de ${names}` : `Cancela o combo de ${names}`);
+    const zedTip = main.e.championId === 'Zed' && cls === 'ap' ? `Zhonya na marca do ult de Zed: anula o combo` : null;
+    react(adBurst ? 'antiburstAd' : 'antiburst', score + (adBurst ? 4 : 0),
+      zedTip || (adBurst ? `Cancela o combo de ${names}` : cls === 'ap' ? `Escudo de feitiço contra o combo de ${names}` : `Cancela o combo de ${names}`));
   }
 
   // Um inimigo fed (ou o oponente de rota ganhando) puxa a defesa contra o dano dele, mesmo se o time for misto.

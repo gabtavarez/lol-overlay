@@ -50,6 +50,12 @@ function sanitize(input, base) {
   if ('autoImport' in input) out.autoImport = input.autoImport !== false;
   if ('autoUpdate' in input) out.autoUpdate = input.autoUpdate !== false;
   if ('flashKey' in input) out.flashKey = input.flashKey === 'D' ? 'D' : 'F';
+  if ('lastSeenVersion' in input && /^\d+\.\d+\.\d+$/.test(String(input.lastSeenVersion))) out.lastSeenVersion = String(input.lastSeenVersion);
+  if ('discordRpc' in input) out.discordRpc = input.discordRpc === true;
+  if ('discordClientId' in input) {
+    const id = String(input.discordClientId || '').trim();
+    if (!id || /^\d{15,22}$/.test(id)) out.discordClientId = id;
+  }
 
   const ov = input.overlay;
   if (ov && typeof ov === 'object') {

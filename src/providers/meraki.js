@@ -18,6 +18,7 @@ function summarize(j) {
   return {
     positions: j.positions || [],
     adaptiveType: j.adaptiveType || null,
+    patchLastChanged: j.patchLastChanged || null,
     abilities: ['Q', 'W', 'E', 'R'].map((key) => {
       const a = (ab[key] || [])[0] || {};
       return { key, name: a.name || key, cooldowns: cooldowns(a), spellshieldable: a.spellshieldable || null };

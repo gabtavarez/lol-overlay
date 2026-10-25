@@ -1,0 +1,34 @@
+[
+  {
+    "version": "0.25.0",
+    "title": "Pick às cegas, patch dos seus campeões e Discord",
+    "items": [
+      "Champ select: quando seu oponente de rota ainda não escolheu, os picks ganham o selo \"Seguro às cegas\" ou \"Arriscado às cegas\" (pelos counters do OP.GG) e os seguros sobem na lista.",
+      "Início: card \"Patch nos seus campeões\" com o que mudou (recarga, custo, alcance e atributos) nos seus mais jogados, marcado como buff, nerf ou ajuste.",
+      "Discord: mostra no seu perfil o que você está fazendo (cliente, champ select ou partida, com campeão e elo). Ative em Configurações.",
+      "Esta janela de novidades aparece sempre que o app atualizar."
+    ]
+  },
+  {
+    "version": "0.24.0",
+    "title": "Selo \"Bom contra\"",
+    "items": [
+      "Itens sugeridos mostram contra o que são bons (Dano mágico, Cura, Assassinos, Tanques…) e os inimigos que motivaram a escolha."
+    ]
+  },
+  {
+    "version": "0.23.0",
+    "title": "Página do campeão",
+    "items": [
+      "Clique num campeão da Tier list para ver build, 2 páginas de runas, ordem de skills, counters e melhores parceiros."
+    ]
+  },
+  {
+    "version": "0.22.0",
+    "title": "Tier list por elo e 2 páginas de runas",
+    "items": [
+      "Tier list filtrável por elo (Ouro até Desafiante).",
+      "Guia com 2 páginas de runas, cada uma com % de pick e de vitória."
+    ]
+  }
+]

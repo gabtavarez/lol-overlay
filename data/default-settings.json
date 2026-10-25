@@ -46,5 +46,8 @@
     "minGamesForRole": 1,
     "maxResults": 10
   },
-  "buildTier": "EMERALD_PLUS"
+  "buildTier": "EMERALD_PLUS",
+  "lastSeenVersion": "",
+  "discordRpc": false,
+  "discordClientId": ""
 }

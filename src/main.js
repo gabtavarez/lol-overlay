@@ -19,6 +19,9 @@ const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit, mainRoleOf } = require('./fit');
+const { applyBlind } = require('./blind');
+const { diffChampion, verdict } = require('./patchDiff');
+const { createDiscordRpc, activityFor } = require('./discord');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
 const { situationalItems } = require('./situational');
@@ -84,6 +87,27 @@ function publish() {
   if (lcuState.phase === 'champselect' && lcuState.myPosition) lastRole = lcuState.myPosition;
   send('state', lastState);
   updateOverlayVisibility();
+  updatePresence();
+}
+
+/* Discord Rich Presence: o que você está fazendo no LoL, no seu perfil do Discord. */
+let rpc = null;
+let gameStart = null;
+let lastRank = null;
+function updatePresence() {
+  if (!rpc || !settings) return;
+  const sum = lcuState.home && lcuState.home.summoner;
+  if (sum && sum.rank) lastRank = sum.rank;
+  if (liveState.phase === 'ingame') {
+    if (!gameStart) gameStart = Date.now() - (liveState.gameTime || 0) * 1000;
+  } else gameStart = null;
+  rpc.set(activityFor({ live: liveState, lcu: lcuState, rank: lastRank, version: dd && dd.version, gameStart }));
+}
+function configurePresence() {
+  if (!rpc) return;
+  const s = settings.get();
+  rpc.configure(Boolean(s.discordRpc), s.discordClientId || '');
+  updatePresence();
 }
 
 /* ---------- janelas ---------- */
@@ -474,6 +498,39 @@ async function guideFor(championId) {
   return { ...variants[0].guide, variants, runePages, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
+const patchCache = new Map(); // `${versão}:${id}` -> mudanças
+async function patchForMine() {
+  if (!dd || !dd.prevVersion) return { patch: dd ? dd.version : null, champs: [], error: 'sem o patch anterior para comparar' };
+  const ids = [];
+  const home = lcuState.home || {};
+  for (const c of home.top || []) ids.push(c.id);
+  const mRiot = settings.get().myRiotId;
+  const recent = mRiot && remote.getMatches(mRiot, currentRegion());
+  const count = {};
+  for (const g of (recent && recent.list) || []) {
+    const c = g.me && dd.championByRaw(null, g.me.champion);
+    if (c) count[c.id] = (count[c.id] || 0) + 1;
+  }
+  for (const id of Object.keys(count).sort((a, b) => count[b] - count[a])) if (!ids.includes(id)) ids.push(id);
+  const champs = [];
+  for (const id of ids.slice(0, 8)) {
+    const key = `${dd.version}:${id}`;
+    if (!patchCache.has(key)) {
+      try {
+        const [prev, cur] = await Promise.all([dd.championData(id, dd.prevVersion), dd.championData(id)]);
+        patchCache.set(key, diffChampion(prev, cur));
+      } catch { patchCache.set(key, null); }
+    }
+    const changes = patchCache.get(key);
+    if (!changes) continue;
+    const mk = meraki && meraki.cached(id);
+    const short = (v) => String(v || '').split('.').slice(0, 2).join('.');
+    const touched = mk && mk.patchLastChanged && short(mk.patchLastChanged) === short(dd.version);
+    champs.push({ id, name: (dd.champions[id] || {}).name || id, changes, verdict: verdict(changes), touched: Boolean(touched) });
+  }
+  return { patch: dd.version, prev: dd.prevVersion, champs };
+}
+
 const PARTNER = { top: 'jungle', jungle: 'middle', middle: 'jungle', bottom: 'utility', utility: 'bottom' };
 
 /** Rotas em que o campeão aparece na tier list (mais jogada primeiro). */
@@ -667,6 +724,15 @@ function decorateLcu(state) {
   if (state.phase === 'champselect') {
     remote.ensureTierList(() => lcuEngine.tick());
     if (tl) state.enemies = predictRoles(state.enemies || [], roleIndex(tl.data, dd));
+    // Pick às cegas: ninguém revelado na sua rota ainda -> destaca quem aguenta qualquer matchup.
+    const role = state.myPosition;
+    const picks = state.advice && state.advice.picks;
+    const oppShown = (state.enemies || []).some((e) => e.champion && (e.position === role || (!e.position && e.predicted === role && e.confidence >= 50)));
+    if (role && picks && picks.candidates && picks.candidates.length && !oppShown) {
+      picks.candidates = applyBlind(picks.candidates, (c) => remote.getBuild({ id: c.id }, role));
+      picks.blind = true;
+      picks.notes = ['Oponente de rota ainda não escolheu: picks seguros às cegas sobem na lista.', ...(picks.notes || [])];
+    }
   }
   if (state.home && !state.home.loading) {
     if (!tl) remote.ensureTierList(() => lcuEngine.tick());
@@ -715,6 +781,18 @@ function registerIpc() {
     }
     return guideFor(championId);
   });
+
+  // Novidades da versão: aparece uma vez depois de cada atualização.
+  ipcMain.handle('whatsnew:get', () => {
+    const version = app.getVersion();
+    const log = require('../data/changelog.json');
+    const seen = settings.get().lastSeenVersion || '';
+    return { version, unseen: seen !== version, current: log.find((e) => e.version === version) || null, history: log.slice(0, 6) };
+  });
+  ipcMain.handle('whatsnew:seen', () => { settings.update({ lastSeenVersion: app.getVersion() }); return true; });
+
+  // Mudanças do patch nos seus campeões (maestria + mais jogados no OP.GG).
+  ipcMain.handle('patch:mine', () => patchForMine());
 
   // Página do campeão (aberta pela tier list): build, runas, skills, counters e sinergias numa rota.
   ipcMain.handle('champ:detail', (_e, { id, role } = {}) => champDetail(id, role));
@@ -875,6 +953,7 @@ function registerIpc() {
     logFile: logger.file,
     tabDown,
     live: { phase: liveState.phase, reason: liveState.reason || '' },
+    discord: rpc ? rpc.status() : 'off',
     client: lcuState.client || lcuState.phase,
     overlay: {
       visible: Boolean(overlayWin && overlayWin.isVisible()),
@@ -888,6 +967,7 @@ function registerIpc() {
     const next = settings.update(patch);
     send('settings-changed', next);
     updateOverlayVisibility();
+    configurePresence();
     if (lcuEngine) lcuEngine.tick();
     return next;
   });
@@ -906,6 +986,8 @@ app.whenReady().then(() => {
 
   elo = createEloTracker({ dir: userData });
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
+  rpc = createDiscordRpc({ log: (m) => logger.log(m) });
+  configurePresence();
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
   remote = createRemoteData({
     cacheDir: path.join(userData, 'remote'),
@@ -980,6 +1062,7 @@ app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  if (rpc) rpc.stop();
   try { require('uiohook-napi').uIOhook.stop(); } catch { /* hook não iniciado */ }
   if (keyPoller) keyPoller.kill();
   if (liveEngine) liveEngine.stop();

@@ -382,3 +382,31 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .sit-body { min-width: 0; }
 .sit-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sit .good-tag { margin: 1px 0 0; }
+
+/* pick às cegas */
+.blind-tag { display: inline-block; margin-left: 7px; padding: 1px 6px; border-radius: 5px; font-size: 10px; font-weight: 600; vertical-align: 1px; }
+.blind-tag.safe { color: var(--good); background: rgba(63,191,127,.12); }
+.blind-tag.risky { color: var(--warn); background: rgba(229,168,61,.12); }
+
+/* patch nos seus campeões */
+.patch-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.patch-row { display: flex; gap: 10px; padding: 12px 16px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.patch-list > p { grid-column: 1 / -1; margin: 0; }
+.pv { margin-left: 8px; padding: 1px 6px; border-radius: 5px; font-size: 10.5px; font-weight: 600; }
+.pv.buff { color: var(--good); background: rgba(63,191,127,.12); }
+.pv.nerf { color: var(--bad); background: rgba(229,72,77,.12); }
+.pv.ajuste { color: var(--warn); background: rgba(229,168,61,.12); }
+.patch-ch { margin: 5px 0 0; padding-left: 16px; font-size: 12px; color: var(--muted); }
+.patch-ch li.up b { color: var(--good); } .patch-ch li.down b { color: var(--bad); }
+.patch-ch s { color: var(--dim); }
+
+/* novidades */
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(5,6,8,.6); }
+.modal-box { width: min(520px, calc(100vw - 40px)); max-height: calc(100vh - 80px); overflow: auto; padding: 22px 24px; border-radius: 12px; border: 1px solid var(--line2); background: var(--card); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+.modal-box h2 { font-size: 18px; margin: 0 0 12px; }
+.wn-items { margin: 0 0 12px; padding-left: 18px; line-height: 1.5; }
+.wn-items li + li { margin-top: 6px; }
+#wn-old summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.wn-old { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.wn-old ul { margin: 4px 0 0; padding-left: 18px; }
+.modal-f { display: flex; justify-content: flex-end; margin-top: 16px; }

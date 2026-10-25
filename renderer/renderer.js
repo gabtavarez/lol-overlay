@@ -80,7 +80,12 @@ async function hoverInClient(id, name, kind) {
 
 function pickCard(c, selected, i = 0) {
   const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected });
-  card.title = `${c.reasons.join(' · ')}\nClique para marcar no cliente`;
+  card.title = `${c.blind ? `${c.blind.text}\n` : ''}${c.reasons.join(' · ')}\nClique para marcar no cliente`;
+  if (c.blind && c.blind.level !== 'ok') {
+    // selo de pick às cegas ao lado do nome
+    const nm = card.querySelector('.nm');
+    if (nm) nm.append(h('span', { class: `blind-tag ${c.blind.level}`, text: c.blind.level === 'safe' ? 'Seguro às cegas' : 'Arriscado às cegas' }));
+  }
   card.addEventListener('click', () => {
     chosenId = c.id;
     if (lastState) renderSelect(lastState);
@@ -568,6 +573,7 @@ function renderHome(state) {
   const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v, home.elo]);
   if (key === homeKey) return; // evita redesenhar a cada 1,5 s
   homeKey = key;
+  loadPatchCard(state);
 
   const s = home.summoner;
   $('home-hello').textContent = s && s.gameName ? `Olá, ${s.gameName}` : 'Bem-vindo';
@@ -707,7 +713,17 @@ function fillSettings() {
   $('set-riotid').value = settings.myRiotId || '';
   $('set-flash').value = settings.flashKey || 'F';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
+  $('set-discord').checked = settings.discordRpc === true;
+  $('set-discord-id').value = settings.discordClientId || '';
+  showDiscordStatus();
   fillRoleFields();
+}
+
+/** Status do Discord nas configurações (conectado / procurando o Discord / desligado). */
+async function showDiscordStatus() {
+  const d = await window.overlay.getDiagnostics().catch(() => ({}));
+  const st = d.discord || 'off';
+  $('discord-status').textContent = st === 'connected' ? '· conectado' : st === 'connecting' ? '· procurando o Discord aberto…' : '';
 }
 
 async function openSettings() {
@@ -734,6 +750,8 @@ async function saveSettings() {
     buildTier: $('set-tier').value,
     myRiotId: $('set-riotid').value.trim(),
     flashKey: $('set-flash').value,
+    discordRpc: $('set-discord').checked,
+    discordClientId: $('set-discord-id').value.trim(),
     overlay: { mode: $('set-overlay-mode').value },
     picker: {
       weights,
@@ -741,8 +759,9 @@ async function saveSettings() {
       blacklist: splitList(els.setBlacklist.value),
     },
   });
-  els.setMsg.textContent = 'Salvo.';
+  els.setMsg.textContent = settings.discordRpc && !settings.discordClientId ? 'Salvo. Falta o Application ID do Discord para ativar o status.' : 'Salvo.';
   showFlashKey();
+  setTimeout(showDiscordStatus, 2500);
 }
 
 function showFlashKey() {
@@ -809,6 +828,7 @@ window.overlay.getUpdate().then(showUpdate);
 els.gear.addEventListener('click', () => (settingsOpen ? closeSettings() : openSettings()));
 $('set-close').addEventListener('click', closeSettings);
 $('set-save').addEventListener('click', saveSettings);
+$('set-whatsnew').addEventListener('click', () => showWhatsNew(true));
 $('set-move').addEventListener('click', () => window.overlay.toggleMoveMode());
 $('set-folder').addEventListener('click', () => window.overlay.openDataFolder());
 els.setRole.addEventListener('change', fillRoleFields);
@@ -1224,3 +1244,52 @@ $('tl-elo').addEventListener('change', () => {
 $('tl-search').addEventListener('input', drawTierList);
 $('tl-sort').addEventListener('change', drawTierList);
 $('tl-refresh').addEventListener('click', () => { tl = null; drawTierList(); loadTierList(true); });
+
+
+/* ---------- novidades da versão ---------- */
+
+async function showWhatsNew(force = false) {
+  const wn = await window.overlay.getWhatsNew().catch(() => null);
+  if (!wn || (!force && !wn.unseen) || (!wn.current && !force)) return;
+  const cur = wn.current || wn.history[0];
+  if (!cur) return;
+  $('wn-ver').textContent = `Novidades · v${cur.version}`;
+  $('wn-title').textContent = cur.title;
+  $('wn-items').replaceChildren(...cur.items.map((t) => h('li', { text: t })));
+  const old = wn.history.filter((e) => e.version !== cur.version);
+  $('wn-old').hidden = !old.length;
+  $('wn-hist').replaceChildren(...old.map((e) => h('div', { class: 'wn-old' }, h('b', { text: `v${e.version} · ${e.title}` }), h('ul', {}, ...e.items.map((t) => h('li', { text: t }))))));
+  $('whatsnew').hidden = false;
+}
+$('wn-ok').addEventListener('click', () => { $('whatsnew').hidden = true; window.overlay.seenWhatsNew(); });
+$('whatsnew').addEventListener('click', (e) => { if (e.target.id === 'whatsnew') $('wn-ok').click(); });
+setTimeout(() => showWhatsNew(false), 1200);
+
+/* ---------- patch nos seus campeões ---------- */
+
+let patchLoadedFor = '';
+async function loadPatchCard(state) {
+  const top = (state && state.home && state.home.top) || [];
+  const key = top.map((c) => c.id).join(',');
+  if (!key || key === patchLoadedFor) return;
+  patchLoadedFor = key;
+  const res = await window.overlay.getPatchMine().catch(() => null);
+  if (!res || !res.champs || !res.champs.length) { $('patch-card').hidden = true; return; }
+  const short = (v) => String(v || '').split('.').slice(0, 2).join('.');
+  $('patch-title').textContent = `Patch ${short(res.patch)} nos seus campeões`;
+  const changed = res.champs.filter((c) => c.changes.length || c.touched);
+  const quiet = res.champs.filter((c) => !c.changes.length && !c.touched);
+  const VERD = { buff: 'Buff', nerf: 'Nerf', ajuste: 'Ajuste' };
+  const rows = changed.map((c) => h('div', { class: 'patch-row' },
+    version ? h('img', { class: 'ic', src: champIcon(version, c.id), alt: '' }) : h('span', { class: 'ic' }),
+    h('div', { style: 'min-width:0' },
+      h('div', { class: 'nm' }, document.createTextNode(c.name),
+        h('span', { class: `pv ${c.verdict || 'ajuste'}`, text: c.verdict ? VERD[c.verdict] : 'Alterado' })),
+      c.changes.length
+        ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 5).map((x) => h('li', { class: x.buff === true ? 'up' : x.buff === false ? 'down' : '' },
+          document.createTextNode(`${x.what}: `), h('s', { text: x.from }), document.createTextNode(' → '), h('b', { text: x.to }))))
+        : h('div', { class: 'muted small', text: 'Mexido neste patch (Meraki), mas sem mudança nos números do Data Dragon: provavelmente dano.' }))));
+  if (quiet.length) rows.push(h('p', { class: 'muted small pad', text: `Sem mudanças: ${quiet.map((c) => c.name).join(', ')}.` }));
+  $('patch-body').replaceChildren(...rows);
+  $('patch-card').hidden = false;
+}

@@ -34,6 +34,16 @@
     </div>
   </aside>
 
+  <div id="whatsnew" class="modal" hidden>
+    <div class="modal-box">
+      <div class="eyebrow" id="wn-ver">Novidades</div>
+      <h2 id="wn-title">O que há de novo</h2>
+      <ul id="wn-items" class="wn-items"></ul>
+      <details id="wn-old"><summary>Versões anteriores</summary><div id="wn-hist"></div></details>
+      <div class="modal-f"><button id="wn-ok" class="btn primary" type="button">Bora</button></div>
+    </div>
+  </div>
+
   <div id="content">
     <!-- Início -->
     <main id="waiting" class="view">
@@ -57,6 +67,10 @@
       <section class="card" id="elo-card" hidden>
         <div class="card-h"><h2>Elo e evolução</h2><span class="muted small">ranqueada solo</span></div>
         <div id="elo-body" class="elo"></div>
+      </section>
+      <section class="card" id="patch-card" hidden>
+        <div class="card-h"><h2 id="patch-title">Patch nos seus campeões</h2><span class="muted small">Data Dragon: recarga, custo, alcance e atributos (mudança só de dano não aparece)</span></div>
+        <div id="patch-body" class="patch-list"></div>
       </section>
       <section class="card">
         <div class="card-h"><h2>Combina com você</h2><span class="muted small">campeões fortes na sua rota, parecidos com os que você joga</span></div>
@@ -295,6 +309,11 @@
           <label class="check"><input type="checkbox" id="set-update"> Atualizar o app automaticamente</label>
           <label class="check"><input type="checkbox" id="set-accept"> Aceitar a partida automaticamente</label>
           <label class="check"><input type="checkbox" id="set-remote"> Buscar dados no OP.GG (tier list, builds, counters)</label>
+          <label class="check"><input type="checkbox" id="set-discord"> Mostrar no Discord o que estou jogando <span id="discord-status" class="muted small"></span></label>
+          <label class="field" id="discord-id-field">Application ID do Discord
+            <input type="text" id="set-discord-id" placeholder="ex.: 1234567890123456789" maxlength="22">
+            <span class="muted small">Crie um app chamado "LoL Overlay" em discord.com/developers/applications e cole o Application ID aqui. O Discord precisa estar aberto no PC.</span>
+          </label>
           <div class="row">
             <button id="set-save" class="btn primary">Salvar</button>
             <button id="set-close" class="btn ghost">Fechar</button>
@@ -307,6 +326,7 @@
             <button id="set-update-now" class="btn ghost">Verificar atualização</button>
             <button id="set-diag" class="btn ghost">Diagnóstico</button>
             <button id="set-folder" class="btn ghost">Pasta de dados</button>
+            <button id="set-whatsnew" class="btn ghost">Novidades</button>
           </div>
           <div id="diag" class="diag" hidden></div>
           <p class="muted small">Overlay: segure TAB em partida e arraste o título do painel (mover) ou o canto (redimensionar). Seu meta.json (pasta de dados) sempre vence os dados da internet.</p>

@@ -28,6 +28,7 @@ class DataDragon {
     try {
       const versions = await this._fetchJson(`${BASE}/api/versions.json`);
       version = versions[0];
+      this.prevVersion = versions[1] || null;
     } catch {
       version = await this._latestCachedVersion();
       if (!version) throw new Error('sem rede e sem cache local');
@@ -74,6 +75,12 @@ class DataDragon {
     };
     this._skills.set(id, out);
     return out;
+  }
+
+  /** champion/<id>.json cru de uma versão (padrão: a atual). */
+  async championData(id, version = this.version) {
+    const json = await this._cachedJson(version, `champion/${id}.json`);
+    return json.data[id];
   }
 
   item(id) {

@@ -32,7 +32,9 @@ jobs:
         run: npm ci --no-audit --no-fund && npm test && node scripts/validate-data.js
       - name: Cria o release em rascunho
         if: steps.v.outputs.skip != '1'
-        run: gh release view "${{ steps.v.outputs.tag }}" >/dev/null 2>&1 || gh release create "${{ steps.v.outputs.tag }}" --draft --title "${{ steps.v.outputs.tag }}" --target "$GITHUB_SHA" --notes "LoL Overlay ${{ steps.v.outputs.tag }}"
+        run: |
+          node scripts/release-notes.js > notes.md
+          gh release view "${{ steps.v.outputs.tag }}" >/dev/null 2>&1 || gh release create "${{ steps.v.outputs.tag }}" --draft --title "${{ steps.v.outputs.tag }}" --target "$GITHUB_SHA" --notes-file notes.md
       - name: Builda e envia o instalador
         if: steps.v.outputs.skip != '1'
         run: npx electron-builder --win nsis --publish always

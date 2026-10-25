@@ -101,6 +101,8 @@ function counterList(list, sign) {
     value: clamp((sign * ((c.win_rate || 0.5) - 0.5)) / 0.08, -1, 1),
     games: c.play || 0,
     oppWinRate: typeof c.win_rate === 'number' ? c.win_rate : null,
+    // WR deste campeão contra o outro (o OP.GG manda nas duas listas)
+    myWinRate: typeof c.my_win_rate === 'number' ? c.my_win_rate : null,
   }));
 }
 
@@ -109,6 +111,16 @@ function parseSynergyList(text) {
   const rows = (parseCompact(text).data || {}).synergies || [];
   return rows.filter((r) => r && r.synergy_champion_name && (r.play || 0) >= 100)
     .map((r) => ({ name: r.synergy_champion_name, winRate: r.win_rate || 0, games: r.play || 0 }));
+}
+
+function rawCounters(positions) {
+  const out = {};
+  for (const p of Array.isArray(positions) ? positions : []) {
+    if (!p || !p.name || !Array.isArray(p.counters)) continue;
+    out[String(p.name).toUpperCase()] = p.counters.filter((c) => c && c.champion_name && c.play)
+      .map((c) => ({ name: c.champion_name, games: c.play, myWinRate: (c.win || 0) / c.play }));
+  }
+  return out;
 }
 
 function parseAnalysis(text) {
@@ -129,6 +141,8 @@ function parseAnalysis(text) {
     spells: items(d.summoner_spells).slice(0, 2),
     skills: d.skills && Array.isArray(d.skills.order) ? d.skills.order : [],
     runes: null,
+    // matchups crus por rota (amostra menor): { MID: [{ name, games, myWinRate }] }
+    rawCounters: rawCounters(d.summary && d.summary.positions),
   };
   if (r && Array.isArray(r.primary_rune_ids) && Array.isArray(r.secondary_rune_ids)) {
     build.runes = {
@@ -396,6 +410,7 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
     'data.summary.average_stats', 'data.damage_type', 'data.strong_counters', 'data.weak_counters',
     'data.core_items', 'data.boots', 'data.starter_items', 'data.fourth_items', 'data.fifth_items',
     'data.sixth_items', 'data.summoner_spells', 'data.runes', 'data.skills.order',
+    'data.summary.positions[].name', 'data.summary.positions[].counters[].{champion_name,play,win}',
   ];
 
   return {

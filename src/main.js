@@ -559,12 +559,25 @@ async function champDetail(id, wanted) {
   const build = remote.getBuild(champ, role);
   const skills = await dd.championSkills(champ.id).catch(() => null);
   const named = (name) => { const c = dd.championByRaw(null, name); return c ? { id: c.id, name: c.name } : { id: null, name }; };
-  // win_rate dos counters = chance do OUTRO campeão vencer; aqui mostramos a WR deste campeão contra ele
-  // (cache antigo sem o WR bruto: reconstrói pela nota, que é (WR - 50%) / 8%)
-  const counters = (list, sign) => (list || []).map((c) => {
-    const opp = c.oppWinRate != null ? c.oppWinRate : 0.5 + (sign * (c.value || 0) * 0.08);
-    return { ...named(c.name), winRate: 1 - opp, games: c.games };
-  });
+  // WR deste campeão contra cada um. O OP.GG manda my_win_rate; cache antigo sem ele:
+  // weak_counters.win_rate = WR do counter, strong_counters.win_rate = WR deste campeão.
+  const myWr = (c, sign) => {
+    if (c.myWinRate != null) return c.myWinRate;
+    const raw = c.oppWinRate != null ? c.oppWinRate : 0.5 + (sign * (c.value || 0) * 0.08);
+    return sign > 0 ? 1 - raw : raw;
+  };
+  const counters = (list, sign) => (list || []).map((c) => ({ ...named(c.name), winRate: myWr(c, sign), games: c.games }));
+  // + matchups crus da rota (amostra menor) para completar até 7
+  const RAWPOS = { top: ['TOP'], jungle: ['JUNGLE'], middle: ['MID', 'MIDDLE'], bottom: ['ADC', 'BOTTOM'], utility: ['SUPPORT', 'UTILITY'] };
+  const rawList = build && build.rawCounters ? (RAWPOS[role] || []).map((k) => build.rawCounters[k]).find(Boolean) || [] : [];
+  const merged = (base, keep) => {
+    const out = [...base];
+    for (const c of rawList) {
+      if (!keep(c.myWinRate) || out.some((x) => x.name === named(c.name).name)) continue;
+      out.push({ ...named(c.name), winRate: c.myWinRate, games: c.games, small: c.games < 100 });
+    }
+    return out;
+  };
   const syn = partner ? remote.getSynergyList(champ, role, partner) : null;
   const tlRow = roles.find((r) => r.role === role);
   return {
@@ -576,8 +589,8 @@ async function champDetail(id, wanted) {
     runePages: build ? runePagesFor(champ, role, build) : [],
     kit: abilityCard(champ, 1),
     // weak = quem counteria este campeão (ele perde); strong = quem ele counteria (ele ganha)
-    losesTo: build ? counters(build.weakCounters, 1).sort((a, b) => a.winRate - b.winRate).slice(0, 6) : [],
-    beats: build ? counters(build.strongCounters, -1).sort((a, b) => b.winRate - a.winRate).slice(0, 6) : [],
+    losesTo: build ? merged(counters(build.weakCounters, 1), (wr) => wr < 0.5).sort((a, b) => a.winRate - b.winRate).slice(0, 7) : [],
+    beats: build ? merged(counters(build.strongCounters, -1), (wr) => wr > 0.5).sort((a, b) => b.winRate - a.winRate).slice(0, 7) : [],
     synergies: syn ? syn.slice().sort((a, b) => b.winRate - a.winRate).slice(0, 6).map((s) => ({ ...named(s.name), winRate: s.winRate, games: s.games })) : null,
     synergyError: partner && !syn ? remote.synergyError(champ, role, partner) : null,
   };

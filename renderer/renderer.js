@@ -963,6 +963,7 @@ function champLine(c, role, good) {
     h('span', { class: 'nm', text: c.name }),
     h('span', { class: `cd-wr ${good ? 'good' : 'bad'}`, text: `${(c.winRate * 100).toFixed(1)}%` }),
     h('span', { class: 'muted small', text: `${(c.games || 0).toLocaleString('pt-BR')} jogos` }));
+  if (c.small) row.title = 'Amostra pequena: menos de 100 partidas nesse confronto';
   if (c.id) row.addEventListener('click', () => openChamp(c.id, role));
   return row;
 }

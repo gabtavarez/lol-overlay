@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.25.1",
+    "title": "Counters mais completos e corrigidos",
+    "items": [
+      "Página do campeão: \"Perde para\" e \"Ganha de\" mostram até 7 campeões cada (os 3 principais do OP.GG + matchups com amostra menor, marcados ao passar o mouse).",
+      "Corrigido: em \"Ganha de\" a % aparecia invertida (era a WR do adversário); agora é a sua WR no confronto."
+    ]
+  },
+  {
     "version": "0.25.0",
     "title": "Pick às cegas, patch dos seus campeões e Discord",
     "items": [

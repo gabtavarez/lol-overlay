@@ -199,8 +199,13 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     getScout: (riotId, region) => { const e = cache.scout[`${region}:${String(riotId).toLowerCase()}`]; return e ? e.data : null; },
     tierListError: () => failures.get('tierlist:all') || null,
     ensureTiers: (role, onDone) => (role ? refresh('tiers', role, () => client.laneMeta(role), onDone) : Promise.resolve()),
-    ensureBuild: (champ, role, onDone, priority = 0) =>
-      champ ? refresh('builds', buildKey(champ, role), () => analysisWithFallback(champ, role, priority), onDone) : Promise.resolve(),
+    ensureBuild: (champ, role, onDone, priority = 0) => {
+      if (!champ) return Promise.resolve();
+      const key = buildKey(champ, role);
+      // cache de antes da v0.25.1 (sem os matchups crus): busca de novo uma vez
+      const old = cache.builds[key] && !cache.builds[key].data.rawCounters;
+      return refresh('builds', key, () => analysisWithFallback(champ, role, priority), onDone, old ? 0 : TTL_MS);
+    },
     /** Erro da última tentativa de buscar a build (null se ok ou ainda não tentou). */
     buildError: (champ, role) => (champ ? failures.get(`builds:${buildKey(champ, role)}`) || null : null),
 

@@ -10,7 +10,7 @@ function counterWrs(build) {
     .filter((c) => (c.games || 0) >= 150)
     .map((c) => ({
       name: c.name,
-      wr: c.oppWinRate != null ? 1 - c.oppWinRate : 0.5 - (c.value || 0) * 0.08,
+      wr: c.myWinRate != null ? c.myWinRate : c.oppWinRate != null ? 1 - c.oppWinRate : 0.5 - (c.value || 0) * 0.08,
       games: c.games || 0,
     }))
     .sort((a, b) => a.wr - b.wr);

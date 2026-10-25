@@ -36,12 +36,12 @@ function playerLabel(p) {
 
 let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' | 'history' = abas fixas
 let lastView = 'waiting';
-const VIEWS = ['waiting', 'select', 'game', 'tierlist', 'history', 'settings'];
+const VIEWS = ['waiting', 'select', 'game', 'tierlist', 'history', 'patches', 'settings'];
 function showView(name) {
   if (name) lastView = name;
   const v = settingsOpen ? 'settings' : page !== 'auto' ? page : lastView;
   for (const id of VIEWS) $(id).hidden = v !== id;
-  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', tierlist: 'nav-tier', history: 'nav-history', settings: 'gear' };
+  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
   for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
   $('nav-select').querySelector('.live').hidden = lastView !== 'select';
   $('nav-game').querySelector('.live').hidden = lastView !== 'game';
@@ -1046,9 +1046,11 @@ function goPage(p) {
   showView(null);
   if (p === 'tierlist') { closeChamp(); tlRoleButtons(); loadTierList(); }
   if (p === 'history') loadHistory();
+  if (p === 'patches') loadPatches();
 }
 $('nav-tier').addEventListener('click', () => goPage('tierlist'));
 $('nav-history').addEventListener('click', () => goPage('history'));
+$('nav-patches').addEventListener('click', () => goPage('patches'));
 for (const id of ['nav-home', 'nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
 
 /* ---------- histórico / pós-partida ---------- */
@@ -1294,3 +1296,153 @@ async function loadPatchCard(state) {
   $('patch-body').replaceChildren(...rows);
   $('patch-card').hidden = false;
 }
+
+
+/* ---------- notas de atualização ---------- */
+
+const pn = { versions: [], version: null, note: null, mine: [], filter: 'all', error: null, loading: false };
+const PN_FILTERS = [['all', 'Tudo'], ['mine', 'Seus campeões'], ['champions', 'Campeões'], ['items', 'Itens'], ['other', 'Modos e outros']];
+const PN_VERD = { buff: ['Buff', 'up'], nerf: ['Nerf', 'down'], ajuste: ['Ajuste', null] };
+const PN_SEC_ICON = { champions: 'user', items: 'sword', bugfixes: 'check', skins: 'spark', other: 'list' };
+
+async function loadPatches(force = false) {
+  if (!pn.versions.length || force) {
+    const r = await window.overlay.listPatches(force);
+    pn.versions = r.versions || [];
+    pn.error = r.error || null;
+  }
+  if (!pn.version && pn.versions.length) pn.version = pn.versions[0];
+  drawPatchToolbar();
+  if (pn.version && (!pn.note || pn.note.version !== pn.version)) await loadPatchNote(pn.version);
+  else drawPatches();
+}
+
+async function loadPatchNote(v) {
+  pn.version = v;
+  pn.loading = true;
+  drawPatchToolbar();
+  drawPatches();
+  const r = await window.overlay.getPatchNote(v);
+  if (pn.version !== v) return;
+  pn.loading = false;
+  pn.note = r.note || null;
+  pn.mine = r.mine || [];
+  pn.error = r.error || null;
+  drawPatches();
+}
+
+function drawPatchToolbar() {
+  $('pn-versions').replaceChildren(...pn.versions.slice(0, 6).map((v) => {
+    const b = h('button', { class: `seg-btn${v === pn.version ? ' on' : ''}`, type: 'button', text: v });
+    b.addEventListener('click', () => { if (v !== pn.version) loadPatchNote(v); });
+    return b;
+  }));
+  $('pn-filter').replaceChildren(...PN_FILTERS.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === pn.filter ? ' on' : ''}`, type: 'button', text: label });
+    b.addEventListener('click', () => { pn.filter = k; drawPatchToolbar(); drawPatches(); });
+    return b;
+  }));
+}
+
+const pnImg = (src, cls, alt = '') => {
+  const img = h('img', { class: cls, src, alt, loading: 'lazy' });
+  img.addEventListener('error', () => (/pn-shot|pn-gico/.test(cls) ? img.remove() : img.replaceWith(h('span', { class: `${cls} miss`, text: (alt || '?').slice(0, 2) }))));
+  return img;
+};
+
+/** Uma linha de mudança: rótulo, antes riscado → depois colorido (buff verde, nerf vermelho). */
+function pnChange(c) {
+  if (c.from == null) {
+    return h('li', { class: 'pn-ch text' }, c.label ? h('b', { text: `${c.label}: ` }) : null, document.createTextNode(c.text || ''));
+  }
+  const arrow = c.dir === 'buff' ? '▲' : c.dir === 'nerf' ? '▼' : '→';
+  return h('li', { class: `pn-ch ${c.dir || 'neutral'}` },
+    c.label ? h('div', { class: 'pn-lbl', text: c.label }) : null,
+    h('div', { class: 'pn-vals' },
+      h('span', { class: 'pn-from', text: c.from }),
+      h('span', { class: 'pn-arrow', text: arrow }),
+      h('span', { class: 'pn-to', text: c.to })));
+}
+
+function pnEntity(e, mine) {
+  const [vLabel, vIco] = PN_VERD[e.verdict] || PN_VERD.ajuste;
+  const head = h('div', { class: 'pn-eh' },
+    e.icon ? pnImg(e.icon, `pn-eico ${e.kind || ''}`, e.name || '') : h('span', { class: 'pn-eico miss', text: (e.name || '?').slice(0, 2) }),
+    h('div', { class: 'pn-en' },
+      h('div', { class: 'pn-name' }, document.createTextNode(e.name || 'Geral'), mine ? h('span', { class: 'pn-mine', text: 'Você joga' }) : null),
+      e.context ? h('div', { class: 'pn-ctx', text: e.context }) : null),
+    h('span', { class: `pn-verd ${e.verdict}` }, vIco ? svgIcon(vIco) : h('span', { text: '◆' }), h('span', { text: vLabel })));
+  const ctx = head.querySelector('.pn-ctx');
+  if (ctx) ctx.addEventListener('click', () => ctx.classList.toggle('open'));
+  const groups = e.groups.filter((g) => g.changes.length).map((g) => h('div', { class: 'pn-g' },
+    g.title ? h('div', { class: 'pn-gh' }, g.icon ? pnImg(g.icon, 'pn-gico', g.title) : null, h('span', { text: g.title })) : null,
+    h('ul', { class: 'pn-chs' }, ...g.changes.map(pnChange))));
+  const card = h('article', { class: `pn-card${mine ? ' mine' : ''}`, id: e.id ? `pn-e-${e.id}` : '' }, head, ...groups);
+  return card;
+}
+
+function drawPatches() {
+  const body = $('pn-body');
+  const n = pn.note;
+  $('pn-title').textContent = pn.version ? `Patch ${pn.version}` : 'Patch notes';
+  $('pn-date').textContent = n && n.date ? new Date(n.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
+  $('pn-date').hidden = !$('pn-date').textContent;
+  if (!n) {
+    $('pn-summary').replaceChildren();
+    $('pn-toc').replaceChildren();
+    body.replaceChildren(h('section', { class: 'card' }, h('p', { class: 'muted pad', text: pn.loading ? 'Carregando as notas do site da Riot…' : pn.error ? `Não consegui carregar: ${pn.error}` : 'Carregando…' })));
+    return;
+  }
+  const mine = new Set(pn.mine);
+  const q = $('pn-search').value.trim().toLowerCase();
+  const match = (e) => !q || [e.name, e.context, ...e.groups.flatMap((g) => [g.title, ...g.changes.map((c) => `${c.label} ${c.text || ''}`)])].join(' ').toLowerCase().includes(q);
+  const showSec = (s) => pn.filter === 'all' || pn.filter === 'mine' || (pn.filter === 'other' ? !['champions', 'items'].includes(s.kind) : s.kind === pn.filter);
+
+  // resumo: buffs/nerfs e seus campeões afetados
+  const champs = n.sections.filter((s) => s.kind === 'champions').flatMap((s) => s.entities);
+  const items = n.sections.filter((s) => s.kind === 'items').flatMap((s) => s.entities);
+  const count = (list, v) => list.filter((e) => e.verdict === v).length;
+  const myHits = champs.filter((e) => e.id && mine.has(e.id));
+  const stat = (num, label, cls = '') => h('div', { class: `pn-stat ${cls}` }, h('b', { text: String(num) }), h('span', { text: label }));
+  $('pn-summary').replaceChildren(h('section', { class: 'card pn-sum' },
+    h('div', { class: 'pn-stats' },
+      stat(champs.length, 'campeões'), stat(count(champs, 'buff'), 'buffs', 'up'), stat(count(champs, 'nerf'), 'nerfs', 'down'), stat(count(champs, 'ajuste'), 'ajustes', 'mid'), stat(items.length, 'itens')),
+    h('div', { class: 'pn-myhits' },
+      h('span', { class: 'muted small', text: myHits.length ? 'Seus campeões neste patch' : 'Nenhum dos seus campeões mudou neste patch' }),
+      ...myHits.map((e) => {
+        const b = h('button', { class: `pn-hit ${e.verdict}`, type: 'button', title: `${e.name}: ${PN_VERD[e.verdict][0]}` }, pnImg(e.icon, 'pn-hico', e.name), h('span', { text: e.name }));
+        b.addEventListener('click', () => { const el = $(`pn-e-${e.id}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+        return b;
+      })),
+    n.intro && n.intro[0] ? h('p', { class: 'pn-intro', text: n.intro[0] }) : null));
+
+  const secs = [];
+  const toc = [];
+  for (const s of n.sections) {
+    if (!showSec(s)) continue;
+    let ents = s.entities.filter(match);
+    if (pn.filter === 'mine') ents = ents.filter((e) => e.id && mine.has(e.id));
+    const bullets = pn.filter === 'mine' ? [] : s.bullets.filter((t) => !q || t.toLowerCase().includes(q));
+    const intro = pn.filter === 'mine' || q ? [] : s.intro;
+    const images = pn.filter === 'mine' || q ? [] : s.images;
+    if (!ents.length && !bullets.length && !intro.length && !images.length) continue;
+    // seus campeões primeiro
+    ents.sort((a, b) => (mine.has(b.id) ? 1 : 0) - (mine.has(a.id) ? 1 : 0));
+    const id = `pn-s-${s.id}`;
+    toc.push([id, s.title, ents.length || bullets.length || null, s.kind]);
+    secs.push(h('section', { class: 'pn-sec', id },
+      h('div', { class: 'pn-sh' }, svgIcon(PN_SEC_ICON[s.kind] || 'list'), h('h2', { text: s.title }), ents.length ? h('span', { class: 'chip', text: String(ents.length) }) : null),
+      ...intro.slice(0, 3).map((t) => h('p', { class: 'pn-p', text: t })),
+      images.length ? h('div', { class: 'pn-gallery' }, ...images.slice(0, 12).map((src) => pnImg(src, 'pn-shot'))) : null,
+      ents.length ? h('div', { class: 'pn-grid' }, ...ents.map((e) => pnEntity(e, e.id && mine.has(e.id)))) : null,
+      bullets.length ? h('ul', { class: 'pn-bullets' }, ...bullets.map((t) => h('li', {}, svgIcon('check'), h('span', { text: t })))) : null));
+  }
+  $('pn-toc').replaceChildren(...toc.map(([id, title, cnt, kind]) => {
+    const b = h('button', { type: 'button', class: 'pn-tl' }, svgIcon(PN_SEC_ICON[kind] || 'list'), h('span', { text: title }), cnt ? h('em', { text: String(cnt) }) : null);
+    b.addEventListener('click', () => { const el = $(id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    return b;
+  }));
+  body.replaceChildren(...(secs.length ? secs : [h('section', { class: 'card' }, h('p', { class: 'muted pad', text: pn.filter === 'mine' ? 'Nenhum dos seus campeões mudou neste patch.' : 'Nada encontrado.' }))]));
+}
+$('pn-search').addEventListener('input', () => drawPatches());
+$('pn-open').addEventListener('click', () => { if (pn.version) window.overlay.openPatch(pn.version); });

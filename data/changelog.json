@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.26.0",
+    "title": "Patch notes dentro do app",
+    "items": [
+      "Nova aba lateral \"Patch notes\": as notas oficiais da Riot (em português) organizadas por seção, com ícones de campeões, itens e habilidades.",
+      "Cada mudança aparece como antes → depois, em verde quando fortalece e em vermelho quando enfraquece, com o selo Buff, Nerf ou Ajuste em cada campeão e item.",
+      "Resumo no topo: quantos buffs e nerfs, e atalhos para os seus campeões que mudaram (destacados com \"Você joga\").",
+      "Filtros (Seus campeões, Campeões, Itens, Modos), busca por campeão/item/habilidade e as últimas 6 atualizações."
+    ]
+  },
+  {
     "version": "0.25.1",
     "title": "Counters mais completos e corrigidos",
     "items": [

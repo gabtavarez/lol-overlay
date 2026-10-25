@@ -22,6 +22,7 @@ const { championFit, mainRoleOf } = require('./fit');
 const { applyBlind } = require('./blind');
 const { diffChampion, verdict } = require('./patchDiff');
 const { createDiscordRpc, activityFor } = require('./discord');
+const { createPatchNotes } = require('./patchNotes');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
 const { situationalItems } = require('./situational');
@@ -498,6 +499,39 @@ async function guideFor(championId) {
   return { ...variants[0].guide, variants, runePages, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
+/* ---------- notas de atualização (site oficial) ---------- */
+let patchNotes = null;
+let itemByName = null;
+/** Nome do campeão/item nas notas (pt-BR) -> id e ícone atuais do Data Dragon. */
+function resolveEntity(name, kind) {
+  if (!dd || !name) return null;
+  if (kind === 'champion') {
+    const c = dd.championByRaw(null, name);
+    return c ? { kind: 'champion', id: c.id, icon: `https://ddragon.leagueoflegends.com/cdn/${dd.version}/img/champion/${c.id}.png` } : null;
+  }
+  if (!itemByName) {
+    itemByName = new Map();
+    for (const [id, it] of Object.entries(dd.items)) {
+      const key = String(it.name || '').toLowerCase();
+      if (key && (!itemByName.has(key) || (it.maps && it.maps['11']))) itemByName.set(key, id);
+    }
+  }
+  const id = itemByName.get(String(name).toLowerCase());
+  return id ? { kind: 'item', id: Number(id), icon: `https://ddragon.leagueoflegends.com/cdn/${dd.version}/img/item/${id}.png` } : null;
+}
+
+/** Seus campeões (maestria + mais jogados no OP.GG) para destacar nas notas. */
+function myChampionIds() {
+  const ids = new Set(((lcuState.home || {}).top || []).map((c) => c.id));
+  const mRiot = settings.get().myRiotId;
+  const recent = mRiot && remote.getMatches(mRiot, currentRegion());
+  for (const g of (recent && recent.list) || []) {
+    const c = g.me && dd && dd.championByRaw(null, g.me.champion);
+    if (c) ids.add(c.id);
+  }
+  return [...ids];
+}
+
 const patchCache = new Map(); // `${versão}:${id}` -> mudanças
 async function patchForMine() {
   if (!dd || !dd.prevVersion) return { patch: dd ? dd.version : null, champs: [], error: 'sem o patch anterior para comparar' };
@@ -795,6 +829,19 @@ function registerIpc() {
     return guideFor(championId);
   });
 
+  // Notas de atualização oficiais (lista e uma versão).
+  ipcMain.handle('patches:list', async (_e, force) => {
+    try { return { versions: await patchNotes.list(Boolean(force)) }; } catch (err) { return { versions: [], error: err.message }; }
+  });
+  ipcMain.handle('patches:open', async (_e, version) => {
+    if (!/^\d{2}\.\d{1,2}$/.test(String(version))) return { ok: false };
+    await shell.openExternal(require('./patchNotes').noteUrl(String(version)));
+    return { ok: true };
+  });
+  ipcMain.handle('patches:note', async (_e, version) => {
+    try { return { note: await patchNotes.note(String(version)), mine: myChampionIds() }; } catch (err) { return { error: err.message }; }
+  });
+
   // Novidades da versão: aparece uma vez depois de cada atualização.
   ipcMain.handle('whatsnew:get', () => {
     const version = app.getVersion();
@@ -1000,6 +1047,7 @@ app.whenReady().then(() => {
   elo = createEloTracker({ dir: userData });
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   rpc = createDiscordRpc({ log: (m) => logger.log(m) });
+  patchNotes = createPatchNotes({ cacheDir: path.join(userData, 'patchnotes'), resolve: (n, k) => resolveEntity(n, k), log: (m) => logger.log(m) });
   configurePresence();
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
   remote = createRemoteData({

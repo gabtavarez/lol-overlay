@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; font-src 'self'; img-src 'self' https://ddragon.leagueoflegends.com https://raw.communitydragon.org data:; style-src 'self'; script-src 'self'; frame-src 'self' file:">
+        content="default-src 'none'; font-src 'self'; img-src 'self' https://ddragon.leagueoflegends.com https://raw.communitydragon.org https://cmsassets.rgpub.io data:; style-src 'self'; script-src 'self'; frame-src 'self' file:">
   <title>LoL Overlay</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -26,6 +26,7 @@
     <button id="nav-game" class="nav" type="button"><i data-ico="sword"></i><span>Partida</span><em class="live" hidden>AO VIVO</em></button>
     <button id="nav-tier" class="nav" type="button"><i data-ico="list"></i><span>Tier list</span></button>
     <button id="nav-history" class="nav" type="button"><i data-ico="clock"></i><span>Histórico</span></button>
+    <button id="nav-patches" class="nav" type="button"><i data-ico="doc"></i><span>Patch notes</span></button>
     <span class="grow"></span>
     <button id="gear" class="nav" type="button"><i data-ico="gear"></i><span>Configurações</span></button>
     <div id="side-me" class="side-me">
@@ -227,6 +228,27 @@
         <button id="tl-refresh" class="btn ghost"><i data-ico="refresh"></i>Atualizar</button>
       </div>
       <div id="tl-body"></div>
+      </div>
+    </main>
+
+    <!-- Notas de atualização -->
+    <main id="patches" class="view" hidden>
+      <div class="page-head">
+        <div>
+          <div class="eyebrow">Notas oficiais da Riot</div>
+          <h1 id="pn-title">Patch notes</h1>
+        </div>
+        <div class="chips"><span id="pn-date" class="chip"></span><button id="pn-open" class="btn ghost" type="button"><i data-ico="ext"></i>Abrir no site</button></div>
+      </div>
+      <div class="pn-toolbar">
+        <div id="pn-versions" class="seg"></div>
+        <div id="pn-filter" class="seg"></div>
+        <input id="pn-search" type="text" placeholder="Buscar campeão, item ou habilidade" maxlength="40">
+      </div>
+      <div id="pn-summary"></div>
+      <div class="pn-layout">
+        <nav id="pn-toc" class="pn-toc"></nav>
+        <div id="pn-body" class="pn-body"></div>
       </div>
     </main>
 

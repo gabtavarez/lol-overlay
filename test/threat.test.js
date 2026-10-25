@@ -183,3 +183,14 @@ test('bota evoluída (Grevas Bélicas, sem a tag Boots) conta como bota: não su
     gameTime: 1200, me: { champion: 'Jinx', championId: 'Jinx', tags: ['Marksman'], level: 12, gold: 2000, items: [{ id: 1055 }, { id: 3172 }], scores: { kills: 1, deaths: 1, assists: 0 } }, enemies: [] } });
   assert.ok(!adv.items.some((i) => i.id === 3006), adv.items.map((i) => i.name).join());
 });
+
+test('início da partida: sugere os itens iniciais do meta (com quantidade)', () => {
+  const I = { 1056: { name: 'Anel de Doran', tags: [], gold: { total: 400 } }, 2003: { name: 'Poção de Vida', tags: [], gold: { total: 50 } }, 4645: { name: 'Chama Sombria', tags: [], gold: { total: 3200 } } };
+  const ddI = { item: (id) => I[id] || null };
+  const fl = { healers: [], apOverrides: [], adOverrides: [], hardCc: [], burst: [], autoAttackers: [] };
+  const adv = buyAdvice({ dd: ddI, flags: fl, build: { damageType: 'AP', core: [4645], boots: [], starter: [1056, 2003, 2003] }, state: {
+    gameTime: 5, me: { champion: 'Ahri', championId: 'Ahri', tags: ['Mage'], level: 1, gold: 500, items: [], scores: { kills: 0, deaths: 0, assists: 0 } }, enemies: [] } });
+  assert.equal(adv.items[0].id, 1056);
+  assert.equal(adv.items[1].id, 2003);
+  assert.match(adv.items[1].reason, /compre 2/);
+});

@@ -139,5 +139,33 @@
       3153,
       4633
     ]
+  },
+  "starters": {
+    "_note": "Itens iniciais de reserva quando o OP.GG não tem a build (2003 = Poção de Vida).",
+    "ap": [
+      1056,
+      2003,
+      2003
+    ],
+    "adc": [
+      1055,
+      2003
+    ],
+    "ad": [
+      1055,
+      2003
+    ],
+    "tank": [
+      1054,
+      2003
+    ],
+    "jungle": [
+      1102,
+      2003
+    ],
+    "utility": [
+      3865,
+      2003
+    ]
   }
 }

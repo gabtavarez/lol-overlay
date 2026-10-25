@@ -134,6 +134,16 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     if (!prev || score > prev.score) cands.set(id, { score, reason, tag });
   };
 
+  /* --- item inicial (começo da partida, inventário vazio) --- */
+  if (!owned.length) {
+    const role = state.myRole || '';
+    const fallback = reactive.starters[role === 'jungle' || role === 'utility' ? role : cls] || [];
+    const starter = (build && build.starter && build.starter.length ? build.starter : fallback).filter((id) => dd.item(id));
+    const counts = new Map();
+    for (const id of starter) counts.set(id, (counts.get(id) || 0) + 1);
+    [...counts].forEach(([id, n], i) => add(id, 97 - i * 2, `Item inicial${build && build.starter && build.starter.length ? ' do meta' : ''}${n > 1 ? ` · compre ${n}` : ''}`, 'starter'));
+  }
+
   /* --- caminho do meta --- */
   // Bota básica (1001) não conta: ela precisa virar a bota final, e o ouro que falta já desconta a básica.
   const BASIC_BOOTS = 1001;

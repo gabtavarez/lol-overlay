@@ -26,6 +26,16 @@ const itemIcon = (version, id) => `${DD}/cdn/${version}/img/item/${id}.png`;
 const champIcon = (version, id) => `${DD}/cdn/${version}/img/champion/${id}.png`;
 const champSplash = (id) => `${DD}/cdn/img/champion/splash/${id}_0.jpg`;
 
+/** Selo "Bom contra: Dano mágico" + os inimigos que motivaram o item (estilo LoLTheory). */
+function goodTag(good, vs, version) {
+  if (!good) return null;
+  return h('div', { class: `good-tag g-${good.key}` },
+    h('span', { class: 'good-dot' }),
+    h('span', { class: 'good-lbl', text: 'Bom contra' }),
+    h('b', { text: good.label }),
+    ...((vs || []).slice(0, 4).map((id) => (version ? h('img', { class: 'good-vs', src: champIcon(version, id), alt: id, title: id }) : null))));
+}
+
 /** Lista "Compras" com até 3 itens, motivo e ouro faltando. */
 function renderBuyList(container, buys, version) {
   const items = (buys && buys.items) || [];
@@ -39,6 +49,7 @@ function renderBuyList(container, buys, version) {
         version ? h('img', { class: 'buy-icon', src: itemIcon(version, it.id), alt: it.name }) : h('div', { class: 'buy-icon' }),
         h('div', { class: 'buy-body' },
           h('div', { class: 'buy-name', text: it.name }),
+          goodTag(it.good, it.vs, version),
           h('div', { class: 'buy-reason', text: it.reason }),
           h('div', { class: 'buy-gold', text: it.canBuy
             ? `Já dá para comprar (${it.missing} g)`

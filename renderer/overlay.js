@@ -32,7 +32,7 @@ function sampleState(version) {
     advice: {
       buys: {
         items: [
-          { id: 3157, name: 'Ampulheta de Zhonya', reason: 'Zhonya na marca do ult de Zed: anula o combo', score: 88, missing: 1250, needGold: 10, canBuy: false, parts: ['Tomo Amplificador'] },
+          { id: 3157, name: 'Ampulheta de Zhonya', reason: 'Zhonya na marca do ult de Zed: anula o combo', good: { key: 'burst', label: 'Assassinos' }, vs: ['Zed'], score: 88, missing: 1250, needGold: 10, canBuy: false, parts: ['Tomo Amplificador'] },
           { id: 3020, name: 'Sapatos do Feiticeiro', reason: 'Rota sob controle: bota ofensiva do meta · hora de fechar a bota', score: 76, missing: 800, needGold: 0, canBuy: true, parts: ['Botas'] },
           { id: 4645, name: 'Chama Sombria', reason: 'Build do meta · 41% dos jogadores', score: 70, missing: 2900, needGold: 1660, canBuy: false },
         ],

@@ -23,12 +23,13 @@ function situationalItems({ champ, build, enemies = [], dd, flags = defaultFlags
   const cls = classFor(champ, build);
   const main = new Set([...(build.core || []), ...(build.boots || []), ...laterItems(build)]);
   const out = new Map();
-  const add = (ids, why, prio) => {
+  const add = (ids, why, prio, good = null, vs = []) => {
     const id = (ids || []).find((x) => dd.item(x) && !main.has(x));
     if (!id) return;
     const prev = out.get(id);
-    if (!prev || prio > prev.prio) out.set(id, { id, name: dd.item(id).name, why, prio });
+    if (!prev || prio > prev.prio) out.set(id, { id, name: dd.item(id).name, why, prio, good, vs: vs.map((x) => x.id).slice(0, 4) });
   };
+  const G = (key, label) => ({ key, label });
   const e = enemies.filter((x) => x && x.id).map((x) => ({ ...x, d: damageProfile({ championId: x.id, tags: x.tags || [] }, flags) }));
   const names = (list) => list.slice(0, 3).map((x) => x.name).join(', ');
   if (e.length) {
@@ -39,14 +40,14 @@ function situationalItems({ champ, build, enemies = [], dd, flags = defaultFlags
     const burstAp = e.filter((x) => (flags.burst || []).includes(x.id) && x.d.ap >= 0.6);
     const tanks = e.filter((x) => (x.tags || [])[0] === 'Tank');
     const cc = e.filter((x) => (flags.hardCc || []).includes(x.id));
-    if (healers.length) add(reactive.antiheal[cls], `Anti-cura contra ${names(healers)}`, 90);
-    if (burstAd.length) add(reactive.antiburstAd[cls], `Contra o combo de ${names(burstAd)}`, 85);
-    if (burstAp.length) add(reactive.antiburst[cls], `Contra o combo de ${names(burstAp)}`, 84);
-    if (ad.length >= 3) add(reactive.armor[cls], `${ad.length} inimigos de dano físico`, 70 + ad.length * 3);
-    if (ap.length >= 3) add(reactive.mr[cls], `${ap.length} inimigos de dano mágico`, 70 + ap.length * 3);
-    if (tanks.length >= 2) { add(reactive.antitank[cls], `Contra tanques: ${names(tanks)}`, 75); add(reactive.pen[cls], `Penetração contra ${names(tanks)}`, 65); }
-    if (cc.length >= 3) add(reactive.bootsMr, `Muito controle de grupo: ${names(cc)}`, 72);
-    if (ad.length >= 4) add(reactive.bootsArmor, 'Time quase todo de dano físico', 68);
+    if (healers.length) add(reactive.antiheal[cls], `Anti-cura contra ${names(healers)}`, 90, G('heal', 'Cura'), healers);
+    if (burstAd.length) add(reactive.antiburstAd[cls], `Contra o combo de ${names(burstAd)}`, 85, G('burst', 'Assassinos'), burstAd);
+    if (burstAp.length) add(reactive.antiburst[cls], `Contra o combo de ${names(burstAp)}`, 84, G('burst', 'Burst mágico'), burstAp);
+    if (ad.length >= 3) add(reactive.armor[cls], `${ad.length} inimigos de dano físico`, 70 + ad.length * 3, G('ad', 'Dano físico'), ad);
+    if (ap.length >= 3) add(reactive.mr[cls], `${ap.length} inimigos de dano mágico`, 70 + ap.length * 3, G('ap', 'Dano mágico'), ap);
+    if (tanks.length >= 2) { add(reactive.antitank[cls], `Contra tanques: ${names(tanks)}`, 75, G('tank', 'Tanques'), tanks); add(reactive.pen[cls], `Penetração contra ${names(tanks)}`, 65, G('tank', 'Armadura e RM'), tanks); }
+    if (cc.length >= 3) add(reactive.bootsMr, `Muito controle de grupo: ${names(cc)}`, 72, G('ap', 'Controle de grupo'), cc);
+    if (ad.length >= 4) add(reactive.bootsArmor, 'Time quase todo de dano físico', 68, G('ad', 'Ataques básicos'), ad);
   }
   // alternativas populares do OP.GG para o 4º-6º item
   for (const slot of build.later || []) {
@@ -56,9 +57,9 @@ function situationalItems({ champ, build, enemies = [], dd, flags = defaultFlags
   }
   // sem inimigos ainda: as respostas mais comuns da classe, para ter à mão
   if (!e.length) {
-    add(reactive.antiheal[cls], 'Se o inimigo tiver cura', 30);
-    add(reactive.armor[cls], 'Se o dano físico inimigo apertar', 29);
-    add(reactive.mr[cls], 'Se o dano mágico inimigo apertar', 28);
+    add(reactive.antiheal[cls], 'Se o inimigo tiver cura', 30, G('heal', 'Cura'));
+    add(reactive.armor[cls], 'Se o dano físico inimigo apertar', 29, G('ad', 'Dano físico'));
+    add(reactive.mr[cls], 'Se o dano mágico inimigo apertar', 28, G('ap', 'Dano mágico'));
   }
   return [...out.values()].sort((a, b) => b.prio - a.prio).slice(0, limit).map(({ prio, ...rest }) => rest);
 }

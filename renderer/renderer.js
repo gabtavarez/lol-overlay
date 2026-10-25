@@ -249,8 +249,11 @@ function drawBuild(g) {
     icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name), it.count > 1 ? h('span', { class: 'cnt', text: `x${it.count}` }) : null)));
   const full = h('div', { class: 'items full' }, ...g.fullBuild.map((it, i) => h('div', { class: 'it' },
     h('span', { class: 'num', text: String(i + 1) }), icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name))));
-  const sit = (g.situational || []).length ? h('div', {}, head('Situacionais'), h('div', { class: 'items' }, ...g.situational.map((it) => {
-    const el = h('div', { class: 'it' }, icon(ddVerImg(`item/${it.id}.png`), 'it-icon', '', ''));
+  // Situacionais com o selo "Bom contra" e os inimigos que motivaram (estilo LoLTheory)
+  const sit = (g.situational || []).length ? h('div', {}, head('Situacionais'), h('div', { class: 'sit-list' }, ...g.situational.map((it) => {
+    const el = h('div', { class: 'sit' }, icon(ddVerImg(`item/${it.id}.png`), 'it-icon', '', ''),
+      h('div', { class: 'sit-body' }, h('div', { class: 'sit-name', text: it.name }),
+        goodTag(it.good || { key: 'meta', label: 'Alternativa do meta' }, it.vs, version)));
     tipOn(el, it.name, it.why);
     return el;
   }))) : null;

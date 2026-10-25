@@ -80,3 +80,12 @@ button { font: inherit; color: inherit; }
 .g-goal b { font-size: 14px; font-variant-numeric: tabular-nums; }
 .up { color: var(--good); } .down { color: var(--bad); }
 body.preview .box { box-shadow: none; } body.preview .grip { display: none; } body.preview .box header { cursor: default; }
+
+/* "Bom contra" (selo do item) */
+.good-tag { display: flex; align-items: center; gap: 5px; margin: 2px 0 1px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+.good-tag b { font-weight: 600; color: var(--gc, #b9a7ff); }
+.good-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gc, #b9a7ff); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc, #b9a7ff) 25%, transparent); }
+.good-vs { width: 16px; height: 16px; border-radius: 4px; margin-left: 1px; }
+.good-tag .good-vs:first-of-type { margin-left: 4px; }
+.g-ap { --gc: #a98bff; } .g-ad { --gc: #f0a35a; } .g-heal { --gc: #4fd18b; } .g-burst { --gc: #f2626b; }
+.g-tank { --gc: #6fa3ff; } .g-lane { --gc: #e8c45a; } .g-meta { --gc: #8b8d98; }

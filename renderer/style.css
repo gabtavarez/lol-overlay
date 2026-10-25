@@ -368,3 +368,17 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .cd-wr { font-weight: 600; font-variant-numeric: tabular-nums; }
 .cd-wr.good { color: var(--good); } .cd-wr.bad { color: var(--bad); }
 @media (max-width: 1100px) { .cd-grid { grid-template-columns: 1fr; } }
+
+/* "Bom contra" (selo do item) */
+.good-tag { display: flex; align-items: center; gap: 5px; margin: 2px 0 1px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+.good-tag b { font-weight: 600; color: var(--gc, #b9a7ff); }
+.good-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gc, #b9a7ff); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gc, #b9a7ff) 25%, transparent); }
+.good-vs { width: 16px; height: 16px; border-radius: 4px; margin-left: 1px; }
+.good-tag .good-vs:first-of-type { margin-left: 4px; }
+.g-ap { --gc: #a98bff; } .g-ad { --gc: #f0a35a; } .g-heal { --gc: #4fd18b; } .g-burst { --gc: #f2626b; }
+.g-tank { --gc: #6fa3ff; } .g-lane { --gc: #e8c45a; } .g-meta { --gc: #8b8d98; }
+.sit-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px; }
+.sit { display: flex; align-items: center; gap: 9px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card2); min-width: 0; }
+.sit-body { min-width: 0; }
+.sit-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sit .good-tag { margin: 1px 0 0; }

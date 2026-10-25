@@ -118,6 +118,29 @@ function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, lane
  * Próximas compras: 3 itens com motivo. Mistura o caminho do meta (build do OP.GG
  * para o seu campeão e rota) com itens reativos contra o time inimigo.
  */
+const isMr = (id) => [].concat(reactive.bootsMr || []).includes(id);
+const isSteel = (id) => [].concat(reactive.bootsArmor || []).includes(id);
+
+/** Rótulo "Bom contra" (estilo LoLTheory) a partir do motivo do item. */
+const GOOD = {
+  antiheal: { key: 'heal', label: 'Cura' },
+  antiburst: { key: 'burst', label: 'Burst mágico' },
+  antiburstAd: { key: 'burst', label: 'Assassinos' },
+  mr: { key: 'ap', label: 'Dano mágico' },
+  armor: { key: 'ad', label: 'Dano físico' },
+  antitank: { key: 'tank', label: 'Tanques' },
+  pen: { key: 'tank', label: 'Armadura e RM' },
+};
+function goodAgainst(tag, id) {
+  if (tag === 'defensive') return { key: 'lane', label: 'Pressão na rota' };
+  if (tag === 'boots') {
+    if (isMr(id)) return { key: 'ap', label: 'Dano mágico e CC' };
+    if (isSteel(id)) return { key: 'ad', label: 'Ataques básicos' };
+    return null;
+  }
+  return GOOD[tag] || null;
+}
+
 function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   if (!dd || !state || !state.me) return { items: [], notes: ['Aguardando dados do jogo…'] };
   const me = state.me;
@@ -128,11 +151,12 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const early = state.gameTime < 600;
   const cands = new Map(); // id -> { score, reason, tag }
 
-  const add = (id, score, reason, tag) => {
+  const add = (id, score, reason, tag, vs = []) => {
     if (!id || ownedSet.has(id) || !dd.item(id)) return;
     const prev = cands.get(id);
-    if (!prev || score > prev.score) cands.set(id, { score, reason, tag });
+    if (!prev || score > prev.score) cands.set(id, { score, reason, tag, vs });
   };
+  const ids = (list) => list.map((x) => x.e.championId).filter(Boolean).slice(0, 4);
 
   /* --- item inicial (começo da partida, inventário vazio) --- */
   if (!owned.length) {
@@ -168,10 +192,10 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const apShare = t.reduce((s, x) => s + x.w * x.d.ap, 0) / wSum;
   const biggest = t[0];
   const factor = early ? 0.75 : 1;
-  const react = (need, score, reason) => {
+  const react = (need, score, reason, vs = []) => {
     const id = firstAvailable(reactive[need][cls], dd, ownedSet);
     const alreadyHas = (reactive[need][cls] || []).some((x) => ownedSet.has(x));
-    if (id && !alreadyHas) add(id, Math.round(score * factor), reason, need);
+    if (id && !alreadyHas) add(id, Math.round(score * factor), reason, need, vs);
   };
 
   // Estado da rota (doc de heurísticas, seção B): ganhando acelera dano, perdendo compra defesa antes do 1º item.
@@ -191,7 +215,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const kind = opp ? (opp.d.ad >= 0.6 ? 'ad' : opp.d.ap >= 0.6 ? 'ap' : 'mixed') : adShare >= apShare ? 'ad' : 'ap';
     const id = firstAvailable(reactive.defComponent[kind], dd, ownedSet);
     const diffTxt = laneDiff < 0 ? ` (${(laneDiff / 1000).toFixed(1)}k)` : '';
-    if (id) add(id, 74, `Perdendo a rota${diffTxt}${opp ? ` para ${opp.e.champion}` : ''}: componente defensivo antes de fechar o 1º item`, 'defensive');
+    if (id) add(id, 74, `Perdendo a rota${diffTxt}${opp ? ` para ${opp.e.champion}` : ''}: componente defensivo antes de fechar o 1º item`, 'defensive', opp ? ids([opp]) : []);
   }
 
   // Anti-cura: curandeiros nativos ou 2+ inimigos com roubo de vida. Começa pelo componente de 800 g.
@@ -204,7 +228,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const all = [...healers, ...(lifesteal.length >= 2 ? lifesteal : [])];
     const hw = all.reduce((s, x) => s + x.w, 0);
     const why = all.map((x) => (healers.includes(x) ? x.e.champion : `${x.e.champion} (${healItem(x.e).meta.name})`)).slice(0, 3).join(', ');
-    react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), `Anti-cura contra ${why} · o componente de 800 g já resolve`);
+    react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), `Anti-cura contra ${why} · o componente de 800 g já resolve`, ids(all));
   }
 
   // Burst AP explosivo vivo (Veigar, Syndra, Fizz, LeBlanc…): Zhonya / Malmortius / Bordo da Noite.
@@ -221,7 +245,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const names = who(bursts, (x) => x.w);
     const zedTip = main.e.championId === 'Zed' && cls === 'ap' ? `Zhonya na marca do ult de Zed: anula o combo` : null;
     react(adBurst ? 'antiburstAd' : 'antiburst', score + (adBurst ? 4 : 0),
-      zedTip || (adBurst ? `Cancela o combo de ${names}` : cls === 'ap' ? `Escudo de feitiço contra o combo de ${names}` : `Cancela o combo de ${names}`));
+      zedTip || (adBurst ? `Cancela o combo de ${names}` : cls === 'ap' ? `Escudo de feitiço contra o combo de ${names}` : `Cancela o combo de ${names}`), ids(bursts));
   }
 
   // Um inimigo fed (ou o oponente de rota ganhando) puxa a defesa contra o dano dele, mesmo se o time for misto.
@@ -236,12 +260,14 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   if (apShare >= 0.55 || monoAP || (carryAp && carryAp.fed)) {
     const foco = who(t, (x) => x.w * x.d.ap);
     react('mr', (52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp) + (monoAP ? 14 : 0)) * defFactor,
-      carryAp && carryAp.fed ? `Resistência mágica: ${foco} está fed` : monoAP ? `Time inimigo com ${apCount} campeões AP: RM é prioridade` : `Resistência mágica: dano inimigo mais AP · foco: ${foco}`);
+      carryAp && carryAp.fed ? `Resistência mágica: ${foco} está fed` : monoAP ? `Time inimigo com ${apCount} campeões AP: RM é prioridade` : `Resistência mágica: dano inimigo mais AP · foco: ${foco}`,
+      ids([...t].filter((x) => x.d.ap >= 0.5).sort((a, b) => b.w * b.d.ap - a.w * a.d.ap)));
   }
   if (adShare >= 0.55 || monoAD || (carryAd && carryAd.fed)) {
     const foco = who(t, (x) => x.w * x.d.ad);
     react('armor', (52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd) + (monoAD ? 14 : 0)) * defFactor,
-      carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : monoAD ? `Time inimigo quase todo AD (${adCount}): armadura é prioridade` : `Armadura: dano inimigo mais AD · foco: ${foco}`);
+      carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : monoAD ? `Time inimigo quase todo AD (${adCount}): armadura é prioridade` : `Armadura: dano inimigo mais AD · foco: ${foco}`,
+      ids([...t].filter((x) => x.d.ad >= 0.5).sort((a, b) => b.w * b.d.ad - a.w * a.d.ad)));
   }
   if (!hasBoots && owned.length >= 1) {
     const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls });
@@ -249,15 +275,18 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
       // Timing: botas entram depois do 1º item (ou ~8 min) e sobem se você já tem a bota básica.
       const due = legendaries >= 1 || state.gameTime >= 480;
       const bonus = (due ? 18 : 0) + (hasBasicBoots ? 10 : 0);
-      add(b.id, b.score + bonus, `${b.reason}${hasBasicBoots ? ' · você já tem a bota básica' : due ? ' · hora de fechar a bota' : ''}`, 'boots');
+      const bootVs = isMr(b.id) ? ids(t.filter((x) => x.d.ap >= 0.5 || (flags.hardCc || []).includes(x.e.championId)))
+        : isSteel(b.id) ? ids(t.filter((x) => x.d.ad >= 0.5)) : [];
+      add(b.id, b.score + bonus, `${b.reason}${hasBasicBoots ? ' · você já tem a bota básica' : due ? ' · hora de fechar a bota' : ''}`, 'boots', bootVs);
     }
   }
 
   const tanks = enemies.filter((e) => e.tags[0] === 'Tank' || e.items.filter((i) => i.tags.includes('Armor') || i.tags.includes('SpellBlock')).length >= 2);
   if (tanks.length >= 2 && me.items.length >= 2) {
     const names = tanks.slice(0, 2).map((e) => e.champion).join(', ');
-    react('antitank', 58 + tanks.length * 5, `Dano por % de vida contra ${names}`);
-    if (me.items.length >= 3) react('pen', 54 + tanks.length * 5, `Penetração contra ${names}`);
+    const tv = tanks.map((e) => e.championId).filter(Boolean).slice(0, 4);
+    react('antitank', 58 + tanks.length * 5, `Dano por % de vida contra ${names}`, tv);
+    if (me.items.length >= 3) react('pen', 54 + tanks.length * 5, `Penetração contra ${names}`, tv);
   }
 
   // botas: se já tem botas, descarta sugestão de botas de outra categoria repetida
@@ -280,6 +309,8 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
         score: Math.min(99, Math.round(c.score + afford)),
         reason: c.reason,
         tag: c.tag,
+        good: goodAgainst(c.tag, id),
+        vs: c.vs || [],
       };
     })
     .sort((a, b) => b.score - a.score)
@@ -307,4 +338,5 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   return { items, notes, cls, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
 }
 
-module.exports = { buyAdvice, missingGold, classOf, isBoots };
+module.exports = {
+  goodAgainst, buyAdvice, missingGold, classOf, isBoots };

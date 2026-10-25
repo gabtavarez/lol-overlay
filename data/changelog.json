@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.26.2",
+    "title": "Matchup contra atualizado",
+    "items": [
+      "Corrigido: o seletor \"Matchup contra\" só listava os inimigos que já tinham escolhido quando o guia abriu (ex.: só a Vayne). Agora ele se atualiza a cada pick inimigo e o modo automático encontra o oponente de rota assim que ele aparece."
+    ]
+  },
+  {
     "version": "0.26.1",
     "title": "Sugestões de ban de volta",
     "items": [

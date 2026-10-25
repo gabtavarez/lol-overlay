@@ -126,8 +126,19 @@ function renderGuide(state, picks) {
       if (shownId === pickId) { guide = g; drawGuide(); }
     });
   }
+  // Inimigos novos (ou rota prevista mudou): recarrega o guia para o "Matchup contra" listar todos
+  // e o modo automático achar o oponente de rota.
+  const enemyKey = (state.enemies || []).filter((e) => e.champion).map((e) => `${e.champion.id}:${e.position || e.predicted || ''}`).join(',');
+  if (enemyKey !== guideEnemyKey) {
+    guideEnemyKey = enemyKey;
+    if (guide) {
+      const id = shownId;
+      window.overlay.getGuide(id).then((g) => { if (shownId === id && g) { guide = g; drawGuide(); } });
+    }
+  }
   drawGuide();
 }
+let guideEnemyKey = '';
 
 function setImportEnabled(on) {
   for (const id of ['imp-all', 'imp-items']) $(id).disabled = !on;

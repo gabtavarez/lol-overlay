@@ -420,7 +420,9 @@ function renderSelect(state) {
   els.opggEnemies.hidden = !opgg.enemies;
 
   const bans = (state.advice && state.advice.bans) || [];
-  $('bans').hidden = state.action !== 'ban' || !bans.length;
+  // visível durante a fase de bans até você banir (destaque quando é a sua vez)
+  $('bans').hidden = !bans.length || (state.myBanDone && state.action !== 'ban');
+  $('bans').classList.toggle('my-turn', state.action === 'ban');
   $('ban-row').replaceChildren(...bans.map((b, i) => {
     const row = listRow({ rank: String(i + 1), id: b.id, name: b.name, why: b.reasons.join(' · '), score: String(b.score) });
     row.title = 'Clique para marcar o ban no cliente';

@@ -60,3 +60,21 @@ test('discord: handshake, READY e SET_ACTIVITY pelo pipe', async () => {
   assert.equal(act.args.activity.details, 'x');
   rpc.stop();
 });
+
+test('bans: sem lista do cliente usa todos menos os banidos; tier list e ban rate pesam', () => {
+  const { recommendBans } = require('../src/bans');
+  const champs = { Ahri: { id: 'Ahri', key: '103', name: 'Ahri' }, Zed: { id: 'Zed', key: '238', name: 'Zed' }, Yasuo: { id: 'Yasuo', key: '157', name: 'Yasuo' }, Lux: { id: 'Lux', key: '99', name: 'Lux' } };
+  const dd = { champions: champs };
+  const out = recommendBans({
+    champSelect: { myPosition: 'middle', bannable: [], bannedKeys: [157], bans: { mine: [], theirs: [] }, allies: [], me: null },
+    picks: { candidates: [{ id: 'Ahri', name: 'Ahri', score: 90 }] },
+    getBuild: () => ({ weakCounters: [{ name: 'Zed', value: 0.8 }] }),
+    dd, meta: { tiers: {} }, settings: { picker: { pool: {} } },
+    tierRows: [{ champion: 'Lux', tier: 1, rank: 2, banRate: 0.05 }, { champion: 'Yasuo', tier: 1, rank: 1, banRate: 0.3 }],
+  });
+  const ids = out.map((b) => b.id);
+  assert.ok(ids.includes('Zed'));
+  assert.ok(ids.includes('Lux'));
+  assert.ok(!ids.includes('Yasuo')); // já banido
+  assert.ok(!ids.includes('Ahri')); // seu pick
+});

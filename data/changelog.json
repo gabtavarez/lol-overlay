@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.26.1",
+    "title": "Sugestões de ban de volta",
+    "items": [
+      "Champ select: as sugestões de ban aparecem durante toda a fase de bans (até você banir), com destaque \"sua vez\" quando chega o seu turno.",
+      "Corrigido: a lista ficava vazia quando o cliente não informava os campeões baníveis ou o meta da rota ainda não tinha carregado; agora usa a tier list do OP.GG e a taxa de ban como reserva."
+    ]
+  },
+  {
     "version": "0.26.0",
     "title": "Patch notes dentro do app",
     "items": [

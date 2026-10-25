@@ -1093,6 +1093,7 @@ app.whenReady().then(() => {
     getMeta: () => remote.merge(meta),
     getBuild: (champ, role) => remote.getBuild(champ, role),
     prefetch: (state, done) => prefetchChampSelect(state, done),
+    getTierRows: (role) => { const tl = remote.getTierList(); return (tl && role && tl.data[role]) || []; },
     onState: (state) => {
       lcuState = decorateLcu(state);
       publish();

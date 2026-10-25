@@ -5,11 +5,15 @@ const { norm } = require('./util');
  * os picks que você tem mais chance de jogar (dados do OP.GG em cache).
  * Retorna até 10 { id, key, name, score, reasons }.
  */
-function recommendBans({ champSelect, picks, getBuild, dd, meta, settings }) {
+function recommendBans({ champSelect, picks, getBuild, dd, meta, settings, tierRows = [] }) {
   if (!dd || champSelect.spectating) return [];
   const role = champSelect.myPosition || null;
-  const bannable = new Set((champSelect.bannable || []).map(Number));
-  if (!bannable.size) return [];
+  let bannable = new Set((champSelect.bannable || []).map(Number));
+  // o cliente às vezes devolve a lista vazia fora da sua vez: usa todos menos os já banidos
+  if (!bannable.size) {
+    const banned = new Set([...(champSelect.bannedKeys || []), ...(champSelect.bans ? [...champSelect.bans.mine, ...champSelect.bans.theirs] : [])].map(Number));
+    bannable = new Set(Object.values(dd.champions).map((c) => Number(c.key)).filter((k) => !banned.has(k)));
+  }
 
   const taken = new Set(
     [...champSelect.allies, champSelect.me].filter((p) => p && p.champion).map((p) => p.champion.id),
@@ -47,21 +51,28 @@ function recommendBans({ champSelect, picks, getBuild, dd, meta, settings }) {
 
   const tiers = (meta.tiers && role && meta.tiers[role]) || {};
   const TIER = { 'S+': 1, S: 0.9, A: 0.7, B: 0.45, C: 0.2, D: 0 };
+  // tier list completa do OP.GG (com ban rate) quando o meta da rota ainda não carregou
+  const rowOf = new Map((tierRows || []).map((r) => [norm(r.champion), r]));
+  const LETTER = ['', 'S', 'A', 'B', 'C', 'D'];
 
   const out = [];
   for (const champ of Object.values(dd.champions)) {
     const key = Number(champ.key);
     if (!bannable.has(key) || taken.has(champ.id) || mine.has(norm(champ.id))) continue;
     const t = threat.get(norm(champ.id));
-    const tier = tiers[norm(champ.id)];
+    const row = rowOf.get(norm(champ.id)) || rowOf.get(norm(champ.name));
+    let tier = tiers[norm(champ.id)];
+    if (typeof tier !== 'string' && row) tier = row.tier === 1 && row.rank <= 3 ? 'S+' : LETTER[row.tier] || 'C';
     const tierValue = typeof tier === 'string' ? TIER[tier] || 0 : 0;
-    if (!t && tierValue < 0.7) continue;
+    const banRate = row ? row.banRate || 0 : 0;
+    if (!t && tierValue < 0.7 && banRate < 0.15) continue;
     const reasons = [];
     if (t) reasons.push(`Counter do seu ${[...new Set(t.against)].slice(0, 2).join(' e ')}`);
     if (tierValue >= 0.7) reasons.push(`Tier ${tier} na sua rota`);
+    if (banRate >= 0.15) reasons.push(`${Math.round(banRate * 100)}% de ban`);
     out.push({
       id: champ.id, key, name: champ.name, reasons,
-      score: Math.round(100 * Math.min(1, 0.6 * Math.min(1, t ? t.value : 0) + 0.4 * tierValue)),
+      score: Math.round(100 * Math.min(1, 0.55 * Math.min(1, t ? t.value : 0) + 0.35 * tierValue + 0.25 * Math.min(1, banRate / 0.4))),
     });
   }
   return out.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name)).slice(0, 10);

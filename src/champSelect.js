@@ -58,6 +58,15 @@ function currentAction(session) {
   return mine ? mine.type : null;
 }
 
+/** Fase de bans: se existe nesta fila e se você já baniu. */
+function banStatus(session) {
+  const flat = (session.actions || []).flat();
+  const hasBanPhase = flat.some((a) => a.type === 'ban');
+  const myBanDone = flat.some((a) => a.type === 'ban' && a.actorCellId === session.localPlayerCellId && a.completed);
+  const bannedKeys = flat.filter((a) => a.type === 'ban' && a.completed && a.championId).map((a) => a.championId);
+  return { hasBanPhase, myBanDone, bannedKeys };
+}
+
 /** Converte a sessão crua do champ select no estado consumido pelo recomendador e pela UI. */
 function buildChampSelectState(session, { names, dd, pickable = [], bannable = [] }) {
   const localCellId = session.localPlayerCellId;
@@ -82,6 +91,7 @@ function buildChampSelectState(session, { names, dd, pickable = [], bannable = [
     pickable: Array.isArray(pickable) ? pickable : [],
     bannable: Array.isArray(bannable) ? bannable : [],
     action: currentAction(session),
+    ...banStatus(session),
   };
 }
 

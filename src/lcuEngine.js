@@ -38,7 +38,7 @@ function homeSummary(profile, dd) {
   return { summoner: profile.summoner, top, roles, gamesAnalyzed: profile.gamesAnalyzed, version: dd ? dd.version : null };
 }
 
-function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, getBuild = () => null, prefetch = () => {}, intervalMs = 1500 }) {
+function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, getBuild = () => null, prefetch = () => {}, getTierRows = () => [], intervalMs = 1500 }) {
   let creds = null;
   let lastDiscovery = 0;
   let timer = null;
@@ -140,9 +140,11 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
       }),
       profileLoading: !loaded,
     };
-    if (state.action === 'ban') {
+    // Sugestões de ban durante toda a fase de bans (até você banir), não só na sua vez.
+    if (state.action === 'ban' || (state.hasBanPhase && !state.myBanDone)) {
       state.advice.bans = recommendBans({
         champSelect: state, picks: state.advice.picks, getBuild, dd, meta: getMeta(), settings: getSettings(),
+        tierRows: getTierRows(state.myPosition),
       });
     }
     prefetch(state, tick);

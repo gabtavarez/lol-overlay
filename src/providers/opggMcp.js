@@ -136,6 +136,31 @@ function parseAnalysis(text) {
   return build;
 }
 
+const RUNE_FIELDS = 'data.runes.{play,pick_rate,primary_page_id,primary_page_name,primary_rune_ids[],primary_rune_names[],secondary_page_id,secondary_page_name,secondary_rune_ids[],secondary_rune_names[],stat_mod_ids[],win}';
+
+/** Página de runas com jogos, pick % e win %. */
+function parseRunePage(text) {
+  const r = (parseCompact(text).data || {}).runes;
+  if (!r || !Array.isArray(r.primary_rune_ids) || !Array.isArray(r.secondary_rune_ids)) return null;
+  const play = r.play || 0;
+  return {
+    primaryStyleId: r.primary_page_id, primaryStyleName: r.primary_page_name,
+    subStyleId: r.secondary_page_id, subStyleName: r.secondary_page_name,
+    names: [...(r.primary_rune_names || []), ...(r.secondary_rune_names || [])],
+    perks: [...r.primary_rune_ids, ...r.secondary_rune_ids, ...(r.stat_mod_ids || [])],
+    pickRate: r.pick_rate || 0, games: play, winRate: play ? (r.win || 0) / play : 0,
+  };
+}
+
+function parseChampStats(text) {
+  const a = (((parseCompact(text).data || {}).summary) || {}).average_stats;
+  if (!a || !a.play) return null;
+  return {
+    tier: Number(a.tier) || 5, rank: Number(a.rank) || 999, rankPrev: Number(a.tier_data && a.tier_data.rank_prev) || null,
+    winRate: a.win_rate || 0, pickRate: a.pick_rate || 0, banRate: a.ban_rate || 0, games: a.play || 0, kda: a.kda || 0,
+  };
+}
+
 /** Lista de campeões da rota -> { [norm(nome)]: 'S+'|'S'|'A'|'B'|'C'|'D' } */
 function parseLaneMeta(text) {
   const d = parseCompact(text).data || {};
@@ -413,6 +438,19 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
           `data.game_detail.teams[].participants[].stats.${STAT_FIELDS.replace(',op_score_timeline', '')}`,
           'data.game_detail.teams[].key', `data.game_detail.teams[].game_stat.${TEAM_FIELDS}`],
       }, 20)),
+    /** Só a página de runas mais jogada num elo (o OP.GG expõe 1 por consulta). */
+    runes: async (champ, role, tier, priority = 1) =>
+      parseRunePage(await call('lol_get_champion_analysis', {
+        game_mode: 'ranked', champion: String(champ.id).toUpperCase(), position: POSITION[role] || 'none', lang: 'en_US',
+        desired_output_fields: [RUNE_FIELDS], ...(tier ? { tier } : {}),
+      }, priority)),
+    /** Estatísticas de um campeão numa rota e elo (para a tier list por elo). */
+    champStats: async (champ, role, tier, priority = 2) =>
+      parseChampStats(await call('lol_get_champion_analysis', {
+        game_mode: 'ranked', champion: String(champ.id).toUpperCase(), position: POSITION[role] || 'none', lang: 'en_US',
+        desired_output_fields: ['data.summary.average_stats.{play,win_rate,pick_rate,ban_rate,kda,tier,rank}', 'data.summary.average_stats.tier_data.{rank_prev}'],
+        ...(tier ? { tier } : {}),
+      }, priority)),
     tierList: async () =>
       parseTierList(await call('lol_list_lane_meta_champions', { lang: 'en_US', position: 'all', desired_output_fields: TL_FIELDS }, 4)),
     laneMeta: async (role) =>
@@ -422,4 +460,5 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   };
 }
 
-module.exports = { createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseLeaderboard, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };
+module.exports = {
+  parseRunePage, parseChampStats, createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseLeaderboard, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };

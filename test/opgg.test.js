@@ -300,3 +300,37 @@ test('elo: PDL absoluto, saldo e sequência', () => {
   assert.equal(w.best[0].champion, 'Ahri');
   assert.equal(w.weekGames, 6);
 });
+
+test('página de runas: jogos, pick % e win %', () => {
+  const { parseRunePage, parseChampStats } = require('../src/providers/opggMcp');
+  const txt = 'class LolGetChampionAnalysis: data\nclass Data: runes\nclass Runes: play,pick_rate,primary_page_id,primary_page_name,primary_rune_ids,secondary_page_id,secondary_page_name,secondary_rune_ids,stat_mod_ids,win\n\n'
+    + 'LolGetChampionAnalysis(Data(Runes(1000,0.4,8100,"Domination",[8112,8139,8140,8106],8200,"Sorcery",[8226,8210],[5005,5008,5001],520)))';
+  const p = parseRunePage(txt);
+  assert.equal(p.perks.length, 9);
+  assert.equal(p.games, 1000);
+  assert.equal(p.pickRate, 0.4);
+  assert.ok(Math.abs(p.winRate - 0.52) < 1e-9);
+  const st = parseChampStats('class X: data\nclass Data: summary\nclass Summary: average_stats\nclass AverageStats: play,win_rate,pick_rate,ban_rate,tier,rank\n\nX(Data(Summary(AverageStats(300,0.53,0.02,0.01,2,7))))');
+  assert.deepEqual([st.tier, st.rank, st.games, st.winRate], [2, 7, 300, 0.53]);
+});
+
+test('2 páginas de runas diferentes e tier list por elo', async () => {
+  const dir2 = await fs.mkdtemp(path.join(os.tmpdir(), 'rp-'));
+  const page = (k, pick) => ({ primaryStyleId: 8100, subStyleId: 8200, perks: [k, 1, 2, 3, 4, 5, 6, 7, 8], pickRate: pick, games: 10, winRate: 0.5 });
+  const seen = [];
+  const client = {
+    runes: async (_c, _r, tier) => { seen.push(tier); return tier === 'GOLD' ? page(8128, 0.2) : page(8112, 0.5); },
+    champStats: async (c) => (c.id === 'Zed' ? null : { tier: c.id === 'Ahri' ? 1 : 3, rank: 1, winRate: 0.5, pickRate: 0.1, banRate: 0, games: 100, kda: 3 }),
+  };
+  const r = createRemoteData({ cacheDir: dir2, isEnabled: () => true, client });
+  await r.ensureRunePages({ id: 'Ahri' }, 'middle');
+  const pages = r.getRunePages({ id: 'Ahri' }, 'middle');
+  assert.equal(pages.length, 2);
+  assert.equal(pages[0].perks[0], 8112);
+  assert.equal(pages[1].perks[0], 8128);
+  assert.equal(pages[1].tier, 'GOLD');
+  assert.equal(seen[0], null); // primeiro o elo padrão (Esmeralda+)
+  await r.ensureTierListElo('middle', 'GOLD', [{ id: 'Lux', champion: 'LUX' }, { id: 'Ahri', champion: 'AHRI' }, { id: 'Zed', champion: 'ZED' }]);
+  const tl = r.getTierListElo('middle', 'GOLD');
+  assert.deepEqual(tl.data.map((x) => x.champion), ['AHRI', 'LUX']);
+});

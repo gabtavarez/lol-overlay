@@ -343,3 +343,11 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 /* ícone de rota (CommunityDragon) é <img> também: não pode herdar o tamanho do ícone do campeão */
 .tl-ico img.tl-role { position: absolute; right: -5px; bottom: -5px; width: 17px; height: 17px; padding: 2px; border-radius: 5px; background: var(--card); border: 1px solid var(--line2); }
 .dp img.dp-ico { display: inline-block; width: 12px; height: 12px; border-radius: 0; background: none; outline: none; vertical-align: -2px; }
+
+/* páginas de runas */
+.rp-tabs { display: flex; gap: 6px; margin: 2px 0 10px; }
+.rp-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.rp-tab b { color: var(--text); font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.rp-tab:hover { border-color: var(--line2); }
+.rp-tab.on { border-color: var(--acc); background: var(--acc-soft); }
+.rp-one { margin: -2px 0 8px; }

@@ -3,6 +3,7 @@ const path = require('path');
 const { norm } = require('../util');
 const { createMcpClient } = require('./opggMcp');
 
+const RUNE_TIERS = ['EMERALD_PLUS', 'ALL', 'MASTER_PLUS', 'DIAMOND_PLUS', 'GOLD', 'PLATINUM_PLUS'];
 const TTL_MS = 12 * 3600 * 1000;
 const RETRY_MS = 5 * 60 * 1000;
 
@@ -21,7 +22,7 @@ function readJson(file) {
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp', 'runes', 'tierlistElo']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -134,6 +135,41 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       }
       return out;
     }, onDone, 12 * 3600 * 1000),
+    /**
+     * Até 2 páginas de runas com %: o OP.GG só devolve a mais jogada por consulta, então pergunta em
+     * outros elos e fica com as 2 primeiras diferentes (a do seu elo sempre primeiro). Cache de 12 h.
+     */
+    ensureRunePages: (champ, role, onDone) => (champ ? refresh('runes', buildKey(champ, role), async () => {
+      const r = role || (cache.builds[buildKey(champ, role)] && cache.builds[buildKey(champ, role)].data.fromRole) || guessRoles(champ)[0];
+      const mine = tierArg() || 'EMERALD_PLUS';
+      const tiers = [mine, ...RUNE_TIERS.filter((t) => t !== mine)];
+      const pages = [];
+      for (const t of tiers) {
+        let page = null;
+        try { page = await client.runes(champ, r, t === 'EMERALD_PLUS' ? null : t); } catch { /* elo sem dados */ }
+        if (!page || pages.some((p) => p.perks.join() === page.perks.join())) continue;
+        pages.push({ ...page, tier: t });
+        if (pages.length >= 2) break;
+      }
+      return pages.length ? pages : null;
+    }, onDone) : Promise.resolve()),
+    getRunePages: (champ, role) => { const e = champ && cache.runes[buildKey(champ, role)]; return e ? e.data : null; },
+    /**
+     * Tier list de uma rota num elo: o OP.GG só publica a lista de Esmeralda+, então consulta a
+     * análise de cada campeão da rota naquele elo (até 40, em baixa prioridade). Cache de 12 h.
+     */
+    ensureTierListElo: (role, tier, champs, onDone, force = false) => refresh('tierlistElo', `${role}:${tier}`, async () => {
+      const rows = await Promise.all(champs.slice(0, 40).map(async (c) => {
+        try {
+          const st = await client.champStats(c, role, tier === 'ALL' ? 'ALL' : tier);
+          return st ? { champion: c.champion, ...st, roleRate: c.roleRate || 0 } : null;
+        } catch { return null; }
+      }));
+      const out = rows.filter(Boolean).sort((a, b) => a.tier - b.tier || a.rank - b.rank);
+      return out.length ? out : null;
+    }, onDone, force ? 60 * 1000 : 12 * 3600 * 1000),
+    getTierListElo: (role, tier) => cache.tierlistElo[`${role}:${tier}`] || null,
+    tierListEloLoading: (role, tier) => inflight.has(`tierlistElo:${role}:${tier}`),
     getOtp: (champ, region) => { const e = cache.otp[`${region}:${norm(champ.id)}`]; return e ? e.data : null; },
     otpError: (champ, region) => failures.get(`otp:${region}:${norm(champ.id)}`) || null,
     /** Partidas recentes no OP.GG (cache de 3 min). */

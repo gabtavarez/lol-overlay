@@ -8,7 +8,7 @@ const { createSettingsStore } = require('./settings');
 const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
 const { createRemoteData } = require('./providers/remote');
-const { buildGuide, indexRunes } = require('./guide');
+const { buildGuide, indexRunes, runeTree } = require('./guide');
 const { importRunes, importSpells, importItemSet } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
@@ -377,7 +377,24 @@ function buildVariants(champ, role) {
 }
 
 /** Importa runas/feitiços/itens do OP.GG para o cliente. `what`: runes | spells | items | both. */
-async function importBuild(championId, what, variant = 0) {
+const TIER_PT_MAIN = { ALL: 'Todos os elos', GOLD: 'Ouro', PLATINUM_PLUS: 'Platina+', EMERALD_PLUS: 'Esmeralda+', DIAMOND_PLUS: 'Diamante+', MASTER_PLUS: 'Mestre+', CHALLENGER: 'Desafiante' };
+
+/** Até 2 páginas de runas (OP.GG, com jogos/pick %/win %); sem elas, a da build. */
+function runePagesFor(champ, role, build) {
+  const pages = remote.getRunePages(champ, role) || (build && build.runes ? [{ ...build.runes, tier: null }] : []);
+  return pages.map((r, i) => ({
+    label: i === 0 ? 'Página 1' : 'Página 2',
+    runes: r,
+    stats: { pickRate: r.pickRate || 0, winRate: r.winRate || 0, games: r.games || 0, tier: r.tier ? TIER_PT_MAIN[r.tier] || r.tier : null },
+    view: {
+      primaryStyleName: r.primaryStyleName, subStyleName: r.subStyleName,
+      perks: r.perks.map((id) => ({ id, name: (runeIndex && runeIndex[id] && runeIndex[id].name) || String(id), icon: (runeIndex && runeIndex[id] && runeIndex[id].icon) || null })),
+    },
+    runeTree: runeStyles ? runeTree(runeStyles, r) : null,
+  }));
+}
+
+async function importBuild(championId, what, variant = 0, runePage = 0) {
   const champ = champById(championId);
   const role = lastRole || lcuState.myPosition;
   const variants = champ ? buildVariants(champ, role) : [];
@@ -388,8 +405,10 @@ async function importBuild(championId, what, variant = 0) {
   const done = [];
   try {
     if (what !== 'spells' && what !== 'items') {
-      if (!build.runes) throw new Error('sem runas nos dados do OP.GG');
-      await importRunes(creds, build.runes, champ.name);
+      const pages = remote.getRunePages(champ, role);
+      const runes = (pages && pages[runePage]) || build.runes;
+      if (!runes) throw new Error('sem runas nos dados do OP.GG');
+      await importRunes(creds, runes, champ.name);
       done.push('runas');
     }
     if (what !== 'runes' && what !== 'items') {
@@ -448,7 +467,8 @@ async function guideFor(championId) {
   const mode = matchupPick && matchupPick.session === lcuState.sessionId ? matchupPick.id : 'auto';
   const pending = opp && !remote.getMatchup(champ, opp, role) ? `Buscando o matchup contra ${opp.name}…` : null;
   const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
-  return { ...variants[0].guide, variants, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
+  const runePages = runePagesFor(champ, role, build);
+  return { ...variants[0].guide, variants, runePages, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
@@ -457,7 +477,7 @@ function prefetchChampSelect(state, done) {
   const role = state.myPosition;
   remote.ensureTiers(role, done);
   const mine = state.me && state.me.champion;
-  if (mine) remote.ensureBuild(mine, role, done, 25);
+  if (mine) { remote.ensureBuild(mine, role, done, 25); remote.ensureRunePages(mine, role, done); }
   for (const e of state.enemies) {
     if (e.champion) remote.ensureBuild(e.champion, e.position || role, done);
   }
@@ -634,6 +654,7 @@ function registerIpc() {
       const role = lastRole || lcuState.myPosition;
       const notify = () => send('guide-updated', { championId: String(championId) });
       remote.ensureBuild(champ, role, notify, 20);
+      remote.ensureRunePages(champ, role, notify);
       const opp = laneEnemy();
       if (opp) remote.ensureMatchup(champ, opp, role, notify);
     }
@@ -641,20 +662,33 @@ function registerIpc() {
   });
 
   // Tier list ranqueada (OP.GG): todas as rotas, com a fonte e o patch.
-  ipcMain.handle('tierlist:get', (_e, force) => {
-    remote.ensureTierList(() => send('tierlist-updated', true), Boolean(force));
+  ipcMain.handle('tierlist:get', (_e, opts = {}) => {
+    const force = Boolean(opts && opts.force);
+    const tier = opts && TIER_PT_MAIN[opts.tier] ? opts.tier : 'EMERALD_PLUS';
+    const done = () => send('tierlist-updated', true);
+    remote.ensureTierList(done, force && tier === 'EMERALD_PLUS');
     const e = remote.getTierList();
-    let data = null;
-    if (e) {
-      data = {};
-      for (const [role, rows] of Object.entries(e.data)) {
-        data[role] = rows.map((r) => {
-          const c = dd && dd.championByRaw(null, r.champion);
-          return { ...r, id: c ? c.id : null, name: c ? c.name : r.champion };
-        });
-      }
+    const withIds = (rows) => rows.map((r) => {
+      const c = dd && dd.championByRaw(null, r.champion);
+      return { ...r, id: c ? c.id : null, name: c ? c.name : r.champion };
+    });
+    const base = { at: e ? e.at : null, patch: dd ? dd.version : null, tier, error: e ? null : remote.tierListError() };
+    if (!e) return { ...base, data: null };
+    if (tier === 'EMERALD_PLUS') {
+      const data = {};
+      for (const [role, rows] of Object.entries(e.data)) data[role] = withIds(rows);
+      return { ...base, data };
     }
-    return { data, at: e ? e.at : null, patch: dd ? dd.version : null, error: e ? null : remote.tierListError() };
+    // Outro elo: uma rota por vez (cada campeão é uma consulta ao OP.GG).
+    const role = opts && e.data[opts.role] ? opts.role : null;
+    if (!role) return { ...base, data: {}, needRole: true };
+    const champs = withIds(e.data[role]).filter((r) => r.id && (r.roleRate || 0) >= 0.05).map((r) => ({ id: r.id, champion: r.champion, roleRate: r.roleRate }));
+    remote.ensureTierListElo(role, tier, champs, done, force);
+    const got = remote.getTierListElo(role, tier);
+    return {
+      ...base, at: got ? got.at : null, data: got ? { [role]: withIds(got.data) } : null,
+      loading: remote.tierListEloLoading(role, tier) ? champs.slice(0, 40).length : 0,
+    };
   });
 
   // One-tricks do campeão (OP.GG): ranking + última build de cada um.
@@ -760,7 +794,7 @@ function registerIpc() {
     return true;
   });
 
-  ipcMain.handle('import:build', (_e, { championId, what, variant }) => importBuild(championId, what, Number(variant) || 0));
+  ipcMain.handle('import:build', (_e, { championId, what, variant, runePage }) => importBuild(championId, what, Number(variant) || 0, Number(runePage) || 0));
 
   ipcMain.handle('overlay:toggle-move', () => toggleMoveMode());
   ipcMain.handle('win:minimize', () => mainWin && mainWin.minimize());

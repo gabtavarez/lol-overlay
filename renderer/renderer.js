@@ -113,6 +113,7 @@ function renderGuide(state, picks) {
     shownId = pickId;
     guide = null;
     variant = 0;
+    runePage = 0;
     imported.runes = false;
     imported.spells = false;
     els.impMsg.textContent = '';
@@ -136,6 +137,21 @@ function iconRow(label, ids, names) {
 const ddImg = (path) => `${DD}/cdn/img/${path}`;
 const ddVerImg = (path) => `${DD}/cdn/${version}/img/${path}`;
 const imported = { runes: false, spells: false };
+let runePage = 0;
+
+/** Abas das páginas de runas, cada uma com pick % e win % do OP.GG. */
+function runePageTabs(pages) {
+  if (!pages || pages.length < 2) return null;
+  return h('div', { class: 'rp-tabs' }, ...pages.map((p, i) => {
+    const st = p.stats || {};
+    const b = h('button', { class: `rp-tab${i === runePage ? ' on' : ''}`, type: 'button' },
+      h('b', { text: p.view.perks[0] ? p.view.perks[0].name : p.label }),
+      h('span', { text: [st.pickRate ? `${Math.round(st.pickRate * 100)}% pick` : null, st.winRate ? `${(st.winRate * 100).toFixed(1)}% WR` : null].filter(Boolean).join(' · ') || p.label }));
+    b.title = `${p.view.primaryStyleName} + ${p.view.subStyleName}${st.games ? ` · ${st.games.toLocaleString('pt-BR')} partidas` : ''}${st.tier ? ` · ${st.tier}` : ''}`;
+    b.addEventListener('click', () => { runePage = i; imported.runes = false; drawGuide(); });
+    return b;
+  }));
+}
 
 /** <img> que vira texto se o ícone não existir. */
 function icon(src, cls, title, fallback) {
@@ -290,7 +306,14 @@ function drawGuide() {
   if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
 
   const left = h('div', { class: 'g-sec' });
-  if (g.runeTree) left.append(head(`Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
+  const pages = root.runePages || [];
+  const page = pages[runePage] || pages[0] || null;
+  if (page && page.runeTree) {
+    const st = page.stats || {};
+    left.append(head(`Runas · ${page.view.primaryStyleName} + ${page.view.subStyleName}`, 'runes'), runePageTabs(pages) || '');
+    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
+    left.append(drawRunes(page.runeTree));
+  } else if (g.runeTree) left.append(head(`Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
   else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
   const right = h('div', { class: 'g-sec' });
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
@@ -623,7 +646,7 @@ window.overlay.onAutoImport((r) => {
 async function doImport(what) {
   if (!shownId) return;
   els.impMsg.textContent = 'Importando…';
-  const res = await window.overlay.importBuild(shownId, what, variant);
+  const res = await window.overlay.importBuild(shownId, what, variant, runePage);
   els.impMsg.textContent = res.ok ? `Importado: ${res.done.join(' e ')}.` : `Não consegui importar: ${res.error}`;
   if (res.ok) {
     if (res.done.includes('runas')) imported.runes = true;
@@ -802,13 +825,18 @@ const TL_ROLES = [['all', 'Todas'], ['top', 'Topo'], ['jungle', 'Selva'], ['midd
 const TL_TIERS = [[1, 'S'], [2, 'A'], [3, 'B'], [4, 'C'], [5, 'D']];
 let tl = null;
 let tlRole = 'all';
+let tlElo = 'EMERALD_PLUS';
+const TL_ELO_PT = { ALL: 'Todos os elos', GOLD: 'Ouro', PLATINUM_PLUS: 'Platina+', EMERALD_PLUS: 'Esmeralda+', DIAMOND_PLUS: 'Diamante+', MASTER_PLUS: 'Mestre+', CHALLENGER: 'Desafiante' };
+try { tlElo = localStorage.getItem('tlElo') || tlElo; } catch { /* sem storage */ }
 const pc = (x) => `${(x * 100).toFixed(1)}%`;
 
 function tlRoleButtons() {
-  $('tl-roles').replaceChildren(...TL_ROLES.map(([k, label]) => {
+  // Fora de Esmeralda+ a lista é montada campeão a campeão: uma rota por vez.
+  if (tlElo !== 'EMERALD_PLUS' && tlRole === 'all') tlRole = (lastState && lastState.home && lastState.home.mainRole) || 'middle';
+  $('tl-roles').replaceChildren(...TL_ROLES.filter(([k]) => k !== 'all' || tlElo === 'EMERALD_PLUS').map(([k, label]) => {
     const b = h('button', { class: `seg-btn${k === tlRole ? ' on' : ''}`, type: 'button', title: label });
     b.append(k === 'all' ? svgIcon('spark') : roleImg(k, 'seg-role'), h('span', { text: label }));
-    b.addEventListener('click', () => { tlRole = k; tlRoleButtons(); drawTierList(); });
+    b.addEventListener('click', () => { tlRole = k; tlRoleButtons(); if (tlElo === 'EMERALD_PLUS') drawTierList(); else { tl = null; drawTierList(); loadTierList(); } });
     return b;
   }));
 }
@@ -832,10 +860,14 @@ function tlTile(r, showRole) {
 function drawTierList() {
   const body = $('tl-body');
   if (!tl || !tl.data) {
-    body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: tl && tl.error ? `Não consegui carregar: ${tl.error}` : 'Carregando a tier list do OP.GG…' })));
+    const msg = tl && tl.error ? `Não consegui carregar: ${tl.error}`
+      : tl && tl.loading ? `Montando a tier list de ${TL_ELO_PT[tlElo]} (${tl.loading} campeões, ~30 s na primeira vez)…`
+        : 'Carregando a tier list do OP.GG…';
+    body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: msg })));
     return;
   }
-  const meta = [`Patch ${String(tl.patch || '').split('.').slice(0, 2).join('.')}`, 'Esmeralda+ · Global', 'OP.GG'];
+  const meta = [`Patch ${String(tl.patch || '').split('.').slice(0, 2).join('.')}`, `${TL_ELO_PT[tl.tier] || 'Esmeralda+'} · Global`, 'OP.GG'];
+  if (tl.loading) meta.push('atualizando…');
   if (tl.at) meta.push(`atualizada ${new Date(tl.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
   $('tl-meta').replaceChildren(...meta.map((t) => h('span', { class: 'chip', text: t })));
 
@@ -862,7 +894,9 @@ function drawTierList() {
 }
 
 async function loadTierList(force = false) {
-  tl = await window.overlay.getTierList(force);
+  const res = await window.overlay.getTierList(force, tlElo, tlRole);
+  if (res.tier !== tlElo) return;
+  tl = res;
   drawTierList();
 }
 window.overlay.onTierListUpdated(() => { if (page === 'tierlist') loadTierList(); });
@@ -1061,6 +1095,12 @@ window.overlay.onPostgame((rec) => {
   goPage('history');
   showHistory(rec.id);
   setTimeout(() => loadHistory(true), 90 * 1000); // o OP.GG leva ~1 min para registrar a partida
+});
+$('tl-elo').value = tlElo;
+$('tl-elo').addEventListener('change', () => {
+  tlElo = $('tl-elo').value;
+  try { localStorage.setItem('tlElo', tlElo); } catch { /* sem storage */ }
+  tl = null; tlRoleButtons(); drawTierList(); loadTierList();
 });
 $('tl-search').addEventListener('input', drawTierList);
 $('tl-sort').addEventListener('change', drawTierList);

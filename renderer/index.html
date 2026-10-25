@@ -197,8 +197,16 @@
           <option value="pickRate">Pick rate</option>
           <option value="banRate">Ban rate</option>
         </select>
-        <select id="tl-elo" disabled title="O OP.GG só publica a tier list de Esmeralda+"><option>Esmeralda+</option></select>
-        <select id="tl-region" disabled title="O OP.GG só publica a tier list global"><option>Global</option></select>
+        <select id="tl-elo" title="Elo dos dados">
+          <option value="EMERALD_PLUS">Esmeralda+</option>
+          <option value="ALL">Todos os elos</option>
+          <option value="GOLD">Ouro</option>
+          <option value="PLATINUM_PLUS">Platina+</option>
+          <option value="DIAMOND_PLUS">Diamante+</option>
+          <option value="MASTER_PLUS">Mestre+</option>
+          <option value="CHALLENGER">Desafiante</option>
+        </select>
+        <select id="tl-region" disabled title="O OP.GG (fonte oficial que o app usa) não separa as estatísticas por região: os dados são globais"><option>Global</option></select>
         <span class="spacer"></span>
         <button id="tl-refresh" class="btn ghost"><i data-ico="refresh"></i>Atualizar</button>
       </div>

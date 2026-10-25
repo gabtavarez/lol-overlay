@@ -22,7 +22,7 @@ function readJson(file) {
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp', 'runes', 'tierlistElo']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp', 'runes', 'tierlistElo', 'synlist']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -153,6 +153,11 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       }
       return pages.length ? pages : null;
     }, onDone) : Promise.resolve()),
+    /** Sinergias de um campeão com a rota parceira (WR bruto), cache de 12 h. */
+    ensureSynergyList: (champ, role, partner, onDone) => (champ && role && partner
+      ? refresh('synlist', `${norm(champ.id)}:${role}:${partner}`, () => client.synergyList(champ, role, partner), onDone) : Promise.resolve()),
+    getSynergyList: (champ, role, partner) => { const e = champ && cache.synlist[`${norm(champ.id)}:${role}:${partner}`]; return e ? e.data : null; },
+    synergyError: (champ, role, partner) => (champ ? failures.get(`synlist:${norm(champ.id)}:${role}:${partner}`) || null : null),
     getRunePages: (champ, role) => { const e = champ && cache.runes[buildKey(champ, role)]; return e ? e.data : null; },
     /**
      * Tier list de uma rota num elo: o OP.GG só publica a lista de Esmeralda+, então consulta a

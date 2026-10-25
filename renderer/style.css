@@ -351,3 +351,20 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .rp-tab:hover { border-color: var(--line2); }
 .rp-tab.on { border-color: var(--acc); background: var(--acc-soft); }
 .rp-one { margin: -2px 0 8px; }
+
+/* página do campeão (tier list) */
+#tl-main, #tl-champ { display: flex; flex-direction: column; gap: 16px; }
+.tl-tile { cursor: pointer; }
+.cd-top { display: flex; align-items: center; gap: 16px; }
+.cd-head { display: flex; align-items: center; gap: 12px; }
+.cd-ico { width: 52px; height: 52px; border-radius: 11px; background: #262830; }
+.cd-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+.cd-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.cd-list { padding: 4px 0; }
+.cd-line { display: grid; grid-template-columns: 30px 1fr auto auto; gap: 10px; align-items: center; padding: 7px 16px; }
+.cd-line .ic { width: 30px; height: 30px; }
+.cd-line.click { cursor: pointer; }
+.cd-line.click:hover { background: #191a20; }
+.cd-wr { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cd-wr.good { color: var(--good); } .cd-wr.bad { color: var(--bad); }
+@media (max-width: 1100px) { .cd-grid { grid-template-columns: 1fr; } }

@@ -100,7 +100,15 @@ function counterList(list, sign) {
     // win_rate = chance do campeão contrário vencer; vira nota em [-1, 1] para o meu pick
     value: clamp((sign * ((c.win_rate || 0.5) - 0.5)) / 0.08, -1, 1),
     games: c.play || 0,
+    oppWinRate: typeof c.win_rate === 'number' ? c.win_rate : null,
   }));
+}
+
+/** Sinergias com WR bruto (para a página do campeão): [{ name, winRate, games }]. */
+function parseSynergyList(text) {
+  const rows = (parseCompact(text).data || {}).synergies || [];
+  return rows.filter((r) => r && r.synergy_champion_name && (r.play || 0) >= 100)
+    .map((r) => ({ name: r.synergy_champion_name, winRate: r.win_rate || 0, games: r.play || 0 }));
 }
 
 function parseAnalysis(text) {
@@ -407,6 +415,12 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
         synergy_position: POSITION[myRole] || 'none', lang: 'en_US',
         desired_output_fields: ['data.synergies[].{champion_name,synergy_champion_name,win_rate,play}'],
       })),
+    synergyList: async (champ, role, partnerRole) =>
+      parseSynergyList(await call('lol_get_champion_synergies', {
+        champion: String(champ.id).toUpperCase(), my_position: POSITION[role] || 'none',
+        synergy_position: POSITION[partnerRole] || 'none', lang: 'en_US',
+        desired_output_fields: ['data.synergies[].{champion_name,synergy_champion_name,win_rate,play}'],
+      }, 6)),
     summoner: async (gameName, tagLine, region) =>
       parseSummoner(await call('lol_get_summoner_profile', {
         game_name: gameName, tag_line: tagLine, region: String(region || 'BR').toUpperCase(), lang: 'en_US',
@@ -461,4 +475,4 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
 }
 
 module.exports = {
-  parseRunePage, parseChampStats, createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseLeaderboard, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };
+  parseRunePage, parseChampStats, parseSynergyList, createMcpClient, parseTierList, parseSummoner, parseMatches, parseGameDetail, parseLeaderboard, parseCompact, parseAnalysis, parseLaneMeta, parseMatchup, parseSynergies, POSITION };

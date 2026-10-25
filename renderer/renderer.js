@@ -140,15 +140,15 @@ const imported = { runes: false, spells: false };
 let runePage = 0;
 
 /** Abas das páginas de runas, cada uma com pick % e win % do OP.GG. */
-function runePageTabs(pages) {
+function runePageTabs(pages, current = runePage, onPick = (i) => { runePage = i; imported.runes = false; drawGuide(); }) {
   if (!pages || pages.length < 2) return null;
   return h('div', { class: 'rp-tabs' }, ...pages.map((p, i) => {
     const st = p.stats || {};
-    const b = h('button', { class: `rp-tab${i === runePage ? ' on' : ''}`, type: 'button' },
+    const b = h('button', { class: `rp-tab${i === current ? ' on' : ''}`, type: 'button' },
       h('b', { text: p.view.perks[0] ? p.view.perks[0].name : p.label }),
       h('span', { text: [st.pickRate ? `${Math.round(st.pickRate * 100)}% pick` : null, st.winRate ? `${(st.winRate * 100).toFixed(1)}% WR` : null].filter(Boolean).join(' · ') || p.label }));
     b.title = `${p.view.primaryStyleName} + ${p.view.subStyleName}${st.games ? ` · ${st.games.toLocaleString('pt-BR')} partidas` : ''}${st.tier ? ` · ${st.tier}` : ''}`;
-    b.addEventListener('click', () => { runePage = i; imported.runes = false; drawGuide(); });
+    b.addEventListener('click', () => onPick(i));
     return b;
   }));
 }
@@ -744,6 +744,7 @@ async function saveSettings() {
 
 function showFlashKey() {
   if (guide) drawGuide();
+  if (champView && champView.data) drawChamp();
 }
 async function toggleFlashKey() {
   settings = settings || (await window.overlay.getSettings());
@@ -853,7 +854,8 @@ function tlTile(r, showRole) {
       h('div', { class: 'tl-wr', text: pc(r.winRate) }),
       h('div', { class: 'tl-sub', text: `Pick ${pc(r.pickRate)} · Ban ${pc(r.banRate)}` })),
     delta ? h('span', { class: `tl-delta ${delta > 0 ? 'up' : 'down'}`, text: `${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}` }) : null);
-  tile.title = `${r.name} · #${r.rank} na rota · ${r.games.toLocaleString('pt-BR')} partidas · KDA ${r.kda}`;
+  tile.title = `${r.name} · #${r.rank} na rota · ${r.games.toLocaleString('pt-BR')} partidas · KDA ${r.kda} · clique para ver build, counters e sinergias`;
+  if (r.id) tile.addEventListener('click', () => openChamp(r.id, r.role));
   return tile;
 }
 
@@ -900,11 +902,125 @@ async function loadTierList(force = false) {
   drawTierList();
 }
 window.overlay.onTierListUpdated(() => { if (page === 'tierlist') loadTierList(); });
+
+/* ---------- página do campeão (aberta pela tier list) ---------- */
+
+const ROLE_NAME = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte' };
+let champView = null; // { id, role, data, runePage }
+
+function openChamp(id, role) {
+  champView = { id, role: role && role !== 'all' ? role : null, data: null, runePage: 0 };
+  $('tl-main').hidden = true;
+  $('tl-champ').hidden = false;
+  $('content').scrollTop = 0;
+  drawChamp();
+  loadChamp();
+}
+function closeChamp() {
+  champView = null;
+  $('tl-champ').hidden = true;
+  $('tl-main').hidden = false;
+}
+async function loadChamp() {
+  const cv = champView;
+  if (!cv) return;
+  const d = await window.overlay.getChampDetail(cv.id, cv.role);
+  if (champView !== cv) return;
+  cv.data = d;
+  if (d && d.role) cv.role = d.role;
+  drawChamp();
+}
+window.overlay.onChampDetailUpdated((p) => { if (champView && p.id === champView.id) loadChamp(); });
+
+/** Linha de campeão com WR (counters / sinergias); clicar abre a página dele. */
+function champLine(c, role, good) {
+  const v = version;
+  const row = h('div', { class: `cd-line${c.id ? ' click' : ''}` },
+    v && c.id ? h('img', { class: 'ic', src: champIcon(v, c.id), alt: '' }) : h('span', { class: 'ic' }),
+    h('span', { class: 'nm', text: c.name }),
+    h('span', { class: `cd-wr ${good ? 'good' : 'bad'}`, text: `${(c.winRate * 100).toFixed(1)}%` }),
+    h('span', { class: 'muted small', text: `${(c.games || 0).toLocaleString('pt-BR')} jogos` }));
+  if (c.id) row.addEventListener('click', () => openChamp(c.id, role));
+  return row;
+}
+
+function drawChamp() {
+  const box = $('tl-champ');
+  const cv = champView;
+  if (!cv) return;
+  const d = cv.data;
+  const back = h('button', { class: 'btn ghost', type: 'button', text: '← Tier list' });
+  back.addEventListener('click', closeChamp);
+  const name = d ? d.champion.name : '';
+  const headL = h('div', { class: 'cd-head' },
+    version ? h('img', { class: 'cd-ico', src: champIcon(version, cv.id), alt: '' }) : null,
+    h('div', {}, h('div', { class: 'eyebrow', text: d && d.champion.title ? d.champion.title : 'Campeão' }), h('h1', { text: name || cv.id })));
+  const chips = [];
+  if (d && d.tier) chips.push(h('span', { class: 'chip', text: `Tier ${['', 'S', 'A', 'B', 'C', 'D'][d.tier] || d.tier}` }));
+  if (d && d.winRate) chips.push(h('span', { class: 'chip', text: `${(d.winRate * (d.winRate <= 1 ? 100 : 1)).toFixed(1)}% WR` }));
+  chips.push(h('span', { class: 'chip', text: 'OP.GG' }));
+  const top = h('div', { class: 'page-head' }, h('div', { class: 'cd-top' }, back, headL), h('div', { class: 'chips' }, ...chips));
+
+  const roles = (d && d.roles && d.roles.length ? d.roles : cv.role ? [cv.role] : []);
+  const seg = roles.length > 1 ? h('div', { class: 'seg' }, ...roles.map((r) => {
+    const b = h('button', { class: `seg-btn${r === cv.role ? ' on' : ''}`, type: 'button' }, roleImg(r, 'seg-role'), h('span', { text: ROLE_NAME[r] || r }));
+    b.addEventListener('click', () => { if (r === cv.role) return; cv.role = r; cv.data = null; cv.runePage = 0; drawChamp(); loadChamp(); });
+    return b;
+  })) : null;
+
+  if (!d || !d.guide) {
+    const msg = d && d.error ? `Sem dados do OP.GG: ${d.error}` : 'Carregando a build do OP.GG…';
+    box.replaceChildren(top, seg || '', h('section', { class: 'card' }, h('p', { class: 'muted pad', text: msg })));
+    return;
+  }
+  const g = d.guide;
+  const pages = d.runePages || [];
+  const page = pages[cv.runePage] || pages[0] || null;
+
+  // build: runas | feitiços + itens
+  const left = h('div', { class: 'g-sec' });
+  if (page && page.runeTree) {
+    left.append(head(`Runas · ${page.view.primaryStyleName} + ${page.view.subStyleName}`),
+      runePageTabs(pages, cv.runePage, (i) => { cv.runePage = i; drawChamp(); }) || '');
+    const st = page.stats || {};
+    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
+    left.append(drawRunes(page.runeTree));
+  }
+  const right = h('div', { class: 'g-sec' });
+  if (g.spells.length) right.append(head('Feitiços'), drawSpells(g), h('div', { style: 'height:22px' }));
+  right.append(drawBuild(g));
+  const msg = h('span', { class: 'muted small' });
+  const imp = h('button', { class: 'btn primary', type: 'button', text: 'Importar runas e feitiços' });
+  imp.addEventListener('click', async () => {
+    msg.textContent = 'Importando…';
+    const res = await window.overlay.importBuild(cv.id, 'both', 0, cv.runePage, cv.role);
+    msg.textContent = res.ok ? `Importado: ${res.done.join(', ')}.` : `Não consegui importar: ${res.error}`;
+  });
+  const buildCard = h('section', { class: 'card' },
+    h('div', { class: 'card-h' }, h('h2', { text: `Build · ${ROLE_NAME[cv.role] || ''}` }), h('span', { class: 'spacer' }), seg || ''),
+    h('div', { class: 'g-grid' }, left, right),
+    g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), drawSkills(g)) : null,
+    d.kit ? abilityBlock(d.kit, 'g-full') : null,
+    h('div', { class: 'card-f' }, msg, imp));
+
+  // counters e sinergias
+  const list = (title, rows, good, empty) => h('section', { class: 'card' },
+    h('div', { class: 'card-h' }, h('h2', { text: title })),
+    rows && rows.length ? h('div', { class: 'cd-list' }, ...rows.map((c) => champLine(c, cv.role, good))) : h('p', { class: 'muted pad', text: empty }));
+  const synTitle = `Melhores parceiros${d.partner ? ` · ${ROLE_NAME[d.partner]}` : ''}`;
+  const synEmpty = d.synergyError ? `Não consegui carregar: ${d.synergyError}` : d.synergies ? 'Sem amostra suficiente.' : 'Carregando…';
+  const side = h('div', { class: 'cd-side' },
+    list('Perde para', d.losesTo, false, 'Sem dados de counters.'),
+    list('Ganha de', d.beats, true, 'Sem dados de counters.'),
+    list(synTitle, d.synergies, true, synEmpty));
+  box.replaceChildren(top, h('div', { class: 'cd-grid' }, buildCard, side));
+}
+
 function goPage(p) {
   settingsOpen = false;
   page = p;
   showView(null);
-  if (p === 'tierlist') { tlRoleButtons(); loadTierList(); }
+  if (p === 'tierlist') { closeChamp(); tlRoleButtons(); loadTierList(); }
   if (p === 'history') loadHistory();
 }
 $('nav-tier').addEventListener('click', () => goPage('tierlist'));

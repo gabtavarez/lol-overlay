@@ -376,7 +376,6 @@ function buildVariants(champ, role) {
   return out;
 }
 
-/** Importa runas/feitiços/itens do OP.GG para o cliente. `what`: runes | spells | items | both. */
 const TIER_PT_MAIN = { ALL: 'Todos os elos', GOLD: 'Ouro', PLATINUM_PLUS: 'Platina+', EMERALD_PLUS: 'Esmeralda+', DIAMOND_PLUS: 'Diamante+', MASTER_PLUS: 'Mestre+', CHALLENGER: 'Desafiante' };
 
 /** Até 2 páginas de runas (OP.GG, com jogos/pick %/win %); sem elas, a da build. */
@@ -394,10 +393,14 @@ function runePagesFor(champ, role, build) {
   }));
 }
 
-async function importBuild(championId, what, variant = 0, runePage = 0) {
+/**
+ * Importa runas/feitiços/itens do OP.GG para o cliente. `what`: runes | spells | items | both.
+ * `forRole`: rota explícita (página do campeão na tier list); sem ela, a rota do champ select.
+ */
+async function importBuild(championId, what, variant = 0, runePage = 0, forRole = null) {
   const champ = champById(championId);
-  const role = lastRole || lcuState.myPosition;
-  const variants = champ ? buildVariants(champ, role) : [];
+  const role = forRole || lastRole || lcuState.myPosition;
+  const variants = champ ? (forRole ? [{ build: remote.getBuild(champ, role) }] : buildVariants(champ, role)) : [];
   const build = (variants[variant] || variants[0] || {}).build;
   const creds = lcuEngine.getCreds();
   if (!build) return { ok: false, error: 'Ainda não há dados do OP.GG para este campeão.' };
@@ -469,6 +472,58 @@ async function guideFor(championId) {
   const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
   const runePages = runePagesFor(champ, role, build);
   return { ...variants[0].guide, variants, runePages, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
+}
+
+const PARTNER = { top: 'jungle', jungle: 'middle', middle: 'jungle', bottom: 'utility', utility: 'bottom' };
+
+/** Rotas em que o campeão aparece na tier list (mais jogada primeiro). */
+function rolesOf(champ) {
+  const tl = remote.getTierList();
+  if (!tl || !dd) return [];
+  const out = [];
+  for (const [role, rows] of Object.entries(tl.data)) {
+    const r = rows.find((x) => { const c = dd.championByRaw(null, x.champion); return c && c.id === champ.id; });
+    if (r) out.push({ role, roleRate: r.roleRate || 0, tier: r.tier });
+  }
+  return out.sort((a, b) => b.roleRate - a.roleRate);
+}
+
+/** Página do campeão: tudo que o OP.GG tem dele numa rota, sem depender do champ select. */
+async function champDetail(id, wanted) {
+  const champ = champById(id);
+  if (!champ) return null;
+  const roles = rolesOf(champ);
+  const role = ROLE_PT[wanted] ? wanted : (roles[0] && roles[0].role) || null;
+  const partner = role && PARTNER[role];
+  const notify = () => send('champ-detail-updated', { id: champ.id });
+  remote.ensureBuild(champ, role, notify, 22);
+  remote.ensureRunePages(champ, role, notify);
+  if (partner) remote.ensureSynergyList(champ, role, partner, notify);
+  const build = remote.getBuild(champ, role);
+  const skills = await dd.championSkills(champ.id).catch(() => null);
+  const named = (name) => { const c = dd.championByRaw(null, name); return c ? { id: c.id, name: c.name } : { id: null, name }; };
+  // win_rate dos counters = chance do OUTRO campeão vencer; aqui mostramos a WR deste campeão contra ele
+  // (cache antigo sem o WR bruto: reconstrói pela nota, que é (WR - 50%) / 8%)
+  const counters = (list, sign) => (list || []).map((c) => {
+    const opp = c.oppWinRate != null ? c.oppWinRate : 0.5 + (sign * (c.value || 0) * 0.08);
+    return { ...named(c.name), winRate: 1 - opp, games: c.games };
+  });
+  const syn = partner ? remote.getSynergyList(champ, role, partner) : null;
+  const tlRow = roles.find((r) => r.role === role);
+  return {
+    champion: { id: champ.id, name: champ.name, title: champ.title || '' },
+    role, roles: roles.map((r) => r.role), partner, tier: tlRow ? tlRow.tier : null,
+    winRate: build ? build.winRate : null,
+    error: build ? null : remote.buildError(champ, role),
+    guide: build ? { ...buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills }), situational: [] } : null,
+    runePages: build ? runePagesFor(champ, role, build) : [],
+    kit: abilityCard(champ, 1),
+    // weak = quem counteria este campeão (ele perde); strong = quem ele counteria (ele ganha)
+    losesTo: build ? counters(build.weakCounters, 1).sort((a, b) => a.winRate - b.winRate).slice(0, 6) : [],
+    beats: build ? counters(build.strongCounters, -1).sort((a, b) => b.winRate - a.winRate).slice(0, 6) : [],
+    synergies: syn ? syn.slice().sort((a, b) => b.winRate - a.winRate).slice(0, 6).map((s) => ({ ...named(s.name), winRate: s.winRate, games: s.games })) : null,
+    synergyError: partner && !syn ? remote.synergyError(champ, role, partner) : null,
+  };
 }
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
@@ -661,6 +716,9 @@ function registerIpc() {
     return guideFor(championId);
   });
 
+  // Página do campeão (aberta pela tier list): build, runas, skills, counters e sinergias numa rota.
+  ipcMain.handle('champ:detail', (_e, { id, role } = {}) => champDetail(id, role));
+
   // Tier list ranqueada (OP.GG): todas as rotas, com a fonte e o patch.
   ipcMain.handle('tierlist:get', (_e, opts = {}) => {
     const force = Boolean(opts && opts.force);
@@ -794,7 +852,8 @@ function registerIpc() {
     return true;
   });
 
-  ipcMain.handle('import:build', (_e, { championId, what, variant, runePage }) => importBuild(championId, what, Number(variant) || 0, Number(runePage) || 0));
+  ipcMain.handle('import:build', (_e, { championId, what, variant, runePage, role }) =>
+    importBuild(championId, what, Number(variant) || 0, Number(runePage) || 0, ROLE_PT[role] ? role : null));
 
   ipcMain.handle('overlay:toggle-move', () => toggleMoveMode());
   ipcMain.handle('win:minimize', () => mainWin && mainWin.minimize());

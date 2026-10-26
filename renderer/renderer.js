@@ -1536,7 +1536,7 @@ $('pn-open').addEventListener('click', () => { if (pn.version) window.overlay.op
 
 /* ---------- perfil (maestria, estilo, coleção) ---------- */
 
-const pf = { tab: 'mastery', data: null, sel: null, cls: 'all', q: '', loading: false, sugMode: 'mine', sk: { q: '', own: 'all', rar: 'all', legacy: true, sort: 'rarity', limit: 60 } };
+const pf = { tab: 'mastery', data: null, sel: null, cls: 'all', q: '', loading: false, sugMode: 'mine', cur: new Set(), sk: { q: '', own: 'all', rar: 'all', legacy: true, sort: 'rarity', limit: 60 } };
 const PF_TABS = [['mastery', 'Maestria'], ['style', 'Estilo de jogo'], ['collection', 'Coleção']];
 const PF_CLASSES = [['all', 'Todas'], ['Fighter', 'Lutadores'], ['Mage', 'Magos'], ['Assassin', 'Assassinos'], ['Marksman', 'Atiradores'], ['Tank', 'Tanques'], ['Support', 'Suportes']];
 const RARITY_CLS = { Suprema: 'ult', Mítica: 'myth', Exaltada: 'myth', Transcendente: 'myth', Lendária: 'leg', Épica: 'epic', Comum: 'com' };
@@ -1748,14 +1748,15 @@ function drawCollectionTab(d) {
     b.addEventListener('click', () => { pf.sugMode = k; drawProfile(); });
     return b;
   }));
-  const sug = S[pf.sugMode] || [];
+  // filtro por moeda (RP / Essência Mítica / Gacha): vazio = todas
+  const sug = (S[pf.sugMode] || []).filter((x) => !pf.cur.size || pf.cur.has((x.price || {}).kind));
   const emptyTxt = pf.sugMode === 'mine' ? 'Você já tem as melhores skins dos campeões que mais joga.'
     : !S.hasCatalog ? 'Precisa do catálogo da loja do cliente (abra o cliente do LoL e clique em Atualizar).'
       : pf.sugMode === 'sale' ? 'Nenhuma skin Lendária ou melhor em promoção agora.' : 'Sem lançamentos recentes que você não tenha.';
   const tops = pfCard(null,
     h('div', { class: 'pf-toolbar' }, h('div', { class: 'pf-ch', text: 'Skins que valem o investimento' }), h('span', { class: 'spacer' }), sugTabs),
     h('p', { class: 'muted small pf-sub', text: 'Lendária, Mítica, Suprema ou de gacha que você ainda não tem. "Mais compradas" não dá: a Riot não divulga vendas.' }),
-    h('div', { class: 'pf-legend' }, priceTag({ kind: 'rp', amount: null }, 'RP'), priceTag({ kind: 'me', amount: null }, 'Essência Mítica'), priceTag({ kind: 'gacha' }, 'Gacha (Santuário)')),
+    curFilters(S[pf.sugMode] || []),
     sug.length ? h('div', { class: 'pf-sugs' }, ...sug.map((x) => h('div', { class: 'pf-sug' },
       h('img', { src: loadingUrl(x.champion, x.num), alt: '', loading: 'lazy' }),
       h('div', { class: 'pf-st' },
@@ -1840,4 +1841,22 @@ function skinGallery(d) {
       legacy, h('span', { class: 'muted small', text: `${list.length} skin${list.length === 1 ? '' : 's'}` })),
     list.length ? h('div', { class: 'sk-grid' }, ...tiles) : h('p', { class: 'muted pad', text: 'Nenhuma skin com esses filtros.' }),
     more);
+}
+
+
+/** Botões de filtro por moeda: clique liga/desliga; com nenhum ligado, mostra todas. */
+function curFilters(list) {
+  const KINDS = [['rp', 'RP'], ['me', 'Essência Mítica'], ['gacha', 'Gacha (Santuário)']];
+  const count = (k) => list.filter((x) => (x.price || {}).kind === k).length;
+  const btns = KINDS.map(([k, label]) => {
+    const n = count(k);
+    const b = h('button', { type: 'button', class: `cur cur-${k} cur-btn${pf.cur.has(k) ? ' on' : ''}${pf.cur.size && !pf.cur.has(k) ? ' off' : ''}`, title: pf.cur.has(k) ? 'Clique para tirar o filtro' : `Mostrar só ${label}` },
+      svgIcon(k === 'rp' ? 'rp' : k === 'me' ? 'essence' : 'gacha', 'ico'), h('span', { text: `${label} · ${n}` }));
+    b.disabled = !n && !pf.cur.has(k);
+    b.addEventListener('click', () => { if (pf.cur.has(k)) pf.cur.delete(k); else pf.cur.add(k); drawProfile(); });
+    return b;
+  });
+  const clear = pf.cur.size ? h('button', { type: 'button', class: 'link', text: 'limpar filtro' }) : null;
+  if (clear) clear.addEventListener('click', () => { pf.cur.clear(); drawProfile(); });
+  return h('div', { class: 'pf-legend' }, ...btns, clear);
 }

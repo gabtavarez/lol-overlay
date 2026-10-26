@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.30.1",
+    "title": "Filtro por moeda nas skins sugeridas",
+    "items": [
+      "Skins que valem o investimento: os selos RP, Essência Mítica e Gacha viraram filtros clicáveis (com a quantidade de cada). Dá para combinar mais de um; \"limpar filtro\" volta a mostrar todas."
+    ]
+  },
+  {
     "version": "0.30.0",
     "title": "Galeria de skins e sugestões com preço",
     "items": [

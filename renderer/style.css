@@ -739,3 +739,9 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .cur.on-sale span { color: var(--good); }
 .sk-chk { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
 .sk-chk input { width: 15px; height: 15px; margin: 0; accent-color: var(--acc); }
+.cur-btn { border: 1px solid transparent; cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 700; transition: opacity .15s, border-color .15s, transform .15s; }
+.cur-btn:hover:not(:disabled) { border-color: currentColor; }
+.cur-btn.on { border-color: currentColor; box-shadow: 0 0 0 2px rgba(255,255,255,.04); }
+.cur-btn.off { opacity: .45; }
+.cur-btn:disabled { opacity: .3; cursor: default; }
+.pf-legend { align-items: center; }

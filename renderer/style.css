@@ -484,3 +484,4 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 /* sugestões de ban: destaque na sua vez */
 #bans.my-turn { border-color: rgba(229, 72, 77, .5); box-shadow: 0 0 0 1px rgba(229, 72, 77, .18); }
 #bans.my-turn .card-h h2::after { content: ' · sua vez'; color: var(--bad); font-weight: 600; }
+.g-shield { --gc: #7fd6e8; }

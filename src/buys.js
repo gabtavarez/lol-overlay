@@ -123,6 +123,8 @@ const isSteel = (id) => [].concat(reactive.bootsArmor || []).includes(id);
 
 /** Rótulo "Bom contra" (estilo LoLTheory) a partir do motivo do item. */
 const GOOD = {
+  antishield: { key: 'shield', label: 'Escudos' },
+  anticrit: { key: 'ad', label: 'Crítico' },
   antiheal: { key: 'heal', label: 'Cura' },
   antiburst: { key: 'burst', label: 'Burst mágico' },
   antiburstAd: { key: 'burst', label: 'Assassinos' },
@@ -139,6 +141,58 @@ function goodAgainst(tag, id) {
     return null;
   }
   return GOOD[tag] || null;
+}
+
+/* ---------- leitura dos itens do inimigo ---------- */
+
+const statsOf = (dd, id) => ((dd.item(id) || {}).stats) || {};
+const goldOf = (dd, id) => (((dd.item(id) || {}).gold) || {}).total || 0;
+
+/**
+ * Tipo de dano pelo que o inimigo realmente comprou (Kai'Sa AP, Ezreal AP, Shaco AP…):
+ * com itens de dano suficientes, os itens pesam 65% e o campeão 35%.
+ */
+function liveProfile(e, dd, flags) {
+  const base = damageProfile(e, flags);
+  let ap = 0;
+  let ad = 0;
+  for (const it of e.items || []) {
+    const st = statsOf(dd, it.id);
+    ap += st.FlatMagicDamageMod || 0;
+    ad += (st.FlatPhysicalDamageMod || 0) + (st.FlatCritChanceMod || 0) * 50 + (st.PercentAttackSpeedMod || 0) * 40;
+  }
+  if (ap + ad < 60) return base;
+  const share = ad / (ad + ap);
+  const out = { ad: 0.35 * base.ad + 0.65 * share, ap: 0.35 * base.ap + 0.65 * (1 - share) };
+  if (base.ad >= 0.6 && out.ap >= 0.55) out.offbuild = 'AP';
+  else if (base.ap >= 0.6 && out.ad >= 0.55) out.offbuild = 'AD';
+  return out;
+}
+
+/** Armadura e RM vindas de itens (o que a sua penetração precisa vencer). */
+function itemResists(e, dd) {
+  let armor = 0;
+  let mr = 0;
+  for (const it of e.items || []) {
+    const st = statsOf(dd, it.id);
+    armor += st.FlatArmorMod || 0;
+    mr += st.FlatSpellBlockMod || 0;
+  }
+  return { armor, mr };
+}
+
+/** Itens de crítico do inimigo (para Presságio de Randuin). */
+const critItems = (e, dd) => (e.items || []).filter((it) => (statsOf(dd, it.id).FlatCritChanceMod || 0) > 0 && goldOf(dd, it.id) >= 1000).length;
+
+/** Fontes de escudo: kit do campeão + itens cuja descrição fala de escudo. */
+function shieldSources(e, dd, flags) {
+  const out = [];
+  if ((flags.shielders || []).includes(e.championId)) out.push(e.champion);
+  for (const it of e.items || []) {
+    const meta = dd.item(it.id) || {};
+    if (goldOf(dd, it.id) >= 2000 && /escudo|shield/i.test(meta.description || '') && !/reduz.*escudo|anti-?escudo|shield reaver|ceifa/i.test(meta.description || '')) out.push(meta.name || it.name);
+  }
+  return out;
 }
 
 function buyAdvice({ state, build, dd, flags = defaultFlags }) {
@@ -161,7 +215,11 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const best = Math.max(score, prev.score);
     if (REACTIVE_OVER(tag) && !REACTIVE_OVER(prev.tag)) cands.set(id, { score: best + 4, reason: `${reason} · também na build do meta`, tag, vs });
     else if (REACTIVE_OVER(prev.tag) && !REACTIVE_OVER(tag)) cands.set(id, { ...prev, score: Math.max(prev.score, score + 4), reason: prev.reason.includes('build do meta') ? prev.reason : `${prev.reason} · também na build do meta` });
-    else if (score > prev.score) cands.set(id, { score, reason, tag, vs });
+    else if (REACTIVE_OVER(tag) && REACTIVE_OVER(prev.tag) && tag !== prev.tag) {
+      // duas respostas no mesmo item (ex.: Randuin = armadura + anti-crítico): junta os motivos
+      const [win, lose] = score > prev.score ? [{ score, reason, tag, vs }, prev] : [prev, { score, reason, tag, vs }];
+      cands.set(id, { ...win, score: best + 3, reason: `${win.reason} · ${lose.reason}`, vs: [...new Set([...(win.vs || []), ...(lose.vs || [])])].slice(0, 4) });
+    } else if (score > prev.score) cands.set(id, { score, reason, tag, vs });
   };
   const ids = (list) => list.map((x) => x.e.championId).filter(Boolean).slice(0, 4);
 
@@ -193,7 +251,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   /* --- reativos --- */
   // Cada inimigo pesa pela ameaça ao vivo (KDA, ouro, nível, oponente de rota).
   const laneOpponentName = (state.laneOpponent && state.laneOpponent.champion) || (build && build.matchup && build.matchup.vs) || null;
-  const t = rankThreats(enemies, { dd, laneOpponentName, myLevel: me.level }).map((x) => ({ ...x, d: damageProfile(x.e, flags) }));
+  const t = rankThreats(enemies, { dd, laneOpponentName, myLevel: me.level }).map((x) => ({ ...x, d: liveProfile(x.e, dd, flags) }));
   const wSum = t.reduce((s, x) => s + x.w, 0) || 1;
   const adShare = t.reduce((s, x) => s + x.w * x.d.ad, 0) / wSum;
   const apShare = t.reduce((s, x) => s + x.w * x.d.ap, 0) / wSum;
@@ -294,7 +352,34 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const names = tanks.slice(0, 2).map((e) => e.champion).join(', ');
     const tv = tanks.map((e) => e.championId).filter(Boolean).slice(0, 4);
     react('antitank', 58 + tanks.length * 5, `Dano por % de vida contra ${names}`, tv);
-    if (me.items.length >= 3) react('pen', 54 + tanks.length * 5, `Penetração contra ${names}`, tv);
+  }
+
+  // Penetração pela defesa que os inimigos realmente compraram: AD olha armadura, AP olha RM.
+  const myAp = cls === 'ap';
+  const resist = enemies.map((e) => ({ e, r: itemResists(e, dd)[myAp ? 'mr' : 'armor'] })).filter((x) => x.r >= 40).sort((a, b) => b.r - a.r);
+  const stack = resist.reduce((sum, x) => sum + x.r, 0);
+  if (me.items.length >= 2 && (resist.length >= 2 || stack >= 110 || tanks.length >= 2)) {
+    const list = resist.length ? resist : tanks.map((e) => ({ e, r: 0 }));
+    const names = list.slice(0, 2).map((x) => (x.r ? `${x.e.champion} (+${Math.round(x.r)} ${myAp ? 'RM' : 'armadura'})` : x.e.champion)).join(', ');
+    react('pen', 54 + Math.min(30, stack / 8) + tanks.length * 3, `Penetração ${myAp ? 'mágica' : 'de armadura'} contra ${names}`, list.map((x) => x.e.championId).filter(Boolean).slice(0, 4));
+  }
+
+  // Escudos: 3+ fontes (kits como Lulu/Sett e itens de escudo) -> Presa da Serpente para AD.
+  if (cls === 'ad' || cls === 'adc') {
+    const src = enemies.map((e) => ({ e, s: shieldSources(e, dd, flags) })).filter((x) => x.s.length);
+    const n = src.reduce((sum, x) => sum + x.s.length, 0);
+    if (n >= 3 && me.items.length >= 1) {
+      react('antishield', 50 + n * 6, `Muitos escudos: ${src.flatMap((x) => x.s).slice(0, 3).join(', ')}`, src.map((x) => x.e.championId).filter(Boolean).slice(0, 4));
+    }
+  }
+
+  // Crítico: carry inimigo com 2+ itens de crítico -> Presságio de Randuin (tanque/lutador).
+  if (cls === 'tank' || (cls === 'ad' && (me.tags || []).includes('Fighter'))) {
+    const crit = enemies.map((e) => ({ e, n: critItems(e, dd) })).filter((x) => x.n >= 2).sort((a, b) => b.n - a.n);
+    if (crit.length) {
+      const w = (t.find((x) => x.e === crit[0].e) || { w: 1 }).w;
+      react('anticrit', 52 + crit[0].n * 7 + Math.min(15, (w - 1) * 25), `${crit[0].e.champion} com ${crit[0].n} itens de crítico: reduz o dano de crítico`, crit.map((x) => x.e.championId).filter(Boolean).slice(0, 3));
+    }
   }
 
   // botas: se já tem botas, descarta sugestão de botas de outra categoria repetida
@@ -342,9 +427,11 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   if (build && build.matchup) notes.push(`Matchup vs ${build.matchup.vs}${build.matchup.used.length ? ` (${build.matchup.used.join(', ')})` : ''}`);
   if (!build) notes.push('Sem build do OP.GG para este campeão (usando só regras contra o time inimigo).');
   if (biggest && biggest.fed) notes.push(`Maior ameaça agora: ${biggest.e.champion} ${kdaText(biggest.e)}`);
+  const off = t.filter((x) => x.d.offbuild);
+  if (off.length) notes.push(`Build fora do padrão: ${off.map((x) => `${x.e.champion} de ${x.d.offbuild}`).join(', ')} (contado pelos itens)`);
   const threatsOut = t.slice(0, 3).map((x) => ({ champion: x.e.champion, kda: kdaText(x.e), w: Math.round(x.w * 100) / 100, fed: x.fed, lane: x.lane }));
   return { items, notes, cls, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
 }
 
 module.exports = {
-  goodAgainst, buyAdvice, missingGold, classOf, isBoots };
+  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots };

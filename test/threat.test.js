@@ -208,3 +208,40 @@ test('Hecarim fed contra atirador ganhando a rota: resposta a ele aparece (não 
   const hec = adv.items.filter((i) => /Hecarim/.test(i.reason));
   assert.ok(hec.length, `nada contra o Hecarim: ${adv.items.map((i) => `${i.name} (${i.reason})`).join(' | ')}`);
 });
+
+test('itens do inimigo: Kai\'Sa AP conta como mágico; penetração pela armadura comprada; escudos; crítico', () => {
+  const { liveProfile } = require('../src/buys');
+  const flagsReal = require('../data/champion-flags.json');
+  const I = {
+    3089: { name: 'Capuz da Morte', stats: { FlatMagicDamageMod: 130 }, gold: { total: 3600 }, tags: [] },
+    4645: { name: 'Chama Sombria', stats: { FlatMagicDamageMod: 110 }, gold: { total: 3200 }, tags: [] },
+    3143: { name: 'Randuin', stats: { FlatArmorMod: 75 }, gold: { total: 2700 }, tags: ['Armor'] },
+    3075: { name: 'Espinhos', stats: { FlatArmorMod: 70 }, gold: { total: 2700 }, tags: ['Armor'] },
+    3036: { name: 'Lorde Dominik', stats: { FlatPhysicalDamageMod: 35, FlatCritChanceMod: 0.25 }, gold: { total: 3100 }, tags: [] },
+    6695: { name: 'Presa da Serpente', stats: {}, gold: { total: 2500 }, tags: [] },
+    3031: { name: 'Gume do Infinito', stats: { FlatPhysicalDamageMod: 65, FlatCritChanceMod: 0.25 }, gold: { total: 3400 }, tags: ['CriticalStrike'] },
+    3094: { name: 'Canhão Fumegante', stats: { FlatCritChanceMod: 0.25, PercentAttackSpeedMod: 0.35 }, gold: { total: 2800 }, tags: ['CriticalStrike'] },
+    3190: { name: 'Medalhão', stats: { FlatArmorMod: 25 }, gold: { total: 2200 }, description: 'Concede um escudo aos aliados próximos.', tags: [] },
+    3071: { name: 'Cutelo Negro', stats: { FlatPhysicalDamageMod: 40 }, gold: { total: 3000 }, tags: [] },
+    6694: { name: 'Rancor de Serylda', stats: { FlatPhysicalDamageMod: 45 }, gold: { total: 3000 }, tags: [] },
+  };
+  const ddI = { item: (id) => I[id] || null };
+  const kaisa = { champion: "Kai'Sa", championId: 'Kaisa', tags: ['Marksman'], items: [{ id: 3089 }, { id: 4645 }] };
+  const p = liveProfile(kaisa, ddI, flagsReal);
+  assert.ok(p.ap > 0.55 && p.offbuild === 'AP', JSON.stringify(p));
+
+  const E = (champion, tags, items, k = 2, d = 2) => ({ champion, championId: champion, tags, level: 13, position: '', scores: { kills: k, deaths: d, assists: 2 }, items: items.map((id) => ({ id, tags: (I[id] || {}).tags || [] })) });
+  const meAd = { champion: 'Talon', championId: 'Talon', tags: ['Assassin'], level: 13, gold: 900, items: [{ id: 3071 }, { id: 1055 }], scores: { kills: 4, deaths: 2, assists: 1 } };
+  const adv = buyAdvice({ dd: ddI, flags: flagsReal, build: { damageType: 'AD', core: [], boots: [] }, state: { gameTime: 1500, me: meAd,
+    enemies: [E('Ornn', ['Tank'], [3143, 3075]), E('Lulu', ['Support'], [3190]), E('Sett', ['Fighter'], [3190]), E('Jinx', ['Marksman'], [3031, 3094], 7, 1), E('Lux', ['Mage'], [])] } });
+  const byTag = (tag) => adv.items.find((i) => i.tag === tag) || null;
+  const all = adv.items.map((i) => `${i.name}:${i.tag}`).join(' | ');
+  assert.ok(adv.items.some((i) => i.id === 6695), `Presa da Serpente contra escudos: ${all}`);
+  assert.ok(byTag('pen'), `penetração esperada: ${all}`);
+  assert.match(byTag('pen').reason, /Ornn \(\+145 armadura\)/);
+  assert.ok(!byTag('anticrit'), 'assassino não compra Randuin');
+  const tank = buyAdvice({ dd: ddI, flags: flagsReal, build: { damageType: 'AD', core: [], boots: [] }, state: { gameTime: 1500,
+    me: { champion: 'Malphite', championId: 'Malphite', tags: ['Tank'], level: 13, gold: 900, items: [{ id: 3075 }], scores: { kills: 1, deaths: 2, assists: 5 } },
+    enemies: [E('Jinx', ['Marksman'], [3031, 3094], 7, 1), E('Lux', ['Mage'], [])] } });
+  assert.ok(tank.items.some((i) => i.id === 3143 && /Jinx com 2 itens de crítico/.test(i.reason)), tank.items.map((i) => i.reason).join(' | '));
+});

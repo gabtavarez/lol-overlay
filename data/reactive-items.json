@@ -167,5 +167,27 @@
       3865,
       2003
     ]
+  },
+  "antishield": {
+    "_note": "Presa da Serpente (corta escudos) — só AD",
+    "ap": [],
+    "adc": [
+      6695
+    ],
+    "ad": [
+      6695
+    ],
+    "tank": []
+  },
+  "anticrit": {
+    "_note": "Presságio de Randuin (reduz dano de crítico)",
+    "ap": [],
+    "adc": [],
+    "ad": [
+      3143
+    ],
+    "tank": [
+      3143
+    ]
   }
 }

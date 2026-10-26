@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.27.0",
+    "title": "Compras lendo os itens do inimigo",
+    "items": [
+      "Tipo de dano pelos itens: Kai'Sa AP, Ezreal AP e afins passam a contar como dano mágico (o app avisa \"build fora do padrão\").",
+      "Penetração pela defesa que o inimigo comprou: AD olha a armadura e AP olha a RM dos itens (ex.: \"Ornn (+145 armadura)\").",
+      "Escudos: com 3+ fontes (Lulu, Sett, Medalhão…), sugere Presa da Serpente para campeões AD.",
+      "Crítico: carry inimigo com 2+ itens de crítico faz tanques e lutadores receberem o Presságio de Randuin.",
+      "Quando duas regras pedem o mesmo item, os motivos aparecem juntos."
+    ]
+  },
+  {
     "version": "0.26.3",
     "title": "Resposta a inimigo fed",
     "items": [

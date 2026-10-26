@@ -1553,6 +1553,10 @@ function drawProfile() {
   $('pf-title').textContent = { mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: 'Sua coleção' }[pf.tab];
   if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
   if (!d.mastery) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver o perfil.' }))); return; }
+  // anima só quando troca de aba ou chegam dados novos (clicar numa bolha não repete a animação)
+  const animKey = `${pf.tab}:${pf.cls}:${d.version}:${d.mastery.total}`;
+  body.classList.toggle('pf-anim', animKey !== pf.animKey);
+  pf.animKey = animKey;
   if (pf.tab === 'mastery') body.replaceChildren(...drawMasteryTab(d));
   else if (pf.tab === 'style') body.replaceChildren(...drawStyleTab(d));
   else body.replaceChildren(...drawCollectionTab(d));

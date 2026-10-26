@@ -64,3 +64,18 @@ test('nota da partida: áreas, nota geral e foco na pior área', () => {
   assert.ok(great.overall > g.overall);
   assert.ok(great.best.length >= 1);
 });
+
+test('sugestões: até 20, no máximo 2 por campeão', () => {
+  const many = {}; const cat = {};
+  for (let i = 1; i <= 15; i++) {
+    many[`C${i}`] = { id: `C${i}`, key: String(i), name: `C${i}`, tags: ['Mage'] };
+    for (const [j, r] of [[1, 'kLegendary'], [2, 'kUltimate'], [3, 'kLegendary'], [4, 'kMythic']]) cat[i * 1000 + j] = { id: i * 1000 + j, name: `C${i}-${j}`, rarity: r, legacy: false, chromas: [] };
+  }
+  const ddM = { champions: many, championByKey: (k) => many[`C${k}`] || null };
+  const mast = new Map(Array.from({ length: 15 }, (_, i) => [i + 1, { points: 100000 - i * 2000 }]));
+  const sug = suggestSkins({ inv: { skins: new Set() }, catalog: cat, dd: ddM, mastery: mast, games: [] });
+  assert.equal(sug.length, 20);
+  const per = {};
+  for (const s of sug) per[s.champion] = (per[s.champion] || 0) + 1;
+  assert.ok(Object.values(per).every((n) => n <= 2));
+});

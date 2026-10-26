@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.28.1",
+    "title": "Animações e mais skins sugeridas",
+    "items": [
+      "Animações leves no app todo: troca de tela suave, cards e listas entrando em sequência, barras que crescem, bolhas da maestria, janela de novidades e hover nos botões e cards. Respeita a opção do Windows de reduzir animações.",
+      "Overlay em partida: painéis aparecem com fade e o aviso de voltar à base pulsa de leve.",
+      "Coleção: até 20 skins sugeridas (no máximo 2 por campeão), ainda só Supremas, Lendárias e Míticas à venda dos campeões que você joga."
+    ]
+  },
+  {
     "version": "0.28.0",
     "title": "Perfil completo e pós-partida com nota",
     "items": [

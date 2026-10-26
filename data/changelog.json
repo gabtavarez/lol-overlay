@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.30.0",
+    "title": "Galeria de skins e sugestões com preço",
+    "items": [
+      "Coleção: galeria com todas as skins do jogo, com busca por skin ou campeão e filtros (tenho / não tenho, raridade, legado) e ordem por raridade, campeão ou mais recentes.",
+      "Skins que valem o investimento: até 40 sugestões, em três filtros — Campeões que jogo, Lançamentos recentes e Em promoção.",
+      "Cada skin mostra a moeda com ícone: RP (com o valor e a promoção), Essência Mítica, Gacha (Santuário) ou Legado (fora da loja). Os preços vêm da loja do seu cliente; sem ela, o valor padrão da raridade (aprox.).",
+      "\"Mais compradas\" não entrou: a Riot não divulga números de venda."
+    ]
+  },
+  {
     "version": "0.29.1",
     "title": "Bans estáveis, patch dos seus campeões completo e tela inicial mais didática",
     "items": [

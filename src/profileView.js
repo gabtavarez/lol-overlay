@@ -203,39 +203,117 @@ function buildCollection({ inv, catalog, dd }) {
   };
 }
 
+/* ---------- preços (catálogo do cliente) e lista completa ---------- */
+
 /**
- * Só skins TOP de quem você joga: Suprema, Mítica ou Lendária, à venda (não legado), que você não tem,
- * dos seus campeões mais jogados recentemente / com mais maestria. No máximo 1 por campeão.
+ * Preços e datas pelo catálogo da loja do cliente (RP, Essência Mítica, promoção, lançamento).
+ * Se o cliente não responder, o preço sai pela raridade (tabela padrão da Riot).
  */
-function suggestSkins({ inv, catalog, dd, mastery, games, limit = 20, perChampion = 2 }) {
+async function loadPrices(creds) {
+  const out = new Map();
+  let items = null;
+  try { items = await lcuGetJson(creds, '/lol-catalog/v1/items/CHAMPION_SKIN'); } catch { /* sem catálogo */ }
+  for (const it of Array.isArray(items) ? items : []) {
+    const id = Number(it.itemId);
+    if (!id) continue;
+    const pick = (list) => {
+      const p = { rp: null, me: null };
+      for (const x of Array.isArray(list) ? list : []) {
+        const cur = String(x.currency || '').toLowerCase();
+        if (cur === 'rp') p.rp = x.cost;
+        else if (/mythic|essence_mythic|me$/.test(cur)) p.me = x.cost;
+      }
+      return p;
+    };
+    const base = pick(it.prices);
+    const sale = it.sale && pick(it.sale.prices);
+    const rel = it.releaseDate ? (typeof it.releaseDate === 'number' ? it.releaseDate : Date.parse(it.releaseDate)) : null;
+    out.set(id, { ...base, sale: sale && (sale.rp || sale.me) ? { rp: sale.rp, me: sale.me, end: it.sale.endDate || null } : null, released: Number.isFinite(rel) ? rel : null, active: it.active !== false });
+  }
+  return out;
+}
+
+const DEFAULT_RP = { kUltimate: 3250, kLegendary: 1820, kEpic: 1350 };
+/** { kind: 'rp' | 'me' | 'gacha' | 'legacy' | 'unknown', amount, sale } */
+function priceOf(s, prices) {
+  const p = prices && prices.get(s.id);
+  if (s.rarity === 'kExalted' || s.rarity === 'kTranscendent') return { kind: 'gacha', amount: null };
+  if (p && p.rp) return { kind: 'rp', amount: p.rp, sale: p.sale && p.sale.rp ? p.sale.rp : null };
+  if (p && p.me) return { kind: 'me', amount: p.me, sale: p.sale && p.sale.me ? p.sale.me : null };
+  if (s.legacy) return { kind: 'legacy', amount: null };
+  if (s.rarity === 'kMythic') return { kind: 'me', amount: null };
+  if (DEFAULT_RP[s.rarity]) return { kind: 'rp', amount: DEFAULT_RP[s.rarity], estimated: true };
+  return { kind: 'unknown', amount: null };
+}
+
+/** Todas as skins (sem as padrão), para a galeria com filtros. */
+function buildSkinList({ inv, catalog, dd, prices }) {
+  const out = [];
+  for (const s of Object.values(catalog || {})) {
+    if (s.base) continue;
+    const c = dd.championByKey(Math.floor(s.id / 1000));
+    if (!c) continue;
+    const p = prices && prices.get(s.id);
+    out.push({
+      id: s.id, name: s.name, champion: c.id, championName: c.name, num: s.id % 1000,
+      rarity: rarityOf(s).label, rank: rarityOf(s).rank, legacy: s.legacy, owned: inv.skins.has(s.id),
+      chromas: s.chromas.length, price: priceOf(s, prices), released: p ? p.released : null,
+    });
+  }
+  return out.sort((a, b) => a.championName.localeCompare(b.championName) || a.num - b.num);
+}
+
+/**
+ * Sugestões de skins que valem o investimento (não tem, à venda ou de gacha, Lendária para cima):
+ * - mine: dos campeões que você mais joga (até 2 por campeão)
+ * - recent: lançamentos mais recentes de qualquer campeão (precisa da data do catálogo do cliente)
+ * - sale: em promoção agora, os seus campeões primeiro
+ */
+function suggestSkins({ inv, catalog, dd, mastery, games, prices = null, mode = 'mine', limit = 40, perChampion = 2 }) {
   if (!catalog) return [];
   const recent = new Map();
   for (const g of games.filter((x) => !x.remake).slice(0, 50)) recent.set(g.championId, (recent.get(g.championId) || 0) + 1);
   const masteryOf = (k) => (mastery.get(k) || {}).points || 0;
   const maxM = Math.max(1, ...[...mastery.values()].map((m) => m.points || 0));
-  const champs = [...new Set([...recent.keys(), ...[...mastery].sort((a, b) => b[1].points - a[1].points).slice(0, 15).map(([k]) => k)])]
-    .map((k) => ({ k: Number(k), fit: (recent.get(k) || 0) / 10 + masteryOf(k) / maxM }))
-    .filter((x) => (recent.get(x.k) || 0) >= 2 || masteryOf(x.k) / maxM >= 0.15)
-    .sort((a, b) => b.fit - a.fit).slice(0, 16);
-  const pref = (s) => rarityOf(s).rank + (rarityOf(s).rp ? 1.5 : 0); // prefere o que dá para comprar com RP
+  const fitOf = (k) => (recent.get(k) || 0) / 10 + masteryOf(k) / maxM;
+  const pref = (s) => rarityOf(s).rank + (DEFAULT_RP[s.rarity] ? 1.5 : 0);
+  const make = (s, c, score) => {
+    const r = rarityOf(s);
+    const k = Number(c.key);
+    const g = recent.get(k) || 0;
+    const why = [g ? `${g} partidas recentes` : null, masteryOf(k) ? `${Math.round(masteryOf(k) / 1000)} mil pts de maestria` : null].filter(Boolean).join(' · ');
+    const p = prices && prices.get(s.id);
+    return { id: s.id, name: s.name, champion: c.id, championName: c.name, num: s.id % 1000, rarity: r.label, rarityKey: s.rarity,
+      price: priceOf(s, prices), released: p ? p.released : null, why, score };
+  };
+  const all = Object.values(catalog).filter((s) => !s.base && !inv.skins.has(s.id) && rarityOf(s).rank >= 3
+    && (!s.legacy || ['kExalted', 'kTranscendent'].includes(s.rarity)));
+
+  if (mode === 'recent') {
+    if (!prices || !prices.size) return [];
+    return all.map((s) => ({ s, c: dd.championByKey(Math.floor(s.id / 1000)), rel: (prices.get(s.id) || {}).released }))
+      .filter((x) => x.c && x.rel).sort((a, b) => b.rel - a.rel).slice(0, limit)
+      .map((x) => make(x.s, x.c, fitOf(Number(x.c.key))));
+  }
+  if (mode === 'sale') {
+    if (!prices || !prices.size) return [];
+    return all.filter((s) => (prices.get(s.id) || {}).sale)
+      .map((s) => ({ s, c: dd.championByKey(Math.floor(s.id / 1000)) })).filter((x) => x.c)
+      .map((x) => make(x.s, x.c, fitOf(Number(x.c.key)) + rarityOf(x.s).rank / 6))
+      .sort((a, b) => b.score - a.score).slice(0, limit);
+  }
+  const champs = [...new Set([...recent.keys(), ...[...mastery].sort((a, b) => b[1].points - a[1].points).slice(0, 25).map(([k]) => k)])]
+    .map((k) => ({ k: Number(k), fit: fitOf(Number(k)) }))
+    .filter((x) => (recent.get(x.k) || 0) >= 2 || masteryOf(x.k) / maxM >= 0.08)
+    .sort((a, b) => b.fit - a.fit).slice(0, 25);
   const out = [];
   for (const { k, fit } of champs) {
     const c = dd.championByKey(k);
     if (!c) continue;
-    const options = Object.values(catalog).filter((s) => Math.floor(s.id / 1000) === k && !s.base && !s.legacy && !inv.skins.has(s.id) && rarityOf(s).rank >= 3)
-      .sort((a, b) => pref(b) - pref(a) || b.id - a.id);
-    const games = recent.get(k) || 0;
-    const why = [games ? `${games} partidas recentes` : null, masteryOf(k) ? `${Math.round(masteryOf(k) / 1000)} mil pts de maestria` : null].filter(Boolean).join(' · ');
-    options.slice(0, perChampion).forEach((best, i) => {
-      const r = rarityOf(best);
-      out.push({
-        id: best.id, name: best.name, champion: c.id, championName: c.name, num: best.id % 1000, rarity: r.label, rarityKey: best.rarity,
-        price: r.rp ? `${r.rp.toLocaleString('pt-BR')} RP` : best.rarity === 'kMythic' ? 'Essência Mítica' : 'evento',
-        why, score: fit + r.rank / 6 - i * 0.35, // a 2ª do mesmo campeão desce um pouco
-      });
-    });
+    all.filter((s) => Math.floor(s.id / 1000) === k).sort((a, b) => pref(b) - pref(a) || b.id - a.id)
+      .slice(0, perChampion).forEach((s, i) => out.push(make(s, c, fit + rarityOf(s).rank / 6 - i * 0.35)));
   }
   return out.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
-module.exports = { createSkinCatalog, loadInventory, masteryPace, buildMastery, buildStyle, buildCollection, suggestSkins, RARITY, GRADE_ORDER };
+module.exports = { createSkinCatalog, loadInventory, loadPrices, priceOf, buildSkinList, masteryPace, buildMastery, buildStyle, buildCollection, suggestSkins, RARITY, GRADE_ORDER };

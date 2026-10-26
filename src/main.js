@@ -892,7 +892,15 @@ function registerIpc() {
       out.style = profileView.buildStyle({ games: profile.games || [], dd });
       const catalog = await skinCatalog();
       out.collection = catalog ? profileView.buildCollection({ inv, catalog, dd }) : null;
-      out.suggestions = catalog ? profileView.suggestSkins({ inv, catalog, dd, mastery: profile.mastery, games: profile.games || [] }) : [];
+      const prices = creds ? await profileView.loadPrices(creds).catch(() => new Map()) : new Map();
+      const sugArgs = { inv, catalog, dd, mastery: profile.mastery, games: profile.games || [], prices };
+      out.suggestions = catalog ? {
+        mine: profileView.suggestSkins({ ...sugArgs, mode: 'mine' }),
+        recent: profileView.suggestSkins({ ...sugArgs, mode: 'recent' }),
+        sale: profileView.suggestSkins({ ...sugArgs, mode: 'sale' }),
+        hasCatalog: prices.size > 0,
+      } : { mine: [], recent: [], sale: [], hasCatalog: false };
+      out.skins = catalog ? profileView.buildSkinList({ inv, catalog, dd, prices }) : [];
       if (!catalog) out.collectionError = 'não consegui baixar a lista de skins (CommunityDragon)';
     } catch (err) {
       out.error = err.message;

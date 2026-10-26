@@ -1536,7 +1536,7 @@ $('pn-open').addEventListener('click', () => { if (pn.version) window.overlay.op
 
 /* ---------- perfil (maestria, estilo, coleção) ---------- */
 
-const pf = { tab: 'mastery', data: null, sel: null, cls: 'all', q: '', loading: false };
+const pf = { tab: 'mastery', data: null, sel: null, cls: 'all', q: '', loading: false, sugMode: 'mine', sk: { q: '', own: 'all', rar: 'all', legacy: true, sort: 'rarity', limit: 60 } };
 const PF_TABS = [['mastery', 'Maestria'], ['style', 'Estilo de jogo'], ['collection', 'Coleção']];
 const PF_CLASSES = [['all', 'Todas'], ['Fighter', 'Lutadores'], ['Mage', 'Magos'], ['Assassin', 'Assassinos'], ['Marksman', 'Atiradores'], ['Tank', 'Tanques'], ['Support', 'Suportes']];
 const RARITY_CLS = { Suprema: 'ult', Mítica: 'myth', Exaltada: 'myth', Transcendente: 'myth', Lendária: 'leg', Épica: 'epic', Comum: 'com' };
@@ -1740,17 +1740,31 @@ function drawCollectionTab(d) {
     h('img', { class: 'ic', src: champIcon(d.version, m.id), alt: '' }), h('span', { class: 'nm', text: m.name }),
     h('div', { class: 'pf-segs' }, ...Array.from({ length: Math.min(m.total, 24) }, (_, i) => h('i', { class: i < m.owned ? 'on' : '' }))),
     h('b', { text: `${m.owned} / ${m.total}` }))));
-  const sug = d.suggestions || [];
-  const tops = pfCard('Skins que valem o investimento',
-    h('p', { class: 'muted small pf-sub', text: 'Só as melhores (Suprema, Lendária ou Mítica), à venda, dos campeões que você mais joga e que você ainda não tem.' }),
+  // sugestões: filtro (que jogo / lançamentos / promoção) + moeda de cada skin
+  const S = d.suggestions && !Array.isArray(d.suggestions) ? d.suggestions : { mine: d.suggestions || [], recent: [], sale: [], hasCatalog: false };
+  const SUG_TABS = [['mine', 'Campeões que jogo'], ['recent', 'Lançamentos recentes'], ['sale', 'Em promoção']];
+  const sugTabs = h('div', { class: 'seg' }, ...SUG_TABS.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === pf.sugMode ? ' on' : ''}`, type: 'button', text: `${label}${S[k] && S[k].length ? ` · ${S[k].length}` : ''}` });
+    b.addEventListener('click', () => { pf.sugMode = k; drawProfile(); });
+    return b;
+  }));
+  const sug = S[pf.sugMode] || [];
+  const emptyTxt = pf.sugMode === 'mine' ? 'Você já tem as melhores skins dos campeões que mais joga.'
+    : !S.hasCatalog ? 'Precisa do catálogo da loja do cliente (abra o cliente do LoL e clique em Atualizar).'
+      : pf.sugMode === 'sale' ? 'Nenhuma skin Lendária ou melhor em promoção agora.' : 'Sem lançamentos recentes que você não tenha.';
+  const tops = pfCard(null,
+    h('div', { class: 'pf-toolbar' }, h('div', { class: 'pf-ch', text: 'Skins que valem o investimento' }), h('span', { class: 'spacer' }), sugTabs),
+    h('p', { class: 'muted small pf-sub', text: 'Lendária, Mítica, Suprema ou de gacha que você ainda não tem. "Mais compradas" não dá: a Riot não divulga vendas.' }),
+    h('div', { class: 'pf-legend' }, priceTag({ kind: 'rp', amount: null }, 'RP'), priceTag({ kind: 'me', amount: null }, 'Essência Mítica'), priceTag({ kind: 'gacha' }, 'Gacha (Santuário)')),
     sug.length ? h('div', { class: 'pf-sugs' }, ...sug.map((x) => h('div', { class: 'pf-sug' },
       h('img', { src: loadingUrl(x.champion, x.num), alt: '', loading: 'lazy' }),
       h('div', { class: 'pf-st' },
         h('span', { class: `rar ${RARITY_CLS[x.rarity] || ''}`, text: x.rarity }),
         h('b', { text: x.name }),
-        h('span', { class: 'muted small', text: x.why }),
-        h('span', { class: 'pf-price', text: x.price }))))) : h('p', { class: 'muted pad', text: 'Você já tem as melhores skins dos campeões que mais joga.' }));
-  return [stats, tops, jewels, h('div', { class: 'pf-two' }, rarity, most)];
+        x.why ? h('span', { class: 'muted small', text: x.why }) : null,
+        priceTag(x.price))))) : h('p', { class: 'muted pad', text: emptyTxt }));
+  const gallery = skinGallery(d);
+  return [stats, tops, gallery, jewels, h('div', { class: 'pf-two' }, rarity, most)];
 }
 
 $('pf-refresh').addEventListener('click', () => loadProfile(true));
@@ -1765,4 +1779,65 @@ function howState(state) {
   set(2, phase === 'select' ? 'now' : '', phase === 'select' ? 'agora' : '');
   set(3, phase === 'game' ? 'now' : '', phase === 'game' ? 'agora' : '');
   set(4, '', '');
+}
+
+
+/** Selo de preço: ícone da moeda + valor (RP, Essência Mítica, gacha, legado). */
+function priceTag(p, label) {
+  p = p || { kind: 'unknown' };
+  const KIND = { rp: ['rp', 'RP'], me: ['essence', 'Essência Mítica'], gacha: ['gacha', 'Gacha'], legacy: ['lock', 'Legado (fora da loja)'], unknown: ['rp', '—'] };
+  const [ico, name] = KIND[p.kind] || KIND.unknown;
+  const val = label || (p.kind === 'gacha' ? 'Gacha (Santuário)' : p.kind === 'legacy' ? 'Legado · fora da loja'
+    : p.amount ? `${p.amount.toLocaleString('pt-BR')} ${p.kind === 'rp' ? 'RP' : 'EM'}${p.estimated ? ' (aprox.)' : ''}` : p.kind === 'me' ? 'Essência Mítica' : name);
+  if (p.sale && p.amount) {
+    // em promoção: preço cheio riscado + preço atual
+    return h('span', { class: `cur cur-${p.kind} on-sale`, title: `${name} · em promoção` },
+      svgIcon(ico, 'ico'), h('s', { text: p.amount.toLocaleString('pt-BR') }), h('span', { text: `${p.sale.toLocaleString('pt-BR')} ${p.kind === 'rp' ? 'RP' : 'EM'}` }));
+  }
+  return h('span', { class: `cur cur-${p.kind}`, title: name }, svgIcon(ico, 'ico'), h('span', { text: val }));
+}
+
+/** Galeria de todas as skins com filtros (nome/campeão, tenho/não tenho, raridade, legado, ordem). */
+function skinGallery(d) {
+  const all = d.skins || [];
+  if (!all.length) return null;
+  const f = pf.sk;
+  const rarities = ['all', 'Suprema', 'Exaltada', 'Transcendente', 'Mítica', 'Lendária', 'Épica', 'Comum'].filter((r) => r === 'all' || all.some((x) => x.rarity === r));
+  const q = f.q.trim().toLowerCase();
+  let list = all.filter((x) => (f.own === 'all' || (f.own === 'yes') === x.owned) && (f.rar === 'all' || x.rarity === f.rar) && (f.legacy || !x.legacy)
+    && (!q || x.name.toLowerCase().includes(q) || x.championName.toLowerCase().includes(q)));
+  if (f.sort === 'rarity') list = [...list].sort((a, b) => b.rank - a.rank || a.championName.localeCompare(b.championName));
+  else if (f.sort === 'recent') list = [...list].sort((a, b) => (b.released || 0) - (a.released || 0) || b.id - a.id);
+  const sel = (id, opts, val, on) => {
+    const el = h('select', { id }, ...opts.map(([v, t]) => h('option', { value: v, text: t })));
+    el.value = val;
+    el.addEventListener('change', () => { on(el.value); f.limit = 60; drawProfile(); });
+    return el;
+  };
+  const search = h('input', { id: 'sk-q', type: 'text', placeholder: 'Skin ou campeão', value: f.q, maxlength: '40' });
+  search.addEventListener('input', () => {
+    f.q = search.value; f.limit = 60;
+    const pos = search.selectionStart;
+    drawProfile();
+    const el = $('sk-q'); if (el) { el.focus(); el.setSelectionRange(pos, pos); }
+  });
+  const legacy = h('label', { class: 'sk-chk' }, h('input', { type: 'checkbox' }), document.createTextNode('Mostrar legado'));
+  legacy.firstChild.checked = f.legacy;
+  legacy.firstChild.addEventListener('change', () => { f.legacy = legacy.firstChild.checked; f.limit = 60; drawProfile(); });
+  const owned = all.filter((x) => x.owned).length;
+  const tiles = list.slice(0, f.limit).map((x) => h('div', { class: `sk-tile${x.owned ? ' owned' : ''}`, title: `${x.name} · ${x.rarity}${x.chromas ? ` · ${x.chromas} cromas` : ''}` },
+    h('img', { src: loadingUrl(x.champion, x.num), alt: '', loading: 'lazy' }),
+    x.owned ? h('span', { class: 'sk-own', text: '✓ sua' }) : null,
+    h('div', { class: 'sk-info' }, h('span', { class: `rar ${RARITY_CLS[x.rarity] || ''}`, text: x.rarity }), h('b', { text: x.name }), x.owned ? null : priceTag(x.price))));
+  const more = list.length > f.limit ? h('button', { class: 'btn ghost sk-more', type: 'button', text: `Mostrar mais (${list.length - f.limit} restantes)` }) : null;
+  if (more) more.addEventListener('click', () => { f.limit += 60; drawProfile(); });
+  return pfCard(null,
+    h('div', { class: 'pf-toolbar' }, h('div', { class: 'pf-ch', text: `Todas as skins · você tem ${owned} de ${all.length}` })),
+    h('div', { class: 'pf-toolbar sk-filters' }, search,
+      sel('sk-own', [['all', 'Todas'], ['yes', 'Tenho'], ['no', 'Não tenho']], f.own, (v) => { f.own = v; }),
+      sel('sk-rar', rarities.map((r) => [r, r === 'all' ? 'Toda raridade' : r]), f.rar, (v) => { f.rar = v; }),
+      sel('sk-sort', [['rarity', 'Raridade'], ['champion', 'Campeão'], ['recent', 'Mais recentes']], f.sort, (v) => { f.sort = v; }),
+      legacy, h('span', { class: 'muted small', text: `${list.length} skin${list.length === 1 ? '' : 's'}` })),
+    list.length ? h('div', { class: 'sk-grid' }, ...tiles) : h('p', { class: 'muted pad', text: 'Nenhuma skin com esses filtros.' }),
+    more);
 }

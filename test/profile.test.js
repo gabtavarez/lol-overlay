@@ -65,7 +65,7 @@ test('nota da partida: áreas, nota geral e foco na pior área', () => {
   assert.ok(great.best.length >= 1);
 });
 
-test('sugestões: até 20, no máximo 2 por campeão', () => {
+test('sugestões: até 40, no máximo 2 por campeão', () => {
   const many = {}; const cat = {};
   for (let i = 1; i <= 15; i++) {
     many[`C${i}`] = { id: `C${i}`, key: String(i), name: `C${i}`, tags: ['Mage'] };
@@ -74,8 +74,26 @@ test('sugestões: até 20, no máximo 2 por campeão', () => {
   const ddM = { champions: many, championByKey: (k) => many[`C${k}`] || null };
   const mast = new Map(Array.from({ length: 15 }, (_, i) => [i + 1, { points: 100000 - i * 2000 }]));
   const sug = suggestSkins({ inv: { skins: new Set() }, catalog: cat, dd: ddM, mastery: mast, games: [] });
-  assert.equal(sug.length, 20);
+  assert.equal(sug.length, 30); // 15 campeões x 2
   const per = {};
   for (const s of sug) per[s.champion] = (per[s.champion] || 0) + 1;
   assert.ok(Object.values(per).every((n) => n <= 2));
+});
+
+test('preço e modos: RP do catálogo, Essência Mítica, gacha, recentes e promoção', () => {
+  const { priceOf, buildSkinList } = require('../src/profileView');
+  const prices = new Map([[84060, { rp: 1820, me: null, sale: { rp: 910 }, released: 2000 }], [84090, { rp: null, me: 125, released: 3000 }]]);
+  assert.deepEqual(priceOf({ id: 84060, rarity: 'kLegendary' }, prices), { kind: 'rp', amount: 1820, sale: 910 });
+  assert.equal(priceOf({ id: 84090, rarity: 'kMythic' }, prices).amount, 125);
+  assert.equal(priceOf({ id: 1, rarity: 'kExalted' }, prices).kind, 'gacha');
+  assert.equal(priceOf({ id: 2, rarity: 'kLegendary', legacy: true }, null).kind, 'legacy');
+  const catalog = { 84060: { id: 84060, name: 'A', rarity: 'kLegendary', legacy: false, chromas: [] }, 84090: { id: 84090, name: 'B', rarity: 'kMythic', legacy: false, chromas: [1] } };
+  const inv = { skins: new Set([84060]) };
+  const list = buildSkinList({ inv, catalog, dd, prices });
+  assert.equal(list.length, 2);
+  assert.ok(list.find((x) => x.id === 84060).owned);
+  const rec = suggestSkins({ inv: { skins: new Set() }, catalog, dd, mastery, games: [], prices, mode: 'recent' });
+  assert.equal(rec[0].id, 84090);
+  const sale = suggestSkins({ inv: { skins: new Set() }, catalog, dd, mastery, games: [], prices, mode: 'sale' });
+  assert.deepEqual(sale.map((x) => x.id), [84060]);
 });

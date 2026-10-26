@@ -4,7 +4,7 @@
     "title": "Builds mais espertas: classe, suporte, inventário cheio e matchup",
     "items": [
       "Corrigido: mago sem build do OP.GG (ex.: Ahri) era tratado como AD e recebia itens de AD. Agora a classe vem das tags do campeão quando falta a build.",
-      "Suporte encantador (Lulu, Janna, Soraka, Nami…) ganhou respostas próprias: Medalhão dos Solari, Bênção de Mikael, Redenção, Juramento do Cavaleiro e Putrificador.",
+      "Suporte encantador (Lulu, Janna, Soraka, Nami…) ganhou respostas próprias: Medalhão dos Solari, Bênção de Mikael, Redenção, Juramento do Cavaleiro e anti-cura (Orbe do Esquecimento).",
       "Inventário cheio: cada sugestão diz o que vender ou trocar; elixir no fim de jogo (nível 9+) e lembrete de sentinela de controle.",
       "Champ select: versão \"Contra X\" com o que muda no matchup — feitiço (Purificar contra muito CC, Exaustão/Barreira contra assassino), fragmento de tenacidade, Determinação na 2ª árvore em matchup difícil, além de itens, runas e ordem de habilidades do OP.GG para o confronto.",
       "Bloco \"O que muda\" mostra cada ajuste e a fonte (OP.GG ou regra do app); a ordem de habilidades indica quando foi ajustada ao matchup.",

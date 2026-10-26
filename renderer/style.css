@@ -667,3 +667,14 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+.g-cc { --gc: #e8c45a; }
+
+/* o que muda no matchup */
+.g-changes { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.g-changes .lbl { margin-bottom: 4px; }
+.g-ch { display: grid; grid-template-columns: 92px 1fr auto; gap: 10px; align-items: center; padding: 7px 10px; border-radius: 8px; background: var(--card2); border-left: 2px solid var(--acc); font-size: 12.5px; animation: fadeUp .25s ease-out backwards; }
+.g-ch-k { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.g-ch-s { font-size: 10.5px; padding: 1px 7px; border-radius: 99px; }
+.g-ch-s.src-op { color: #6fa3ff; background: rgba(76,141,255,.12); }
+.g-ch-s.src-rule { color: var(--warn); background: rgba(229,168,61,.12); }
+.g-ch.k-skills { border-left-color: #6fa3ff; } .g-ch.k-spells { border-left-color: var(--warn); } .g-ch.k-runes, .g-ch.k-shards { border-left-color: #c77dff; } .g-ch.k-items { border-left-color: var(--good); }

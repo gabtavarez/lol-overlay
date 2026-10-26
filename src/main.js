@@ -24,10 +24,11 @@ const { diffChampion, verdict } = require('./patchDiff');
 const { createDiscordRpc, activityFor } = require('./discord');
 const { createPatchNotes } = require('./patchNotes');
 const profileView = require('./profileView');
+const { tweakForMatchup, describeChanges } = require('./matchupTweaks');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
 const { situationalItems } = require('./situational');
-const { isBoots: isBootsItem } = require('./buys');
+const { isBoots: isBootsItem, classOf } = require('./buys');
 const { liveGoals, targetsFor } = require('./goals');
 const { createEloTracker, weekStats } = require('./elo');
 const { createMeraki, ultRank } = require('./providers/meraki');
@@ -388,15 +389,27 @@ function buildVariants(champ, role) {
   const opp = laneEnemy();
   const mu = opp && remote.getMatchup(champ, opp, role);
   const wr = pctTxt(base.winRate);
-  const out = [{ label: 'Mais jogada', sub: [pctTxt(base.corePick) && `${pctTxt(base.corePick)} dos jogadores`, wr && `WR ${wr}`].filter(Boolean).join(' · ') || 'OP.GG', build: base }];
-  const vsMu = mu && withMatchup(base, mu, opp.name);
-  if (vsMu && vsMu.matchup && vsMu.matchup.used.length) {
-    out.push({ label: `Contra ${opp.name}`, sub: `ajusta ${vsMu.matchup.used.join(', ')}`, build: vsMu });
+  const out = [{ label: 'Mais jogada', sub: [pctTxt(base.corePick) && `${pctTxt(base.corePick)} dos jogadores`, wr && `WR ${wr}`].filter(Boolean).join(' · ') || 'OP.GG', build: base, changes: [] }];
+  // Contra o oponente de rota (ou a comp inimiga): OP.GG do matchup + regras próprias (feitiço, fragmento, 2ª árvore).
+  const enemies = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
+  const oppFull = opp ? dd.champions[opp.id] || opp : null;
+  const vsMu = mu ? withMatchup(base, mu, opp.name) : opp ? { ...base, matchup: { vs: opp.name, tip: '', used: [] } } : base;
+  const counter = opp && (base.weakCounters || []).find((c) => c.name && dd.championByRaw(null, c.name) && dd.championByRaw(null, c.name).id === opp.id);
+  const oppWinRate = counter ? (counter.myWinRate != null ? counter.myWinRate : counter.oppWinRate != null ? 1 - counter.oppWinRate : null) : null;
+  const cls = classOf({ ...champ, championId: champ.id }, base, undefined, role);
+  const t = (opp || enemies.length >= 3) ? tweakForMatchup({ base, build: vsMu, opp: oppFull, enemies, role, cls, mu, oppWinRate }) : null;
+  const changes = t ? describeChanges(base, t.build, t.rules, {
+    item: (id) => ((dd.item(id) || {}).name) || String(id),
+    rune: (id) => (runeIndex && runeIndex[id] && runeIndex[id].name) || String(id),
+  }) : [];
+  if (t && changes.length) {
+    const label = opp ? `Contra ${opp.name}` : 'Contra a comp';
+    out.push({ label, sub: `${changes.length} ajuste${changes.length === 1 ? '' : 's'} para o matchup`, build: t.build, changes });
   } else {
     const later = laterItems(base);
     if (base.core.length >= 2 && later.length >= 2) {
       const alt = { ...base, core: [base.core[0], ...later.slice(0, 2)], later: [base.core.slice(1).map((id) => ({ ids: [id], pick: 1 })), ...base.later] };
-      out.push({ label: 'Itens alternativos', sub: 'mesmas runas, outro caminho de itens', build: alt });
+      out.push({ label: 'Itens alternativos', sub: 'mesmas runas, outro caminho de itens', build: alt, changes: [] });
     }
   }
   return out;
@@ -435,7 +448,9 @@ async function importBuild(championId, what, variant = 0, runePage = 0, forRole 
   try {
     if (what !== 'spells' && what !== 'items') {
       const pages = remote.getRunePages(champ, role);
-      const runes = (pages && pages[runePage]) || build.runes;
+      const v = variants[variant] || {};
+      const matchupRunes = (v.changes || []).some((c) => c.kind === 'runes' || c.kind === 'shards');
+      const runes = matchupRunes ? build.runes : (pages && pages[runePage]) || build.runes;
       if (!runes) throw new Error('sem runas nos dados do OP.GG');
       await importRunes(creds, runes, champ.name);
       done.push('runas');
@@ -446,7 +461,7 @@ async function importBuild(championId, what, variant = 0, runePage = 0, forRole 
     }
     if (what === 'items' || what === 'both') {
       const enemyChamps = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
-      await importItemSet(creds, { ...build, situational: situationalItems({ champ, build, enemies: enemyChamps, dd }).map((x) => x.id) }, champ);
+      await importItemSet(creds, { ...build, situational: situationalItems({ champ, build, enemies: enemyChamps, dd, role }).map((x) => x.id) }, champ);
       done.push('itens da loja');
     }
     return { ok: true, done };
@@ -466,7 +481,9 @@ function maybeAutoImport(state) {
   const run = async () => {
     if (autoImported === key || !buildFor(champ, role)) return;
     autoImported = key;
-    const res = await importBuild(champ.id, 'both');
+    // com ajustes para o matchup já disponíveis, importa a versão "Contra X"
+    const vi = buildVariants(champ, role).findIndex((v) => v.changes && v.changes.length);
+    const res = await importBuild(champ.id, 'both', vi > 0 ? vi : 0);
     logger.log(`importação automática de ${champ.id}: ${res.ok ? res.done.join(', ') : res.error}`);
     send('auto-import', { championId: String(champ.id), name: champ.name, ...res });
   };
@@ -487,7 +504,8 @@ async function guideFor(championId) {
   const enemyChamps = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
   const variants = buildVariants(champ, role).map((v) => ({
     label: v.label, sub: v.sub,
-    guide: { ...buildGuide({ champ, role, build: v.build, dd, runeIndex, runeStyles, skills }), situational: situationalItems({ champ, build: v.build, enemies: enemyChamps, dd }) },
+    guide: { ...buildGuide({ champ, role, build: v.build, dd, runeIndex, runeStyles, skills }), situational: situationalItems({ champ, build: v.build, enemies: enemyChamps, dd, role }),
+      changes: v.changes || [], runesForMatchup: (v.changes || []).some((c) => c.kind === 'runes' || c.kind === 'shards') },
   }));
   const fromRole = remote.getBuild(champ, role) && remote.getBuild(champ, role).fromRole;
   const roleNote = fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;

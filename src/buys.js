@@ -7,10 +7,19 @@ const { goldCompare } = require('./goldDiff');
 
 const BOOT_TAG = 'Boots';
 
-function classOf(me, build) {
+/**
+ * Classe do seu campeão para escolher os itens reativos: ap | adc | ad | tank | support.
+ * Sem build do OP.GG (ou build híbrida), decide pelas tags do campeão — antes disso um mago sem build caía em "ad".
+ */
+function classOf(me, build, flags = defaultFlags, role = '') {
+  const tags = me.tags || [];
+  const id = me.championId || me.id;
+  if (String(role).toLowerCase() === 'utility' && (flags.enchanters || []).includes(id)) return 'support';
   if (build && build.damageType === 'AP') return 'ap';
-  if (me.tags.includes('Marksman')) return 'adc';
-  if (me.tags[0] === 'Tank') return 'tank';
+  const apChamp = (flags.apOverrides || []).includes(id) || tags[0] === 'Mage' || (tags.includes('Mage') && !tags.includes('Fighter') && !tags.includes('Marksman'));
+  if (tags.includes('Marksman') && !(flags.apOverrides || []).includes(id)) return 'adc';
+  if (tags[0] === 'Tank') return 'tank';
+  if ((!build || !build.damageType || build.damageType === 'BOTH') && apChamp) return 'ap';
   return 'ad';
 }
 
@@ -82,7 +91,7 @@ function who(list, key, n = 2) {
  * Bota certa para o momento: defensiva se você está perdendo a rota ou o time inimigo tem muito CC/dano
  * de um tipo; senão, a bota ofensiva do meta (janela pra buildar dano).
  */
-const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3158, 3047], tank: [3047, 3111] };
+const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3158, 3047], tank: [3047, 3111], support: [3158, 3020] };
 
 function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls = 'ad' }) {
   const meta = (build && build.boots && build.boots.find((id) => dd.item(id))) || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id));
@@ -201,7 +210,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const enemies = state.enemies || [];
   const owned = ownedIds(me);
   const ownedSet = new Set(owned);
-  const cls = classOf(me, build);
+  const cls = classOf(me, build, flags, state.myRole || me.position || '');
   const early = state.gameTime < 600;
   const cands = new Map(); // id -> { score, reason, tag }
 
@@ -258,8 +267,9 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const biggest = t[0];
   const factor = early ? 0.75 : 1;
   const react = (need, score, reason, vs = []) => {
-    const id = firstAvailable(reactive[need][cls], dd, ownedSet);
-    const alreadyHas = (reactive[need][cls] || []).some((x) => ownedSet.has(x));
+    const list = (reactive[need] || {})[cls] || [];
+    const id = firstAvailable(list, dd, ownedSet);
+    const alreadyHas = list.some((x) => ownedSet.has(x));
     if (id && !alreadyHas) add(id, Math.round(score * factor), reason, need, vs);
   };
 
@@ -385,6 +395,33 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   // botas: se já tem botas, descarta sugestão de botas de outra categoria repetida
   if (hasBoots) for (const [id, c] of [...cands]) if (c.tag === 'boots') cands.delete(id);
 
+  /* --- inventário cheio, elixir e sentinela de controle --- */
+  // slot 6 = amuleto (trinket). Seis slots ocupados: cada sugestão diz o que vender/trocar.
+  const bag = (me.items || []).filter((it) => it.slot !== 6);
+  const full = bag.length >= 6;
+  const isConsumable = (it) => ((dd.item(it.id) || {}).tags || []).includes('Consumable');
+  const valueOf = (it) => goldOf(dd, it.id);
+  let sell = null;
+  if (full) {
+    const ranked = [...bag].sort((a, b) => (isConsumable(b) - isConsumable(a)) || valueOf(a) - valueOf(b));
+    const pick = ranked.find((it) => isConsumable(it) || (!isBoots(dd, it.id) && valueOf(it) < 1300)) || ranked.find((it) => !isBoots(dd, it.id));
+    if (pick) sell = { id: pick.id, name: (dd.item(pick.id) || {}).name || pick.name || 'item', cheap: isConsumable(pick) || valueOf(pick) < 1300 };
+  }
+  const buildDone = build && pathLeft.length === 0 && owned.length >= 5;
+  if ((full || buildDone) && (me.level || 1) >= 9 && state.gameTime >= 1500) {
+    const ex = firstAvailable((reactive.elixir || {})[cls], dd, new Set());
+    if (ex) add(ex, full ? 58 : 48, full ? 'Inventário cheio: elixir para a próxima luta (dura 3 min)' : 'Build completa: elixir antes de dragão ou barão', 'elixir');
+  }
+  const ward = firstAvailable(reactive.controlWard, dd, ownedSet);
+  if (ward && !full && state.gameTime >= 300 && me.gold >= 75) add(ward, 34, 'Sentinela de controle: leve uma a cada volta à base', 'ward');
+  if (full && sell) {
+    for (const [id, c] of [...cands]) {
+      if (['elixir'].includes(c.tag)) continue;
+      const swap = sell.cheap ? `venda ${sell.name} para abrir espaço` : `troque ${sell.name} por este`;
+      cands.set(id, { ...c, score: c.score - (sell.cheap ? 0 : 8), reason: `${c.reason} · ${swap}`, swap: { id: sell.id, name: sell.name } });
+    }
+  }
+
   const items = [...cands.entries()]
     .map(([id, c]) => {
       const it = dd.item(id);
@@ -404,6 +441,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
         tag: c.tag,
         good: goodAgainst(c.tag, id),
         vs: c.vs || [],
+        swap: c.swap || null,
       };
     })
     .sort((a, b) => b.score - a.score)
@@ -428,9 +466,10 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   if (!build) notes.push('Sem build do OP.GG para este campeão (usando só regras contra o time inimigo).');
   if (biggest && biggest.fed) notes.push(`Maior ameaça agora: ${biggest.e.champion} ${kdaText(biggest.e)}`);
   const off = t.filter((x) => x.d.offbuild);
+  if (full) notes.push(sell ? `Inventário cheio: ${sell.cheap ? 'venda' : 'troque'} ${sell.name} para o próximo item` : 'Inventário cheio');
   if (off.length) notes.push(`Build fora do padrão: ${off.map((x) => `${x.e.champion} de ${x.d.offbuild}`).join(', ')} (contado pelos itens)`);
   const threatsOut = t.slice(0, 3).map((x) => ({ champion: x.e.champion, kda: kdaText(x.e), w: Math.round(x.w * 100) / 100, fed: x.fed, lane: x.lane }));
-  return { items, notes, cls, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
+  return { items, notes, cls, full, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
 }
 
 module.exports = {

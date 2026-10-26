@@ -16,6 +16,9 @@
     "tank": [
       3076,
       3075
+    ],
+    "support": [
+      3011
     ]
   },
   "armor": {
@@ -33,6 +36,10 @@
     "tank": [
       3143,
       3110
+    ],
+    "support": [
+      3190,
+      3109
     ]
   },
   "mr": {
@@ -50,6 +57,10 @@
     "tank": [
       4401,
       2504
+    ],
+    "support": [
+      3190,
+      3222
     ]
   },
   "pen": {
@@ -64,7 +75,8 @@
       6694,
       3036
     ],
-    "tank": []
+    "tank": [],
+    "support": []
   },
   "bootsArmor": [
     3047
@@ -85,7 +97,8 @@
       3071,
       3036
     ],
-    "tank": []
+    "tank": [],
+    "support": []
   },
   "antiburst": {
     "_note": "burst AP -> Banshee/Zhonya (mago) ou Malmortius (AD); burst AD -> Zhonya (mago) ou Bordo da Noite (AD)",
@@ -101,7 +114,11 @@
       3156,
       3814
     ],
-    "tank": []
+    "tank": [],
+    "support": [
+      3190,
+      3107
+    ]
   },
   "defComponent": {
     "ad": [
@@ -127,7 +144,11 @@
       3814,
       3026
     ],
-    "tank": []
+    "tank": [],
+    "support": [
+      3190,
+      3109
+    ]
   },
   "lifestealItems": {
     "_note": "Itens lendários de cura que justificam anti-cura (Data Dragon 16.21).",
@@ -177,7 +198,8 @@
     "ad": [
       6695
     ],
-    "tank": []
+    "tank": [],
+    "support": []
   },
   "anticrit": {
     "_note": "Presságio de Randuin (reduz dano de crítico)",
@@ -188,6 +210,38 @@
     ],
     "tank": [
       3143
+    ],
+    "support": []
+  },
+  "anticc": {
+    "_note": "Suporte encantador: Bênção de Mikael tira o CC do carry",
+    "ap": [],
+    "adc": [],
+    "ad": [],
+    "tank": [],
+    "support": [
+      3222
     ]
-  }
+  },
+  "elixir": {
+    "_note": "Elixires (inventário cheio / build completa, nível 9+)",
+    "ap": [
+      2139
+    ],
+    "adc": [
+      2140
+    ],
+    "ad": [
+      2140
+    ],
+    "tank": [
+      2138
+    ],
+    "support": [
+      2138
+    ]
+  },
+  "controlWard": [
+    2055
+  ]
 }

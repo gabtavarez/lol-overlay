@@ -323,11 +323,24 @@ function drawGuide() {
   if (sub.length) parts.push(h('div', { class: 'g-sub' }, ...sub));
   if (root.roleNote) parts.push(h('div', { class: 'g-tip', text: root.roleNote }));
   if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
+  if ((g.changes || []).length) {
+    const KIND = { items: 'Itens', spells: 'Feitiços', runes: 'Runas', shards: 'Fragmento', skills: 'Habilidades' };
+    parts.push(h('div', { class: 'g-changes' },
+      h('div', { class: 'lbl' }, h('span', { text: `O que muda — ${(root.variants[variant] || {}).label || 'matchup'}` })),
+      ...g.changes.map((c) => h('div', { class: `g-ch k-${c.kind}` },
+        h('span', { class: 'g-ch-k', text: KIND[c.kind] || c.kind }),
+        h('span', { class: 'g-ch-t', text: c.text.replace(/^(Itens|Feitiços|Runa principal|2ª árvore|Habilidades): /, (m) => (c.kind === 'runes' && m.startsWith('Runa') ? m : '')) }),
+        h('span', { class: `g-ch-s ${c.source === 'OP.GG' ? 'src-op' : 'src-rule'}`, text: c.source === 'OP.GG' ? 'OP.GG' : 'regra do app', title: c.source === 'OP.GG' ? 'Dados do OP.GG para este confronto' : 'Regra do app (composição inimiga / matchup difícil)' })))));
+  }
 
   const left = h('div', { class: 'g-sec' });
   const pages = root.runePages || [];
   const page = pages[runePage] || pages[0] || null;
-  if (page && page.runeTree) {
+  if (g.runesForMatchup && g.runeTree) {
+    // runas ajustadas para o matchup (OP.GG do confronto ou regra própria): mostra só essa página
+    left.append(head(`Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'),
+      h('p', { class: 'muted small rp-one', text: `Ajustadas para ${(root.variants[variant] || {}).label || 'o matchup'}` }), drawRunes(g.runeTree));
+  } else if (page && page.runeTree) {
     const st = page.stats || {};
     left.append(head(`Runas · ${page.view.primaryStyleName} + ${page.view.subStyleName}`, 'runes'), runePageTabs(pages) || '');
     if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
@@ -344,7 +357,8 @@ function drawGuide() {
     const order = [];
     for (const x of skillOrder18(g.skills)) if (x !== 'R' && (cnt[x] = (cnt[x] || 0) + 1) === 5) order.push(x);
     for (const x of ['Q', 'W', 'E']) if (!order.includes(x)) order.push(x);
-    parts.push(h('div', { class: 'g-full' }, head(`Ordem de habilidades · ${order.slice(0, 3).join(' › ')}`), drawSkills(g)));
+    const skillMu = (g.changes || []).some((c) => c.kind === 'skills');
+    parts.push(h('div', { class: 'g-full' }, head(`Ordem de habilidades · ${order.slice(0, 3).join(' › ')}${skillMu ? ` · ajustada ${((root.variants[variant] || {}).label || '').toLowerCase()}` : ''}`), drawSkills(g)));
   }
   if (root.oppKit) parts.push(abilityBlock(root.oppKit, 'g-full'));
   parts.push(otpBlock());

@@ -7,8 +7,9 @@ const defaultFlags = require('../data/champion-flags.json');
 const { damageProfile } = require('./recommender');
 const { laterItems } = require('./buildPath');
 
-function classFor(champ, build) {
+function classFor(champ, build, role = '', flags = defaultFlags) {
   const tags = (champ && champ.tags) || [];
+  if (String(role).toLowerCase() === 'utility' && champ && (flags.enchanters || []).includes(champ.id)) return 'support';
   if (build && build.damageType === 'AP') return 'ap';
   if (build && build.damageType === 'AD') return tags.includes('Marksman') ? 'adc' : tags[0] === 'Tank' ? 'tank' : 'ad';
   if (tags.includes('Mage')) return 'ap';
@@ -18,9 +19,9 @@ function classFor(champ, build) {
 }
 
 /** enemies: [{ id, name, tags }] (campeões inimigos já escolhidos). */
-function situationalItems({ champ, build, enemies = [], dd, flags = defaultFlags, limit = 8 }) {
+function situationalItems({ champ, build, enemies = [], dd, flags = defaultFlags, limit = 8, role = '' }) {
   if (!dd || !build) return [];
-  const cls = classFor(champ, build);
+  const cls = classFor(champ, build, role, flags);
   const main = new Set([...(build.core || []), ...(build.boots || []), ...laterItems(build)]);
   const out = new Map();
   const add = (ids, why, prio, good = null, vs = []) => {
@@ -46,6 +47,7 @@ function situationalItems({ champ, build, enemies = [], dd, flags = defaultFlags
     if (ad.length >= 3) add(reactive.armor[cls], `${ad.length} inimigos de dano físico`, 70 + ad.length * 3, G('ad', 'Dano físico'), ad);
     if (ap.length >= 3) add(reactive.mr[cls], `${ap.length} inimigos de dano mágico`, 70 + ap.length * 3, G('ap', 'Dano mágico'), ap);
     if (tanks.length >= 2) { add(reactive.antitank[cls], `Contra tanques: ${names(tanks)}`, 75, G('tank', 'Tanques'), tanks); add(reactive.pen[cls], `Penetração contra ${names(tanks)}`, 65, G('tank', 'Armadura e RM'), tanks); }
+    if (cls === 'support' && cc.length >= 2) add((reactive.anticc || {}).support, `Bênção de Mikael: tira o controle de grupo do seu carry (${names(cc)})`, 74, G('cc', 'Controle de grupo'), cc);
     if (cc.length >= 3) add(reactive.bootsMr, `Muito controle de grupo: ${names(cc)}`, 72, G('ap', 'Controle de grupo'), cc);
     if (ad.length >= 4) add(reactive.bootsArmor, 'Time quase todo de dano físico', 68, G('ad', 'Ataques básicos'), ad);
   }

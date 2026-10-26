@@ -23,6 +23,7 @@ const { applyBlind } = require('./blind');
 const { diffChampion, verdict } = require('./patchDiff');
 const { createDiscordRpc, activityFor } = require('./discord');
 const { createPatchNotes } = require('./patchNotes');
+const profileView = require('./profileView');
 const { reviewMatch } = require('./matchReview');
 const { hoverChampion } = require('./hover');
 const { situationalItems } = require('./situational');
@@ -499,6 +500,8 @@ async function guideFor(championId) {
   return { ...variants[0].guide, variants, runePages, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
+let skinCatalog = async () => null;
+
 /* ---------- notas de atualização (site oficial) ---------- */
 let patchNotes = null;
 let itemByName = null;
@@ -829,6 +832,27 @@ function registerIpc() {
     return guideFor(championId);
   });
 
+  // Perfil: maestria, estilo de jogo, coleção e sugestões de skins (cliente do LoL + CommunityDragon).
+  ipcMain.handle('profile:get', async () => {
+    const creds = lcuEngine && lcuEngine.getCreds();
+    const profile = lcuEngine && lcuEngine.getProfile();
+    if (!dd || !profile) return { error: creds ? 'Carregando seu perfil do cliente…' : 'Abra o cliente do LoL para ver o perfil.' };
+    const out = { summoner: profile.summoner, version: dd.version };
+    try {
+      const pace = await profileView.masteryPace(path.join(app.getPath('userData'), 'mastery-history.json'), profile.mastery);
+      const inv = creds ? await profileView.loadInventory(creds, profile.summonerId || (profile.summoner && profile.summoner.summonerId)) : { skins: new Set(), champions: new Set(), score: null };
+      out.mastery = profileView.buildMastery({ mastery: profile.mastery, dd, score: inv.score, pace });
+      out.style = profileView.buildStyle({ games: profile.games || [], dd });
+      const catalog = await skinCatalog();
+      out.collection = catalog ? profileView.buildCollection({ inv, catalog, dd }) : null;
+      out.suggestions = catalog ? profileView.suggestSkins({ inv, catalog, dd, mastery: profile.mastery, games: profile.games || [] }) : [];
+      if (!catalog) out.collectionError = 'não consegui baixar a lista de skins (CommunityDragon)';
+    } catch (err) {
+      out.error = err.message;
+    }
+    return out;
+  });
+
   // Notas de atualização oficiais (lista e uma versão).
   ipcMain.handle('patches:list', async (_e, force) => {
     try { return { versions: await patchNotes.list(Boolean(force)) }; } catch (err) { return { versions: [], error: err.message }; }
@@ -982,7 +1006,14 @@ function registerIpc() {
   });
 
   ipcMain.handle('history:list', () => recorder.list().map((r) => ({ id: r.id, at: r.at, champion: r.champion, result: r.result, duration: r.duration, final: r.final, role: r.role, opponent: r.opponent, mode: r.mode, good: r.analysis.good.length, bad: r.analysis.bad.length })));
-  ipcMain.handle('history:get', (_e, id) => recorder.get(String(id)));
+  ipcMain.handle('history:get', (_e, id) => {
+    const rec = recorder.get(String(id));
+    if (!rec) return null;
+    const f = rec.final || {};
+    const grades = require('./grades').gradeMatch({ kills: f.kills || 0, deaths: f.deaths || 0, assists: f.assists || 0, cs: f.cs || 0, vision: f.wards || 0, damage: null },
+      { minutes: rec.duration / 60, role: rec.role, tier: (rec.goals && rec.goals.tier) || myTier(), teamKills: rec.teamKills || 0 });
+    return { ...rec, grades };
+  });
 
   // Escolha manual do oponente do matchup ('auto' volta à detecção pela rota, 'none' = só a build geral).
   ipcMain.handle('matchup:set', (_e, id) => {
@@ -1047,6 +1078,7 @@ app.whenReady().then(() => {
   elo = createEloTracker({ dir: userData });
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   rpc = createDiscordRpc({ log: (m) => logger.log(m) });
+  skinCatalog = profileView.createSkinCatalog({ cacheDir: path.join(userData, 'cdragon'), log: (m) => logger.log(m) });
   patchNotes = createPatchNotes({ cacheDir: path.join(userData, 'patchnotes'), resolve: (n, k) => resolveEntity(n, k), log: (m) => logger.log(m) });
   configurePresence();
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });

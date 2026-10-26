@@ -36,12 +36,12 @@ function playerLabel(p) {
 
 let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' | 'history' = abas fixas
 let lastView = 'waiting';
-const VIEWS = ['waiting', 'select', 'game', 'tierlist', 'history', 'patches', 'settings'];
+const VIEWS = ['waiting', 'select', 'game', 'profile', 'tierlist', 'history', 'patches', 'settings'];
 function showView(name) {
   if (name) lastView = name;
   const v = settingsOpen ? 'settings' : page !== 'auto' ? page : lastView;
   for (const id of VIEWS) $(id).hidden = v !== id;
-  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
+  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
   for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
   $('nav-select').querySelector('.live').hidden = lastView !== 'select';
   $('nav-game').querySelector('.live').hidden = lastView !== 'game';
@@ -1060,10 +1060,12 @@ function goPage(p) {
   if (p === 'tierlist') { closeChamp(); tlRoleButtons(); loadTierList(); }
   if (p === 'history') loadHistory();
   if (p === 'patches') loadPatches();
+  if (p === 'profile') loadProfile();
 }
 $('nav-tier').addEventListener('click', () => goPage('tierlist'));
 $('nav-history').addEventListener('click', () => goPage('history'));
 $('nav-patches').addEventListener('click', () => goPage('patches'));
+$('nav-profile').addEventListener('click', () => goPage('profile'));
 for (const id of ['nav-home', 'nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
 
 /* ---------- histórico / pós-partida ---------- */
@@ -1073,14 +1075,19 @@ let histItems = [];
 
 /** Junta as partidas do OP.GG com as gravadas pelo app (que têm o gráfico de ouro minuto a minuto). */
 function mergeHistory(opgg, local) {
+  // Mesma partida gravada pelo app e no OP.GG: junta pelo campeão + KDA (o horário do OP.GG pode vir em outro fuso).
   const used = new Set();
+  const kdaOf = (s) => `${s.kills}/${s.deaths}/${s.assists}`;
   const out = (opgg.list || []).filter((g) => g.me).map((g) => {
     const start = Date.parse(g.createdAt);
-    const loc = local.find((l) => !used.has(l.id) && l.champion.name === g.me.champion && Math.abs((l.at - l.duration * 1000) - start) < 30 * 60 * 1000);
+    const same = (l) => !used.has(l.id) && l.champion.name === g.me.champion;
+    const loc = local.find((l) => same(l) && l.final && kdaOf(l.final) === kdaOf(g.me.stats) && Math.abs(l.at - start) < 16 * 3600 * 1000)
+      || local.find((l) => same(l) && Math.abs((l.at - l.duration * 1000) - start) < 20 * 60 * 1000);
     if (loc) used.add(loc.id);
-    return { key: `o:${g.id}`, kind: 'opgg', g, local: loc || null, at: start };
+    return { key: `o:${g.id}`, kind: 'opgg', g, local: loc || null, at: loc ? loc.at - loc.duration * 1000 : start };
   });
-  for (const l of local) if (!used.has(l.id)) out.push({ key: `l:${l.id}`, kind: 'local', local: l, at: l.at });
+  // partidas curtas sem resultado (remake) gravadas pelo app ficam de fora
+  for (const l of local) if (!used.has(l.id) && !(l.duration < 330 && !l.result)) out.push({ key: `l:${l.id}`, kind: 'local', local: l, at: l.at });
   return out.sort((a, b) => b.at - a.at);
 }
 
@@ -1144,6 +1151,37 @@ function scoreChart(timeline) {
     h('span', { text: `de ${vals[0]} a ${vals[vals.length - 1]}` })));
 }
 
+const GRADE_CLS = (g) => (String(g).startsWith('S') ? 's' : String(g)[0].toLowerCase());
+
+/** Nota geral + nota por área + "foco para a próxima" (a pior área, com dica). */
+function gradeBlock(gr) {
+  if (!gr) return null;
+  return h('div', { class: 'gr' },
+    h('div', { class: `gr-big g-${GRADE_CLS(gr.grade)}` }, h('b', { text: gr.grade }), h('span', { text: `nota ${gr.overall}` })),
+    h('div', { class: 'gr-areas' }, ...gr.areas.map((a) => h('div', { class: 'gr-a' },
+      h('div', { class: 'gr-ah' }, h('span', { text: a.label }), h('b', { class: `g-${GRADE_CLS(a.grade)}`, text: a.grade })),
+      h('div', { class: 'gr-bar' }, h('div', { class: `g-${GRADE_CLS(a.grade)}`, style: `width:${a.score}%` })),
+      h('div', { class: 'muted small', text: a.text })))),
+    gr.focus ? h('div', { class: 'gr-focus' }, h('b', { text: `Foco para a próxima: ${gr.focus.label}` }), h('span', { text: gr.focus.tip })) : null,
+    h('div', { class: 'muted small gr-note', text: `Comparado com o ritmo de ${TIER_PT[gr.aimTier] || gr.aimTier} (um elo acima do seu).` }));
+}
+
+/** Placar dos 10 jogadores, com barra de dano e itens. */
+function scoreboard(detail) {
+  const all = detail.teams.flatMap((t) => t.players);
+  const maxDmg = Math.max(1, ...all.map((p) => p.stats.damage || 0));
+  const team = (t) => h('div', { class: `sb-team ${t.win ? 'win' : 'lose'}` },
+    h('div', { class: 'sb-th' }, h('b', { text: t.win ? 'Vitória' : 'Derrota' }), h('span', { class: 'muted small', text: `${t.kills} abates · ${fmtK(t.gold)} de ouro` })),
+    ...t.players.map((p) => h('div', { class: `sb-row${p.target ? ' me' : ''}` },
+      version && p.id ? h('img', { class: 'ic', src: champIcon(version, p.id), alt: '' }) : h('span', { class: 'ic' }),
+      h('div', { class: 'sb-name' }, h('b', { text: p.champion }), h('span', { class: 'muted small', text: (p.name || '').split('#')[0] })),
+      h('span', { class: 'sb-kda', text: `${p.stats.kills}/${p.stats.deaths}/${p.stats.assists}` }),
+      h('span', { class: 'muted small', text: `${p.stats.cs} CS` }),
+      h('div', { class: 'sb-dmg', title: `${(p.stats.damage || 0).toLocaleString('pt-BR')} de dano` }, h('div', { style: `width:${Math.round(((p.stats.damage || 0) / maxDmg) * 100)}%` }), h('span', { text: fmtK(p.stats.damage || 0) })),
+      h('div', { class: 'sb-items' }, ...p.items.slice(0, 7).map((id) => icon(`${DD}/cdn/${version}/img/item/${id}.png`, 'sb-it', String(id), ''))))));
+  return h('div', { class: 'sb' }, ...detail.teams.map(team));
+}
+
 async function showHistoryItem(it) {
   if (it.kind === 'local') return showHistory(it.local.id);
   const box = $('hist-detail');
@@ -1174,6 +1212,7 @@ async function showHistoryItem(it) {
       h('div', { class: 'h-stat' }, h('b', { text: fmtK(s.damage) }), h('span', { class: 'muted small', text: 'dano em campeões' })),
       h('div', { class: 'h-stat' }, h('b', { text: t.mine && t.mine.kills ? `${Math.round(((s.kills + s.assists) / t.mine.kills) * 100)}%` : '–' }), h('span', { class: 'muted small', text: 'participação' }))),
     goalsLine(r.goals),
+    gradeBlock(r.grades),
     h('div', { class: 'h-cols' },
       h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { text: o ? `Você x ${o.champion}` : 'Você' })),
         h('div', { class: 'cmp-row head' }, h('span'), h('span', { class: 'muted small', text: 'você' }), h('span', { class: 'muted small', text: o ? o.champion : '' })),
@@ -1189,6 +1228,7 @@ async function showHistoryItem(it) {
           .map(([label, key]) => cmp(label, t.mine[key], t.enemy[key], String)) : []),
         h('div', { class: 'lbl', style: 'margin-top:14px' }, h('span', { text: 'Seus itens' })), items(me.items),
         o ? h('div', { class: 'lbl', style: 'margin-top:12px' }, h('span', { text: `Itens de ${o.champion}` })) : null, o ? items(o.items) : null)),
+    h('div', { class: 'h-sb' }, h('div', { class: 'lbl' }, h('span', { text: 'Placar da partida' })), scoreboard(res.detail)),
     h('div', { class: 'h-chart' }, it.local ? goldChart(it.local.samples || []) : scoreChart(it.g.me.stats.timeline)),
     h('div', { class: 'h-cols' },
       h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'up', text: 'O que ajudou' })),
@@ -1237,6 +1277,7 @@ async function showHistory(id) {
       h('div', { class: 'h-stat' }, h('b', { text: r.teamKills ? `${Math.round(((f.kills + f.assists) / r.teamKills) * 100)}%` : '–' }), h('span', { class: 'muted small', text: 'participação' })),
       h('div', { class: 'h-stat' }, h('b', { text: String(Math.round(f.wards || 0)) }), h('span', { class: 'muted small', text: 'placar de visão' }))),
     goalsLine(r.goals),
+    gradeBlock(r.grades),
     h('div', { class: 'h-chart' }, goldChart(r.samples || [])),
     h('div', { class: 'h-cols' },
       h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { class: 'up', text: 'O que ajudou' })),
@@ -1459,3 +1500,219 @@ function drawPatches() {
 }
 $('pn-search').addEventListener('input', () => drawPatches());
 $('pn-open').addEventListener('click', () => { if (pn.version) window.overlay.openPatch(pn.version); });
+
+/* ---------- perfil (maestria, estilo, coleção) ---------- */
+
+const pf = { tab: 'mastery', data: null, sel: null, cls: 'all', q: '', loading: false };
+const PF_TABS = [['mastery', 'Maestria'], ['style', 'Estilo de jogo'], ['collection', 'Coleção']];
+const PF_CLASSES = [['all', 'Todas'], ['Fighter', 'Lutadores'], ['Mage', 'Magos'], ['Assassin', 'Assassinos'], ['Marksman', 'Atiradores'], ['Tank', 'Tanques'], ['Support', 'Suportes']];
+const RARITY_CLS = { Suprema: 'ult', Mítica: 'myth', Exaltada: 'myth', Transcendente: 'myth', Lendária: 'leg', Épica: 'epic', Comum: 'com' };
+
+function ago(ts) {
+  if (!ts) return 'nunca';
+  const d = Math.floor((Date.now() - ts) / 86400000);
+  if (d <= 0) return 'hoje';
+  if (d === 1) return 'ontem';
+  if (d === 2) return 'anteontem';
+  if (d < 30) return `há ${d} dias`;
+  const m = Math.floor(d / 30);
+  if (m < 12) return `há ${m} ${m === 1 ? 'mês' : 'meses'}`;
+  const y = Math.floor(d / 365);
+  return `há ${y} ${y === 1 ? 'ano' : 'anos'}`;
+}
+const splashUrl = (champ, num) => `${DD}/cdn/img/champion/splash/${champ}_${num}.jpg`;
+const loadingUrl = (champ, num) => `${DD}/cdn/img/champion/loading/${champ}_${num}.jpg`;
+
+async function loadProfile(force = false) {
+  drawPfTabs();
+  if (pf.data && !force) { drawProfile(); return; }
+  pf.loading = true;
+  drawProfile();
+  pf.data = await window.overlay.getProfile().catch((e) => ({ error: e.message }));
+  pf.loading = false;
+  if (pf.data && pf.data.mastery && !pf.sel && pf.data.mastery.rows[0]) pf.sel = pf.data.mastery.rows[0].id;
+  drawProfile();
+}
+
+function drawPfTabs() {
+  $('pf-tabs').replaceChildren(...PF_TABS.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === pf.tab ? ' on' : ''}`, type: 'button', text: label });
+    b.addEventListener('click', () => { pf.tab = k; drawPfTabs(); drawProfile(); });
+    return b;
+  }));
+}
+
+const pfStat = (big, label, sub) => h('div', { class: 'pf-stat' }, h('b', { text: big }), h('span', { text: label }), sub ? h('em', { text: sub }) : null);
+const pfCard = (title, ...kids) => h('section', { class: 'card pf-card' }, title ? h('div', { class: 'pf-ch', text: title }) : null, ...kids);
+
+function drawProfile() {
+  const body = $('pf-body');
+  const d = pf.data;
+  const s = d && d.summoner;
+  $('pf-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : 'Seu perfil';
+  $('pf-title').textContent = { mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: 'Sua coleção' }[pf.tab];
+  if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
+  if (!d.mastery) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver o perfil.' }))); return; }
+  if (pf.tab === 'mastery') body.replaceChildren(...drawMasteryTab(d));
+  else if (pf.tab === 'style') body.replaceChildren(...drawStyleTab(d));
+  else body.replaceChildren(...drawCollectionTab(d));
+}
+
+/** Bolhas: raio pela maestria, posição por espiral (a maior no centro, sem sobrepor). */
+function packBubbles(rows, W, H) {
+  const max = Math.max(1, ...rows.map((r) => r.points));
+  const placed = [];
+  for (const r of rows) {
+    const rad = Math.max(12, Math.round(62 * Math.sqrt(r.points / max)));
+    let pos = null;
+    for (let i = 0; i < 4000 && !pos; i++) {
+      const a = i * 0.38;
+      const dist = i === 0 ? 0 : 2.2 * Math.sqrt(i) * 4;
+      const x = W / 2 + Math.cos(a) * dist * 1.25;
+      const y = H / 2 + Math.sin(a) * dist * 0.85;
+      if (x - rad < 2 || x + rad > W - 2 || y - rad < 2 || y + rad > H - 2) continue;
+      if (placed.every((p) => Math.hypot(p.x - x, p.y - y) >= p.r + rad + 3)) pos = { x, y };
+    }
+    if (pos) placed.push({ ...pos, r: rad, row: r });
+  }
+  return placed;
+}
+
+function drawMasteryTab(d) {
+  const m = d.mastery;
+  const stats = h('div', { class: 'pf-stats' },
+    pfStat(String(m.score), 'Pontuação de maestria'),
+    pfStat(fmtPts(m.total).replace(" mi", " M"), "Pontos totais"),
+    pfStat(`${m.played}`, `Campeões jogados`, `de ${m.champions}`),
+    m.main ? h('div', { class: 'pf-stat main' }, h('img', { class: 'ic', src: champIcon(d.version, m.main.id), alt: '' }),
+      h('div', {}, h('b', { text: m.main.name }), h('span', { text: 'Seu main' }), h('em', { text: `${Math.round(m.main.share * 100)}% dos seus pontos` }))) : null);
+
+  // filtros por classe
+  const filters = h('div', { class: 'seg' }, ...PF_CLASSES.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === pf.cls ? ' on' : ''}`, type: 'button', text: label });
+    b.addEventListener('click', () => { pf.cls = k; drawProfile(); });
+    return b;
+  }));
+  const rows = m.rows.filter((r) => r.points > 0 && (pf.cls === 'all' || r.tags.includes(pf.cls)));
+  const W = 720; const H = 460;
+  const area = h('div', { class: 'pf-bubbles' });
+  area.style.cssText = `height:${H}px`;
+  for (const b of packBubbles(rows.slice(0, 70), W, H)) {
+    const el = h('button', { class: `pf-bub${b.row.id === pf.sel ? ' sel' : ''}`, type: 'button', title: `${b.row.name} · nível ${b.row.level} · ${b.row.points.toLocaleString('pt-BR')} pts` });
+    el.style.cssText = `left:${((b.x - b.r) / W) * 100}%;top:${b.y - b.r}px;width:${b.r * 2}px;height:${b.r * 2}px;background-image:url("${champIcon(d.version, b.row.id)}")`;
+    if (b.r >= 22) el.append(h('span', { class: 'pf-lv', text: String(b.row.level) }));
+    el.addEventListener('click', () => { pf.sel = b.row.id; drawProfile(); });
+    area.append(el);
+  }
+  const left = pfCard(null, h('div', { class: 'pf-toolbar' }, filters), area,
+    h('p', { class: 'muted small pf-hint', text: `Clique numa bolha para ver os detalhes · ${Math.max(0, rows.length - 70)} campeões a mais na lista abaixo` }));
+
+  // painel do campeão selecionado
+  const c = m.rows.find((r) => r.id === pf.sel) || m.rows[0];
+  const detail = c ? pfCard(null,
+    h('div', { class: 'pf-dh' }, h('img', { class: 'pf-dico', src: champIcon(d.version, c.id), alt: '' }),
+      h('div', {}, h('h2', { text: c.name }), h('div', { class: 'muted small', text: `Maestria nível ${c.level}` })),
+      c.grades.length ? h('span', { class: 'pf-grade', text: c.grades[c.grades.length - 1] }) : null),
+    h('div', { class: 'pf-kv' },
+      h('div', {}, h('span', { text: 'Pontos' }), h('b', { text: c.points.toLocaleString('pt-BR') })),
+      h('div', {}, h('span', { text: 'Última partida' }), h('b', { text: ago(c.lastPlayTime) }))),
+    h('div', { class: 'pf-prog' },
+      h('div', { class: 'pf-prog-h' }, h('span', { text: `Rumo ao nível ${c.level + 1}` }), h('b', { text: c.untilNext > 0 ? `faltam ${c.untilNext.toLocaleString('pt-BR')}` : 'pronto' })),
+      h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round(c.progress * 100)}%` })),
+      c.daysToNext ? h('div', { class: 'pf-pace', text: `No seu ritmo atual, nível ${c.level + 1} em ~${c.daysToNext} dia${c.daysToNext === 1 ? '' : 's'}` }) : null),
+    c.marksNeeded ? h('div', { class: 'pf-row' }, h('span', { class: 'muted small', text: 'Marcas para subir' }),
+      h('span', { class: 'pf-marks' }, ...Array.from({ length: c.marksNeeded }, (_, i) => h('i', { class: i < c.marks ? 'on' : '' })))) : null,
+    c.grades.length ? h('div', { class: 'pf-row col' }, h('span', { class: 'muted small', text: 'Notas desta temporada' }),
+      h('div', { class: 'pf-grades' }, ...c.grades.map((g) => h('span', { class: 'pf-grade sm', text: g })))) : null,
+    c.milestone ? h('div', { class: 'muted small', text: `Próximo marco: ${c.milestone}` }) : null,
+    h('div', { class: 'pf-sep' }),
+    h('div', { class: 'pf-ch', text: 'Campeões por nível' }),
+    ...m.buckets.map((b) => h('div', { class: 'pf-brow' }, h('span', { text: b.label }), h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((b.count / Math.max(1, ...m.buckets.map((x) => x.count))) * 100)}%` })), h('b', { text: String(b.count) }))),
+    m.forgotten.length ? h('div', { class: 'pf-sep' }) : null,
+    m.forgotten.length ? h('div', { class: 'pf-ch', text: 'Mains esquecidos' }) : null,
+    ...m.forgotten.map((f) => {
+      const row = h('button', { class: 'pf-fg', type: 'button' }, h('img', { class: 'ic', src: champIcon(d.version, f.id), alt: '' }), h('span', { text: f.name }), h('em', { text: ago(f.since) }));
+      row.addEventListener('click', () => { pf.sel = f.id; drawProfile(); });
+      return row;
+    })) : null;
+
+  // tabela completa
+  const q = pf.q.toLowerCase();
+  const search = h('input', { type: 'text', placeholder: 'Procurar campeão', value: pf.q, maxlength: '30' });
+  search.addEventListener('input', () => { pf.q = search.value; const pos = search.selectionStart; drawProfile(); const el = document.querySelector('#pf-body input'); if (el) { el.focus(); el.setSelectionRange(pos, pos); } });
+  const table = pfCard(null, h('div', { class: 'pf-toolbar' }, h('div', { class: 'pf-ch', text: 'Todos os seus campeões' }), h('span', { class: 'spacer' }), search),
+    h('div', { class: 'pf-table' }, ...m.rows.filter((r) => r.points > 0 && (!q || r.name.toLowerCase().includes(q))).slice(0, 80).map((r, i) => {
+      const row = h('button', { class: `pf-tr${r.id === pf.sel ? ' sel' : ''}`, type: 'button' },
+        h('span', { class: 'rk', text: String(i + 1) }), h('img', { class: 'ic', src: champIcon(d.version, r.id), alt: '' }),
+        h('span', { class: 'nm', text: r.name }), h('span', { class: 'pf-lvl', text: `Nv. ${r.level}` }),
+        h('span', { class: 'muted small', text: `${r.points.toLocaleString('pt-BR')} pts` }), h('span', { class: 'muted small', text: ago(r.lastPlayTime) }));
+      row.addEventListener('click', () => { pf.sel = r.id; drawProfile(); $('content').scrollTop = 0; });
+      return row;
+    })));
+  return [stats, h('div', { class: 'pf-grid' }, left, detail), table];
+}
+
+function drawStyleTab(d) {
+  const st = d.style;
+  const stats = h('div', { class: 'pf-stats' },
+    pfStat(String(st.unique), 'Campeões diferentes', `nas suas últimas ${st.recent} partidas`),
+    st.mainIndex ? pfStat(`${Math.round(st.mainIndex.share * 100)}%`, 'Índice de main', st.mainIndex.name) : null,
+    pfStat(String(st.srGames), "Partidas no Summoner's Rift", `de ${st.analyzed} lidas`),
+    st.winRate != null ? pfStat(`${Math.round(st.winRate * 100)}%`, 'Vitórias', 'últimas partidas') : null);
+  // mini mapa com as rotas
+  const POS = { top: [22, 22], jungle: [36, 50], middle: [50, 50], bottom: [78, 78], utility: [64, 84] };
+  const map = h('div', { class: 'pf-map' }, h('div', { class: 'pf-lane l1' }), h('div', { class: 'pf-lane l2' }), h('div', { class: 'pf-lane l3' }),
+    ...st.roles.map((r) => {
+      const [x, y] = POS[r.role];
+      const big = st.mainRole && st.mainRole.role === r.role;
+      const n = h('div', { class: `pf-node${big ? ' big' : ''}` }, roleImg(r.role, 'pf-nimg'), h('span', { text: `${r.label} ${Math.round(r.share * 100)}%` }));
+      n.style.cssText = `left:${x}%;top:${y}%`;
+      return n;
+    }));
+  const info = h('div', { class: 'pf-style-info' },
+    h('div', { class: 'eyebrow', text: "Seu lugar no Summoner's Rift" }),
+    h('h2', { class: 'pf-big', text: st.mainRole ? st.mainRole.label : '—' }),
+    h('p', { class: 'muted', text: st.mainRole ? `${Math.round(st.mainRole.share * 100)}% das suas partidas no Summoner's Rift são de ${st.mainRole.label}. ${Math.round(st.soloShare * 100)}% de tudo o que você joga é Ranqueada Solo/Duo.` : 'Sem partidas suficientes.' }),
+    h('div', { class: 'pf-ch', text: 'Classes que você domina' }),
+    st.profile ? h('p', { class: 'small', text: `Seu perfil: ${st.profile}` }) : null,
+    ...st.classes.map((c) => h('div', { class: 'pf-brow' }, h('span', { text: c.label }), h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round(c.share * 100)}%` })), h('b', { text: `${Math.round(c.share * 100)}%` }))),
+    h('div', { class: 'pf-ch', text: 'Modos que mais joga' }),
+    h('div', { class: 'chips' }, ...st.modes.slice(0, 5).map((m) => h('span', { class: 'chip', text: `${m.label} · ${m.games}` }))));
+  const pool = pfCard(`Seu leque de campeões (últimas ${st.recent})`, h('div', { class: 'pf-pool' }, ...st.pool.map((p) => h('div', { class: 'pf-pc', title: `${p.name}: ${p.games} partidas` },
+    h('img', { src: champIcon(d.version, p.id), alt: '' }), h('span', { text: String(p.games) })))));
+  return [stats, pfCard(null, h('div', { class: 'pf-style' }, map, info)), pool,
+    h('p', { class: 'muted small', text: 'O cliente do LoL só guarda as últimas partidas; o app lê as mais recentes a cada abertura.' })];
+}
+
+function drawCollectionTab(d) {
+  const c = d.collection;
+  if (!c) return [pfCard(null, h('p', { class: 'muted pad', text: d.collectionError || 'Coleção indisponível.' }))];
+  const pc = (a, b) => `${Math.round((a / Math.max(1, b)) * 100)}%`;
+  const stats = h('div', { class: 'pf-stats' },
+    pfStat(`${c.champions.owned}`, 'Campeões', `de ${c.champions.total} · ${pc(c.champions.owned, c.champions.total)}`),
+    pfStat(`${c.skins.owned}`, 'Skins', `de ${c.skins.total} · ${pc(c.skins.owned, c.skins.total)}`),
+    pfStat(String(c.chromas), 'Cromas'),
+    pfStat(String(c.legacy), 'Skins legado'));
+  const jewels = c.jewels.length ? pfCard('Suas joias', h('div', { class: 'pf-jewels' }, ...c.jewels.map((j) => h('div', { class: 'pf-jewel' },
+    h('img', { src: splashUrl(j.champion, j.num), alt: '', loading: 'lazy' }),
+    h('div', { class: 'pf-jt' }, h('b', { text: j.name }), h('span', { class: `rar ${RARITY_CLS[j.rarity] || ''}`, text: j.rarity })))))) : null;
+  const maxR = Math.max(1, ...c.byRarity.map((r) => r.count));
+  const rarity = pfCard('Por raridade', ...c.byRarity.map((r) => h('div', { class: 'pf-brow' }, h('span', { class: `rar ${RARITY_CLS[r.label] || ''}`, text: r.label }), h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((r.count / maxR) * 100)}%` })), h('b', { text: String(r.count) }))));
+  const most = pfCard('Campeões com mais skins', ...c.most.map((m) => h('div', { class: 'pf-mrow' },
+    h('img', { class: 'ic', src: champIcon(d.version, m.id), alt: '' }), h('span', { class: 'nm', text: m.name }),
+    h('div', { class: 'pf-segs' }, ...Array.from({ length: Math.min(m.total, 24) }, (_, i) => h('i', { class: i < m.owned ? 'on' : '' }))),
+    h('b', { text: `${m.owned} / ${m.total}` }))));
+  const sug = d.suggestions || [];
+  const tops = pfCard('Skins que valem o investimento',
+    h('p', { class: 'muted small pf-sub', text: 'Só as melhores (Suprema, Lendária ou Mítica), à venda, dos campeões que você mais joga e que você ainda não tem.' }),
+    sug.length ? h('div', { class: 'pf-sugs' }, ...sug.map((x) => h('div', { class: 'pf-sug' },
+      h('img', { src: loadingUrl(x.champion, x.num), alt: '', loading: 'lazy' }),
+      h('div', { class: 'pf-st' },
+        h('span', { class: `rar ${RARITY_CLS[x.rarity] || ''}`, text: x.rarity }),
+        h('b', { text: x.name }),
+        h('span', { class: 'muted small', text: x.why }),
+        h('span', { class: 'pf-price', text: x.price }))))) : h('p', { class: 'muted pad', text: 'Você já tem as melhores skins dos campeões que mais joga.' }));
+  return [stats, tops, jewels, h('div', { class: 'pf-two' }, rarity, most)];
+}
+
+$('pf-refresh').addEventListener('click', () => loadProfile(true));

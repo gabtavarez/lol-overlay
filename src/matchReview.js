@@ -6,6 +6,7 @@ const k = (n) => (Math.abs(n) >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Mat
 const ROLE = { TOP: 'top', JUNGLE: 'jungle', MID: 'middle', ADC: 'bottom', SUPPORT: 'utility' };
 
 const { targetsFor } = require('./goals');
+const { gradeMatch } = require('./grades');
 
 function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id), tier = null } = {}) {
   const players = detail.teams.flatMap((t) => t.players);
@@ -58,10 +59,17 @@ function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id),
     if (!built.length) bad.push({ title: 'Fora da build do meta', text: `nenhum item core (${core.map(itemName).join(', ')})` });
     else if (built.length >= 2) good.push({ title: 'Build do meta', text: `${built.map(itemName).join(', ')}` });
   }
+  const teamDamage = myTeam ? myTeam.players.reduce((sum, p) => sum + (p.stats.damage || 0), 0) : 0;
+  const objDiff = myTeam && enemyTeam ? (myTeam.dragons - enemyTeam.dragons) + 2 * (myTeam.barons - enemyTeam.barons) + 0.5 * (myTeam.towers - enemyTeam.towers) : null;
+  const grades = gradeMatch({ ...s, vision: null }, {
+    minutes: min, role, tier, teamKills: myTeam ? myTeam.kills : 0, teamDamage, objDiff,
+    objText: myTeam && enemyTeam ? `dragões ${myTeam.dragons}x${enemyTeam.dragons} · torres ${myTeam.towers}x${enemyTeam.towers}` : '',
+  });
+  if (!good.length) for (const a of grades.best) good.push({ title: `${a.label} acima da meta`, text: a.text });
   const t = targetsFor(tier, role);
   const goals = { aimTier: t.aimTier, cs: t.cs === null ? null : { now: +(s.cs / min).toFixed(1), target: t.cs }, vision: null }; // o OP.GG só informa sentinelas colocadas, não o placar de visão
   return {
-    me, opp: opp || null, role, goals,
+    me, opp: opp || null, role, goals, grades,
     teams: { mine: myTeam, enemy: enemyTeam },
     good, bad,
   };

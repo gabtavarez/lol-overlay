@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.28.0",
+    "title": "Perfil completo e pós-partida com nota",
+    "items": [
+      "Nova aba \"Perfil\" com três telas: Maestria (bolhas por pontos, detalhes do campeão, rumo ao próximo nível no seu ritmo, marcas, notas da temporada, campeões por nível e mains esquecidos), Estilo de jogo (sua rota no mapa, classes, modos e leque de campeões) e Coleção (campeões, skins, cromas, legado, suas joias, raridades e campeões com mais skins).",
+      "Coleção: \"Skins que valem o investimento\" — só Supremas, Lendárias e Míticas à venda, dos campeões que você mais joga e ainda não tem, com o preço.",
+      "Pós-partida: nota geral (S a D) e por área (Farm, Combate, Visão, Dano, Objetivos), com \"Foco para a próxima\" e uma dica concreta.",
+      "Pós-partida: placar dos 10 jogadores com dano, CS e itens.",
+      "Corrigido: a mesma partida aparecia duas vezes no histórico (gravada pelo app + OP.GG). Partidas canceladas (remake) gravadas pelo app saem da lista."
+    ]
+  },
+  {
     "version": "0.27.0",
     "title": "Compras lendo os itens do inimigo",
     "items": [

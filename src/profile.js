@@ -19,10 +19,20 @@ function laneToPosition(lane, role) {
 /** Agrega as páginas de histórico em { rota: { championKey: { games, wins } } }. */
 function aggregateHistory(pages) {
   const roleStats = { top: {}, jungle: {}, middle: {}, bottom: {}, utility: {} };
+  const list = []; // todas as partidas (qualquer modo), para a aba Perfil
   let analyzed = 0;
   for (const page of pages) {
     const games = (page && page.games && page.games.games) || [];
     for (const game of games) {
+      const p0 = game.participants && game.participants[0];
+      if (p0) {
+        list.push({
+          championId: p0.championId, queueId: game.queueId || 0, mapId: game.mapId || 0,
+          win: Boolean(p0.stats && p0.stats.win), at: game.gameCreation || 0, duration: game.gameDuration || 0,
+          position: laneToPosition(p0.timeline && p0.timeline.lane, p0.timeline && p0.timeline.role),
+          remake: (game.gameDuration || 0) < 300,
+        });
+      }
       if (game.mapId && game.mapId !== SUMMONERS_RIFT) continue;
       const me = game.participants && game.participants[0];
       if (!me) continue;
@@ -34,7 +44,7 @@ function aggregateHistory(pages) {
       analyzed += 1;
     }
   }
-  return { roleStats, analyzed };
+  return { roleStats, analyzed, games: list.sort((a, b) => b.at - a.at) };
 }
 
 /**
@@ -60,7 +70,13 @@ async function loadProfile(creds) {
   const mastery = new Map(
     (masteryList || []).map((m) => [
       m.championId,
-      { points: m.championPoints || 0, level: m.championLevel || 0, lastPlayTime: m.lastPlayTime || 0 },
+      {
+        points: m.championPoints || 0, level: m.championLevel || 0, lastPlayTime: m.lastPlayTime || 0,
+        untilNext: m.championPointsUntilNextLevel || 0, sinceLast: m.championPointsSinceLastLevel || 0,
+        marksNeeded: m.markRequiredForNextLevel || 0, marks: m.tokensEarned || 0,
+        grades: Array.isArray(m.milestoneGrades) ? m.milestoneGrades : [],
+        nextMilestone: m.nextSeasonMilestone || null,
+      },
     ]),
   );
 
@@ -85,7 +101,7 @@ async function loadProfile(creds) {
       break;
     }
   }
-  const { roleStats, analyzed } = aggregateHistory(pages);
+  const { roleStats, analyzed, games } = aggregateHistory(pages);
 
   return {
     summoner: {
@@ -99,6 +115,8 @@ async function loadProfile(creds) {
     mastery,
     roleStats,
     gamesAnalyzed: analyzed,
+    games,
+    summonerId: summoner.summonerId || null,
   };
 }
 

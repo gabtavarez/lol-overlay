@@ -20,6 +20,8 @@ function classOf(me, build, flags = defaultFlags, role = '') {
   if (tags.includes('Marksman') && !(flags.apOverrides || []).includes(id)) return 'adc';
   if (tags[0] === 'Tank') return 'tank';
   if ((!build || !build.damageType || build.damageType === 'BOTH') && apChamp) return 'ap';
+  // assassino AD (Zed, Talon, Qiyana, Kha'Zix…) defende diferente de lutador (Darius, Sett…)
+  if (tags[0] === 'Assassin') return 'assassin';
   return 'ad';
 }
 
@@ -91,7 +93,7 @@ function who(list, key, n = 2) {
  * Bota certa para o momento: defensiva se você está perdendo a rota ou o time inimigo tem muito CC/dano
  * de um tipo; senão, a bota ofensiva do meta (janela pra buildar dano).
  */
-const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3158, 3047], tank: [3047, 3111], support: [3158, 3020] };
+const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3047, 3111], assassin: [3158, 3047], tank: [3047, 3111], support: [3158, 3020] };
 
 function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls = 'ad' }) {
   const meta = (build && build.boots && build.boots.find((id) => dd.item(id))) || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id));
@@ -375,7 +377,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   }
 
   // Escudos: 3+ fontes (kits como Lulu/Sett e itens de escudo) -> Presa da Serpente para AD.
-  if (cls === 'ad' || cls === 'adc') {
+  if (cls === 'ad' || cls === 'adc' || cls === 'assassin') {
     const src = enemies.map((e) => ({ e, s: shieldSources(e, dd, flags) })).filter((x) => x.s.length);
     const n = src.reduce((sum, x) => sum + x.s.length, 0);
     if (n >= 3 && me.items.length >= 1) {
@@ -394,6 +396,29 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 
   // botas: se já tem botas, descarta sugestão de botas de outra categoria repetida
   if (hasBoots) for (const [id, c] of [...cands]) if (c.tag === 'boots') cands.delete(id);
+
+  /* --- defesa que já cobre: se você já tem o item defensivo e a ameaça daquele tipo está atrás, priorize dano --- */
+  const DEF = {
+    ad: new Set(['armor', 'antiburstAd', 'anticrit'].flatMap((n) => (reactive[n] || {})[cls] || [])),
+    ap: new Set(['mr', 'antiburst'].flatMap((n) => (reactive[n] || {})[cls] || [])),
+  };
+  const threatOf = (kind) => t.filter((x) => (kind === 'ad' ? x.d.ad : x.d.ap) >= 0.55);
+  const covered = [];
+  for (const kind of ['ad', 'ap']) {
+    const held = owned.find((id) => DEF[kind].has(id));
+    if (!held) continue;
+    const foes = threatOf(kind);
+    const danger = foes.some((x) => x.fed || (x.lane && x.e.scores.kills - x.e.scores.deaths >= 2));
+    const share = kind === 'ad' ? adShare : apShare;
+    if (!danger && share < 0.6) covered.push({ kind, held, foes, share });
+  }
+  for (const c of covered) {
+    const tags = c.kind === 'ad' ? ['armor', 'antiburstAd', 'anticrit'] : ['mr', 'antiburst'];
+    for (const [id, cand] of [...cands]) if (tags.includes(cand.tag)) cands.set(id, { ...cand, score: cand.score - 15 });
+    for (const [id, cand] of [...cands]) {
+      if (cand.tag === 'core') cands.set(id, { ...cand, score: cand.score + 8, reason: `${cand.reason} · ${(dd.item(c.held) || {}).name || 'sua defesa'} já cobre o dano ${c.kind === 'ad' ? 'físico' : 'mágico'}: acelere o dano` });
+    }
+  }
 
   /* --- inventário cheio, elixir e sentinela de controle --- */
   // slot 6 = amuleto (trinket). Seis slots ocupados: cada sugestão diz o que vender/trocar.
@@ -414,9 +439,20 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   }
   const ward = firstAvailable(reactive.controlWard, dd, ownedSet);
   if (ward && !full && state.gameTime >= 300 && me.gold >= 75) add(ward, 34, 'Sentinela de controle: leve uma a cada volta à base', 'ward');
+  // fim de jogo, inventário cheio e a ameaça que a defesa respondia sumiu: troque a defesa por dano
+  if (full && state.gameTime >= 1500) {
+    const useless = covered.find((c) => c.share < 0.35 && !c.foes.some((x) => x.fed));
+    const dmg = useless && firstAvailable(((reactive.swap || {})[cls]) || [], dd, ownedSet);
+    if (useless && dmg) {
+      const defName = (dd.item(useless.held) || {}).name || 'o item defensivo';
+      add(dmg, 70, `Troque ${defName} por este: pouco dano ${useless.kind === 'ad' ? 'físico' : 'mágico'} inimigo agora (${Math.round(useless.share * 100)}%)`, 'swapdmg');
+      sell = { id: useless.held, name: defName, cheap: false };
+    }
+  }
   if (full && sell) {
     for (const [id, c] of [...cands]) {
       if (['elixir'].includes(c.tag)) continue;
+      if (c.tag === 'swapdmg') { cands.set(id, { ...c, swap: { id: sell.id, name: sell.name } }); continue; }
       const swap = sell.cheap ? `venda ${sell.name} para abrir espaço` : `troque ${sell.name} por este`;
       cands.set(id, { ...c, score: c.score - (sell.cheap ? 0 : 8), reason: `${c.reason} · ${swap}`, swap: { id: sell.id, name: sell.name } });
     }
@@ -466,6 +502,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   if (!build) notes.push('Sem build do OP.GG para este campeão (usando só regras contra o time inimigo).');
   if (biggest && biggest.fed) notes.push(`Maior ameaça agora: ${biggest.e.champion} ${kdaText(biggest.e)}`);
   const off = t.filter((x) => x.d.offbuild);
+  for (const c of covered) notes.push(`Você já tem ${(dd.item(c.held) || {}).name || 'defesa'} contra dano ${c.kind === 'ad' ? 'físico' : 'mágico'} e ninguém desse tipo está fed: próximos itens de dano`);
   if (full) notes.push(sell ? `Inventário cheio: ${sell.cheap ? 'venda' : 'troque'} ${sell.name} para o próximo item` : 'Inventário cheio');
   if (off.length) notes.push(`Build fora do padrão: ${off.map((x) => `${x.e.champion} de ${x.d.offbuild}`).join(', ')} (contado pelos itens)`);
   const threatsOut = t.slice(0, 3).map((x) => ({ champion: x.e.champion, kda: kdaText(x.e), w: Math.round(x.w * 100) / 100, fed: x.fed, lane: x.lane }));

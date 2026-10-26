@@ -20,6 +20,10 @@
     "support": [
       3916,
       3165
+    ],
+    "assassin": [
+      3123,
+      6609
     ]
   },
   "armor": {
@@ -32,7 +36,7 @@
     ],
     "ad": [
       6333,
-      3026
+      3143
     ],
     "tank": [
       3143,
@@ -41,6 +45,10 @@
     "support": [
       3190,
       3109
+    ],
+    "assassin": [
+      3026,
+      6333
     ]
   },
   "mr": {
@@ -52,8 +60,8 @@
       3156
     ],
     "ad": [
-      3156,
-      3139
+      3065,
+      3156
     ],
     "tank": [
       4401,
@@ -62,6 +70,10 @@
     "support": [
       3190,
       3222
+    ],
+    "assassin": [
+      3156,
+      3814
     ]
   },
   "pen": {
@@ -73,11 +85,15 @@
       6694
     ],
     "ad": [
-      6694,
-      3036
+      3071,
+      6694
     ],
     "tank": [],
-    "support": []
+    "support": [],
+    "assassin": [
+      6694,
+      3036
+    ]
   },
   "bootsArmor": [
     3047
@@ -99,7 +115,11 @@
       3036
     ],
     "tank": [],
-    "support": []
+    "support": [],
+    "assassin": [
+      6694,
+      3036
+    ]
   },
   "antiburst": {
     "_note": "burst AP -> Banshee/Zhonya (mago) ou Malmortius (AD); burst AD -> Zhonya (mago) ou Bordo da Noite (AD)",
@@ -113,12 +133,16 @@
     ],
     "ad": [
       3156,
-      3814
+      3065
     ],
     "tank": [],
     "support": [
       3190,
       3107
+    ],
+    "assassin": [
+      3156,
+      3814
     ]
   },
   "defComponent": {
@@ -142,13 +166,17 @@
       3026
     ],
     "ad": [
-      3814,
-      3026
+      6333,
+      3053
     ],
     "tank": [],
     "support": [
       3190,
       3109
+    ],
+    "assassin": [
+      3814,
+      3026
     ]
   },
   "lifestealItems": {
@@ -188,6 +216,10 @@
     "utility": [
       3865,
       2003
+    ],
+    "assassin": [
+      1055,
+      2003
     ]
   },
   "antishield": {
@@ -200,7 +232,10 @@
       6695
     ],
     "tank": [],
-    "support": []
+    "support": [],
+    "assassin": [
+      6695
+    ]
   },
   "anticrit": {
     "_note": "Presságio de Randuin (reduz dano de crítico)",
@@ -212,7 +247,8 @@
     "tank": [
       3143
     ],
-    "support": []
+    "support": [],
+    "assassin": []
   },
   "anticc": {
     "_note": "Suporte encantador: Bênção de Mikael tira o CC do carry",
@@ -222,7 +258,8 @@
     "tank": [],
     "support": [
       3222
-    ]
+    ],
+    "assassin": []
   },
   "elixir": {
     "_note": "Elixires (inventário cheio / build completa, nível 9+)",
@@ -240,9 +277,33 @@
     ],
     "support": [
       2138
+    ],
+    "assassin": [
+      2140
     ]
   },
   "controlWard": [
     2055
-  ]
+  ],
+  "swap": {
+    "_note": "itens de dano para trocar por defesa que ficou sem uso (fim de jogo, inventário cheio)",
+    "ap": [
+      3089,
+      3135
+    ],
+    "adc": [
+      3031,
+      3036
+    ],
+    "ad": [
+      3071,
+      6333
+    ],
+    "assassin": [
+      6694,
+      3142
+    ],
+    "tank": [],
+    "support": []
+  }
 }

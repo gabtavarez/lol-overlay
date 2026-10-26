@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.31.0",
+    "title": "Assassino x lutador e troca de defesa por dano",
+    "items": [
+      "Assassinos AD (Zed, Talon, Qiyana, Kha'Zix…) agora têm respostas próprias: Limiar da Noite, Anjo Guardião, Malmortius e Presa da Serpente. Lutadores (Darius, Sett…) recebem Dança da Morte, Esterco de Sterak, Visão Espiritual e Cutelo Negro.",
+      "Defesa que já cobre: se você já tem o item defensivo e ninguém daquele tipo de dano está fed, o app para de pedir mais defesa e puxa os itens de dano.",
+      "Fim de jogo com inventário cheio: quando o inimigo quase não tem mais aquele tipo de dano, sugere trocar o item defensivo por um de dano."
+    ]
+  },
+  {
     "version": "0.30.1",
     "title": "Filtro por moeda nas skins sugeridas",
     "items": [

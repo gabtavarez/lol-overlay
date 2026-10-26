@@ -51,3 +51,24 @@ test('matchup: Purificar contra muito CC, tenacidade, Determinação em matchup 
   const ok = tweakForMatchup({ base, build: base, opp: { id: 'Garen', name: 'Garen', tags: ['Fighter'] }, enemies: [], role: 'middle', cls: 'ap', oppWinRate: 0.55 });
   assert.equal(ok.rules.length, 0);
 });
+
+test('assassino x lutador e "defesa já cobre": troca defesa por dano no fim de jogo', () => {
+  assert.equal(classOf({ championId: 'Talon', tags: ['Assassin'] }, { damageType: 'AD' }, flags, 'middle'), 'assassin');
+  assert.equal(classOf({ championId: 'Darius', tags: ['Fighter', 'Tank'] }, { damageType: 'AD' }, flags, 'top'), 'ad');
+  const I = {
+    3814: { name: 'Limiar da Noite', tags: ['Armor'], gold: { total: 3000 } }, 3026: { name: 'Anjo Guardião', tags: ['Armor'], gold: { total: 3200 } },
+    6694: { name: 'Rancor de Serylda', tags: [], gold: { total: 3000 } }, 3142: { name: 'Youmuu', tags: [], gold: { total: 2800 } },
+    6692: { name: 'Eclipse', tags: [], gold: { total: 2900 } }, 3158: { name: 'Ionianas', tags: ['Boots'], gold: { total: 900 } },
+    6333: { name: 'Dança da Morte', tags: ['Armor'], gold: { total: 3300 } }, 6676: { name: 'Coletor', tags: [], gold: { total: 3000 } }, 3156: { name: 'Malmortius', tags: [], gold: { total: 3100 } },
+  };
+  const dd = { item: (id) => I[id] || null };
+  const E = (champion, tags, k, d) => ({ champion, championId: champion, tags, level: 15, position: '', scores: { kills: k, deaths: d, assists: 3 }, items: [] });
+  const me = { champion: 'Talon', championId: 'Talon', tags: ['Assassin'], level: 15, gold: 3500, scores: { kills: 12, deaths: 3, assists: 4 },
+    items: [{ id: 3814, slot: 0 }, { id: 6692, slot: 1 }, { id: 3158, slot: 2 }, { id: 6676, slot: 3 }, { id: 3156, slot: 4 }, { id: 6333, slot: 5 }] };
+  const adv = buyAdvice({ dd, flags, build: { damageType: 'AD', core: [6692, 6676, 6694], boots: [3158] }, state: { gameTime: 1900, myRole: 'middle', me,
+    enemies: [E('Lux', ['Mage'], 2, 8), E('Zyra', ['Mage'], 1, 7), E('Ornn', ['Tank'], 1, 6), E('Jinx', ['Marksman'], 2, 9), E('Ahri', ['Mage'], 3, 8)] } });
+  assert.equal(adv.cls, 'assassin');
+  assert.ok(adv.notes.some((n) => /já tem .* contra dano físico/.test(n)), adv.notes.join(' | '));
+  const swap = adv.items.find((i) => /Troque/.test(i.reason));
+  assert.ok(swap, adv.items.map((i) => i.reason).join(' | '));
+});

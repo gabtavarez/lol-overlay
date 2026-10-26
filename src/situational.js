@@ -11,10 +11,11 @@ function classFor(champ, build, role = '', flags = defaultFlags) {
   const tags = (champ && champ.tags) || [];
   if (String(role).toLowerCase() === 'utility' && champ && (flags.enchanters || []).includes(champ.id)) return 'support';
   if (build && build.damageType === 'AP') return 'ap';
-  if (build && build.damageType === 'AD') return tags.includes('Marksman') ? 'adc' : tags[0] === 'Tank' ? 'tank' : 'ad';
+  if (build && build.damageType === 'AD') return tags.includes('Marksman') ? 'adc' : tags[0] === 'Tank' ? 'tank' : tags[0] === 'Assassin' ? 'assassin' : 'ad';
   if (tags.includes('Mage')) return 'ap';
   if (tags.includes('Marksman')) return 'adc';
   if (tags[0] === 'Tank') return 'tank';
+  if (tags[0] === 'Assassin') return 'assassin';
   return 'ad';
 }
 

@@ -139,6 +139,7 @@ function renderGuide(state, picks) {
   drawGuide();
 }
 let guideEnemyKey = '';
+let lastBans = { session: null, list: [] };
 
 function setImportEnabled(on) {
   for (const id of ['imp-all', 'imp-items']) $(id).disabled = !on;
@@ -444,7 +445,12 @@ function renderSelect(state) {
   els.opggAllies.disabled = !opgg.allies;
   els.opggEnemies.hidden = !opgg.enemies;
 
-  const bans = (state.advice && state.advice.bans) || [];
+  let bans = (state.advice && state.advice.bans) || [];
+  // Nunca some no meio da fase de bans: se o cálculo voltar vazio por um instante (alguém acabou de banir),
+  // mantém a última lista, tirando os campeões que já foram banidos.
+  const banned = new Set(state.bannedKeys || []);
+  if (!bans.length && state.hasBanPhase && !state.myBanDone && lastBans.session === state.sessionId) bans = lastBans.list.filter((b) => !banned.has(b.key));
+  else if (bans.length) lastBans = { session: state.sessionId, list: bans };
   // visível durante a fase de bans até você banir (destaque quando é a sua vez)
   $('bans').hidden = !bans.length || (state.myBanDone && state.action !== 'ban');
   $('bans').classList.toggle('my-turn', state.action === 'ban');
@@ -596,6 +602,7 @@ function renderHome(state) {
     [`v${appVersion || '…'}`, ''],
   ];
   $('home-chips').replaceChildren(...chips.map(([t, c]) => h('span', { class: `chip ${c}`, text: t })));
+  howState(state);
 
   const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v, home.elo]);
   if (key === homeKey) return; // evita redesenhar a cada 1,5 s
@@ -1341,26 +1348,38 @@ setTimeout(() => showWhatsNew(false), 1200);
 let patchLoadedFor = '';
 async function loadPatchCard(state) {
   const top = (state && state.home && state.home.top) || [];
-  const key = top.map((c) => c.id).join(',');
-  if (!key || key === patchLoadedFor) return;
+  const key = top.map((c) => c.id).join(',') || (state && state.client) || '';
+  if (key === patchLoadedFor) return;
   patchLoadedFor = key;
   const res = await window.overlay.getPatchMine().catch(() => null);
   if (!res || !res.champs || !res.champs.length) { $('patch-card').hidden = true; return; }
   const short = (v) => String(v || '').split('.').slice(0, 2).join('.');
   $('patch-title').textContent = `Patch ${short(res.patch)} nos seus campeões`;
+  $('patch-src').textContent = res.source === 'notes'
+    ? 'Notas oficiais da Riot: todas as mudanças, inclusive de dano'
+    : 'Data Dragon: recarga, custo, alcance e atributos (mudança só de dano não aparece)';
   const changed = res.champs.filter((c) => c.changes.length || c.touched);
   const quiet = res.champs.filter((c) => !c.changes.length && !c.touched);
   const VERD = { buff: 'Buff', nerf: 'Nerf', ajuste: 'Ajuste' };
-  const rows = changed.map((c) => h('div', { class: 'patch-row' },
-    version ? h('img', { class: 'ic', src: champIcon(version, c.id), alt: '' }) : h('span', { class: 'ic' }),
-    h('div', { style: 'min-width:0' },
-      h('div', { class: 'nm' }, document.createTextNode(c.name),
-        h('span', { class: `pv ${c.verdict || 'ajuste'}`, text: c.verdict ? VERD[c.verdict] : 'Alterado' })),
-      c.changes.length
-        ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 5).map((x) => h('li', { class: x.buff === true ? 'up' : x.buff === false ? 'down' : '' },
-          document.createTextNode(`${x.what}: `), h('s', { text: x.from }), document.createTextNode(' → '), h('b', { text: x.to }))))
-        : h('div', { class: 'muted small', text: 'Mexido neste patch (Meraki), mas sem mudança nos números do Data Dragon: provavelmente dano.' }))));
-  if (quiet.length) rows.push(h('p', { class: 'muted small pad', text: `Sem mudanças: ${quiet.map((c) => c.name).join(', ')}.` }));
+  const line = (x) => (x.from != null && x.to != null
+    ? h('li', { class: x.buff === true ? 'up' : x.buff === false ? 'down' : '' }, document.createTextNode(`${x.what}: `), h('s', { text: x.from }), document.createTextNode(' → '), h('b', { text: x.to }))
+    : h('li', {}, document.createTextNode(`${x.what ? `${x.what}: ` : ''}${x.text || ''}`)));
+  const rows = changed.map((c) => {
+    const more = c.changes.length - 4;
+    const row = h('div', { class: `patch-row v-${c.verdict || 'ajuste'}` },
+      version ? h('img', { class: 'ic', src: champIcon(version, c.id), alt: '' }) : h('span', { class: 'ic' }),
+      h('div', { style: 'min-width:0' },
+        h('div', { class: 'nm' }, document.createTextNode(c.name),
+          h('span', { class: `pv ${c.verdict || 'ajuste'}`, text: c.verdict ? VERD[c.verdict] : 'Alterado' })),
+        c.changes.length
+          ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 4).map(line), more > 0 ? h('li', { class: 'more', text: `+${more} mudança${more === 1 ? '' : 's'} nas notas` }) : null)
+          : h('div', { class: 'muted small', text: 'Mexido neste patch, sem números no Data Dragon: provavelmente dano.' })));
+    row.addEventListener('click', () => goPage('patches'));
+    row.title = 'Abrir as notas do patch';
+    return row;
+  });
+  if (!changed.length) rows.push(h('p', { class: 'muted small pad', text: 'Nenhum dos seus campeões mudou neste patch.' }));
+  if (quiet.length) rows.push(h('p', { class: 'muted small pad', text: `Sem mudanças: ${quiet.map((c) => c.name).join(', ')}${res.mineCount > quiet.length + changed.length ? ' e outros' : ''}.` }));
   $('patch-body').replaceChildren(...rows);
   $('patch-card').hidden = false;
 }
@@ -1678,8 +1697,9 @@ function drawStyleTab(d) {
     pfStat(String(st.srGames), "Partidas no Summoner's Rift", `de ${st.analyzed} lidas`),
     st.winRate != null ? pfStat(`${Math.round(st.winRate * 100)}%`, 'Vitórias', 'últimas partidas') : null);
   // mini mapa com as rotas
-  const POS = { top: [22, 22], jungle: [36, 50], middle: [50, 50], bottom: [78, 78], utility: [64, 84] };
-  const map = h('div', { class: 'pf-map' }, h('div', { class: 'pf-lane l1' }), h('div', { class: 'pf-lane l2' }), h('div', { class: 'pf-lane l3' }),
+  // posições sobre o mapa do Summoner's Rift (base azul embaixo à esquerda)
+  const POS = { top: [17, 19], jungle: [33, 57], middle: [50, 50], bottom: [83, 80], utility: [70, 87] };
+  const map = h('div', { class: 'pf-map' }, h('img', { class: 'pf-map-img', src: 'img/sr-map.jpg', alt: "Summoner's Rift" }), h('div', { class: 'pf-map-shade' }),
     ...st.roles.map((r) => {
       const [x, y] = POS[r.role];
       const big = st.mainRole && st.mainRole.role === r.role;
@@ -1734,3 +1754,15 @@ function drawCollectionTab(d) {
 }
 
 $('pf-refresh').addEventListener('click', () => loadProfile(true));
+
+
+/** "Como funciona": marca o passo em que você está agora. */
+function howState(state) {
+  const open = state.client === 'open';
+  const phase = lastView;
+  const set = (n, cls, text) => { const el = $(`how-${n}`); if (!el) return; el.classList.remove('done', 'now'); if (cls) el.classList.add(cls); $(`how-s${n}`).textContent = text; };
+  set(1, open ? 'done' : 'now', open ? '✓ cliente conectado' : 'aguardando o cliente');
+  set(2, phase === 'select' ? 'now' : '', phase === 'select' ? 'agora' : '');
+  set(3, phase === 'game' ? 'now' : '', phase === 'game' ? 'agora' : '');
+  set(4, '', '');
+}

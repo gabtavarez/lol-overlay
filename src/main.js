@@ -541,9 +541,15 @@ function resolveEntity(name, kind) {
   return id ? { kind: 'item', id: Number(id), icon: `https://ddragon.leagueoflegends.com/cdn/${dd.version}/img/item/${id}.png` } : null;
 }
 
-/** Seus campeões (maestria + mais jogados no OP.GG) para destacar nas notas. */
+/** Seus campeões: maestria relevante (nível 5+ ou top 30), mais jogados no OP.GG e no histórico do cliente. */
 function myChampionIds() {
   const ids = new Set(((lcuState.home || {}).top || []).map((c) => c.id));
+  const profile = lcuEngine && lcuEngine.getProfile();
+  if (profile && dd) {
+    const rows = [...profile.mastery].sort((a, b) => b[1].points - a[1].points);
+    rows.forEach(([key, m], i) => { if (i < 30 || m.level >= 5) { const c = dd.championByKey(key); if (c) ids.add(c.id); } });
+    for (const g of (profile.games || []).slice(0, 50)) { const c = dd.championByKey(g.championId); if (c) ids.add(c.id); }
+  }
   const mRiot = settings.get().myRiotId;
   const recent = mRiot && remote.getMatches(mRiot, currentRegion());
   for (const g of (recent && recent.list) || []) {
@@ -554,21 +560,45 @@ function myChampionIds() {
 }
 
 const patchCache = new Map(); // `${versão}:${id}` -> mudanças
+const shortVer = (v) => String(v || '').split('.').slice(0, 2).join('.');
+
+/**
+ * Seus campeões que mudaram no patch atual. Fonte principal: notas oficiais da Riot (todas as mudanças,
+ * inclusive de dano); sem elas, compara os números do Data Dragon com o patch anterior.
+ */
 async function patchForMine() {
-  if (!dd || !dd.prevVersion) return { patch: dd ? dd.version : null, champs: [], error: 'sem o patch anterior para comparar' };
-  const ids = [];
-  const home = lcuState.home || {};
-  for (const c of home.top || []) ids.push(c.id);
-  const mRiot = settings.get().myRiotId;
-  const recent = mRiot && remote.getMatches(mRiot, currentRegion());
-  const count = {};
-  for (const g of (recent && recent.list) || []) {
-    const c = g.me && dd.championByRaw(null, g.me.champion);
-    if (c) count[c.id] = (count[c.id] || 0) + 1;
+  if (!dd) return { champs: [] };
+  const mine = myChampionIds();
+  const mineSet = new Set(mine);
+  // 1) notas oficiais
+  try {
+    const versions = await patchNotes.list();
+    const minor = shortVer(dd.version).split('.')[1];
+    const v = versions.find((x) => x.split('.')[1] === minor) || versions[0];
+    const note = v && await patchNotes.note(v);
+    if (note) {
+      const ents = note.sections.filter((x) => x.kind === 'champions').flatMap((x) => x.entities).filter((e) => e.id && mineSet.has(e.id));
+      const champs = ents.map((e) => ({
+        id: e.id, name: e.name, verdict: e.verdict, touched: true,
+        changes: e.groups.flatMap((g) => g.changes.map((c) => ({
+          what: [g.title, c.label].filter(Boolean).join(' · '),
+          from: c.from != null ? c.from : null, to: c.to != null ? c.to : null, text: c.text || null,
+          buff: c.dir === 'buff' ? true : c.dir === 'nerf' ? false : null,
+        }))),
+      }));
+      const order = { buff: 0, nerf: 1, ajuste: 2 };
+      champs.sort((a, b) => order[a.verdict] - order[b.verdict] || a.name.localeCompare(b.name));
+      const changedIds = new Set(champs.map((c) => c.id));
+      const quiet = mine.filter((id) => !changedIds.has(id)).slice(0, 12).map((id) => ({ id, name: (dd.champions[id] || {}).name || id, changes: [] }));
+      return { patch: note.version, source: 'notes', champs: [...champs, ...quiet], mineCount: mine.length };
+    }
+  } catch (err) {
+    logger.log(`patch dos seus campeões: notas indisponíveis (${err.message})`);
   }
-  for (const id of Object.keys(count).sort((a, b) => count[b] - count[a])) if (!ids.includes(id)) ids.push(id);
+  // 2) reserva: números do Data Dragon
+  if (!dd.prevVersion) return { patch: dd.version, champs: [], error: 'sem o patch anterior para comparar' };
   const champs = [];
-  for (const id of ids.slice(0, 8)) {
+  for (const id of mine.slice(0, 30)) {
     const key = `${dd.version}:${id}`;
     if (!patchCache.has(key)) {
       try {
@@ -579,11 +609,10 @@ async function patchForMine() {
     const changes = patchCache.get(key);
     if (!changes) continue;
     const mk = meraki && meraki.cached(id);
-    const short = (v) => String(v || '').split('.').slice(0, 2).join('.');
-    const touched = mk && mk.patchLastChanged && short(mk.patchLastChanged) === short(dd.version);
+    const touched = mk && mk.patchLastChanged && shortVer(mk.patchLastChanged) === shortVer(dd.version);
     champs.push({ id, name: (dd.champions[id] || {}).name || id, changes, verdict: verdict(changes), touched: Boolean(touched) });
   }
-  return { patch: dd.version, prev: dd.prevVersion, champs };
+  return { patch: dd.version, prev: dd.prevVersion, source: 'ddragon', champs, mineCount: mine.length };
 }
 
 const PARTNER = { top: 'jungle', jungle: 'middle', middle: 'jungle', bottom: 'utility', utility: 'bottom' };

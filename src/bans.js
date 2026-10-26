@@ -9,8 +9,10 @@ function recommendBans({ champSelect, picks, getBuild, dd, meta, settings, tierR
   if (!dd || champSelect.spectating) return [];
   const role = champSelect.myPosition || null;
   let bannable = new Set((champSelect.bannable || []).map(Number));
-  // o cliente às vezes devolve a lista vazia fora da sua vez: usa todos menos os já banidos
-  if (!bannable.size) {
+  // O cliente às vezes devolve a lista vazia (ou só um pedaço dela) fora da sua vez ou logo depois
+  // de alguém banir: nesses casos usa todos os campeões menos os já banidos.
+  const total = Object.keys(dd.champions).length;
+  if (bannable.size < total * 0.5) {
     const banned = new Set([...(champSelect.bannedKeys || []), ...(champSelect.bans ? [...champSelect.bans.mine, ...champSelect.bans.theirs] : [])].map(Number));
     bannable = new Set(Object.values(dd.champions).map((c) => Number(c.key)).filter((k) => !banned.has(k)));
   }

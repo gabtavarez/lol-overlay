@@ -71,19 +71,49 @@
         <div id="elo-body" class="elo"></div>
       </section>
       <section class="card" id="patch-card" hidden>
-        <div class="card-h"><h2 id="patch-title">Patch nos seus campeões</h2><span class="muted small">Data Dragon: recarga, custo, alcance e atributos (mudança só de dano não aparece)</span></div>
+        <div class="card-h"><h2 id="patch-title">Patch nos seus campeões</h2><span id="patch-src" class="muted small"></span></div>
         <div id="patch-body" class="patch-list"></div>
       </section>
       <section class="card">
         <div class="card-h"><h2>Combina com você</h2><span class="muted small">campeões fortes na sua rota, parecidos com os que você joga</span></div>
         <div id="home-fit" class="fit-row"><p class="muted pad">Aparece quando o cliente estiver aberto.</p></div>
       </section>
-      <section class="card">
-        <div class="card-h"><h2>Como funciona</h2></div>
-        <div class="steps">
-          <div class="step"><b>Champ select</b><span>Sugestões de pick e ban, rotas previstas do inimigo e build importada sozinha ao travar.</span></div>
-          <div class="step"><b>Em partida</b><span>Segure <kbd>TAB</kbd>: compras, ouro cara a cara, timers e scouting do oponente.</span></div>
-          <div class="step"><b>Atalhos</b><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>1</kbd>…<kbd>5</kbd> marca o Flash do inimigo · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> move o overlay.</span></div>
+      <section class="card how">
+        <div class="card-h"><h2>Como funciona</h2><span class="muted small">do cliente ao pós-partida, em 4 passos — tudo automático</span></div>
+        <div class="how-flow">
+          <div class="how-step" id="how-1">
+            <div class="how-ico"><i data-ico="home"></i><span class="how-n">1</span></div>
+            <b>Abra o cliente do LoL</b>
+            <p>O app se conecta sozinho, sem login.</p>
+            <ul><li>Maestria, rotas e elo</li><li>Perfil e coleção</li><li>Tier list e patch notes</li></ul>
+            <span class="how-state" id="how-s1"></span>
+          </div>
+          <div class="how-step" id="how-2">
+            <div class="how-ico"><i data-ico="user"></i><span class="how-n">2</span></div>
+            <b>Seleção de campeões</b>
+            <p>Abre na hora certa, sem clicar em nada.</p>
+            <ul><li>10 picks e bans sugeridos</li><li>Rotas inimigas previstas</li><li>Runas, feitiços e itens importados ao travar</li></ul>
+            <span class="how-state" id="how-s2"></span>
+          </div>
+          <div class="how-step" id="how-3">
+            <div class="how-ico"><i data-ico="sword"></i><span class="how-n">3</span></div>
+            <b>Em partida: segure <kbd>TAB</kbd></b>
+            <p>O overlay aparece por cima do jogo.</p>
+            <ul><li>Próximas compras com o motivo</li><li>Ouro cara a cara e timers</li><li>Scouting do seu oponente</li></ul>
+            <span class="how-state" id="how-s3"></span>
+          </div>
+          <div class="how-step" id="how-4">
+            <div class="how-ico"><i data-ico="clock"></i><span class="how-n">4</span></div>
+            <b>Pós-partida</b>
+            <p>Abra Histórico ao final de cada partida.</p>
+            <ul><li>Nota de S a D por área</li><li>Foco para a próxima partida</li><li>Placar e gráfico de ouro</li></ul>
+            <span class="how-state" id="how-s4"></span>
+          </div>
+        </div>
+        <div class="how-keys">
+          <div class="how-key"><span><kbd>TAB</kbd></span><em>segure para ver o overlay em partida</em></div>
+          <div class="how-key"><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>1</kbd>…<kbd>5</kbd></span><em>marca o Flash do inimigo 1 a 5</em></div>
+          <div class="how-key"><span><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd></span><em>move e redimensiona o overlay</em></div>
         </div>
         <div class="card-f">
           <button id="home-test" class="btn"><i data-ico="play"></i>Testar overlay</button>

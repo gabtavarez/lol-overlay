@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.29.1",
+    "title": "Bans estáveis, patch dos seus campeões completo e tela inicial mais didática",
+    "items": [
+      "Corrigido: as sugestões de ban sumiam quando alguém banía até você marcar outro campeão. Agora ficam visíveis a fase toda (saindo só os já banidos).",
+      "Início: \"Patch nos seus campeões\" usa as notas oficiais da Riot e mostra todos os seus campeões que levaram buff, nerf ou ajuste (inclusive mudanças de dano). Clique para abrir as notas.",
+      "Início: \"Como funciona\" virou um passo a passo visual (cliente → seleção → partida → pós-partida), marcando em que passo você está, com os atalhos de teclado.",
+      "Perfil → Estilo de jogo: as rotas agora aparecem sobre o mapa do Summoner's Rift."
+    ]
+  },
+  {
     "version": "0.29.0",
     "title": "Builds mais espertas: classe, suporte, inventário cheio e matchup",
     "items": [

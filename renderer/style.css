@@ -678,3 +678,37 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .g-ch-s.src-op { color: #6fa3ff; background: rgba(76,141,255,.12); }
 .g-ch-s.src-rule { color: var(--warn); background: rgba(229,168,61,.12); }
 .g-ch.k-skills { border-left-color: #6fa3ff; } .g-ch.k-spells { border-left-color: var(--warn); } .g-ch.k-runes, .g-ch.k-shards { border-left-color: #c77dff; } .g-ch.k-items { border-left-color: var(--good); }
+
+/* mapa do Summoner's Rift no estilo de jogo */
+.pf-map { background: #0b0d10; }
+.pf-map-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pf-map-shade { position: absolute; inset: 0; background: radial-gradient(circle at 50% 50%, rgba(8,9,12,.15), rgba(8,9,12,.55)); }
+.pf-node { z-index: 2; }
+.pf-node span { background: rgba(8,9,12,.82); border: 1px solid rgba(255,255,255,.08); }
+
+/* como funciona */
+.how-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; padding: 18px 16px 6px; }
+@media (max-width: 1100px) { .how-flow { grid-template-columns: repeat(2, 1fr); row-gap: 16px; } }
+.how-step { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; margin: 0 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card2); transition: border-color .2s, box-shadow .2s; }
+.how-step:not(:last-child)::after { content: '›'; position: absolute; right: -14px; top: 34px; color: var(--dim); font-size: 20px; }
+.how-step b { font-size: 14px; }
+.how-step p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.how-step ul { margin: 2px 0 0; padding-left: 16px; font-size: 12.5px; color: var(--text); line-height: 1.6; }
+.how-step li::marker { color: var(--acc); }
+.how-ico { position: relative; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--acc-soft); color: var(--acc); margin-bottom: 4px; }
+.how-ico .ico { width: 22px; height: 22px; }
+.how-n { position: absolute; right: -6px; top: -6px; width: 20px; height: 20px; border-radius: 99px; display: grid; place-items: center; background: var(--acc); color: #fff; font-size: 11px; font-weight: 700; }
+.how-state { margin-top: auto; padding-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--muted); min-height: 18px; }
+.how-step.done { border-color: rgba(63,191,127,.4); }
+.how-step.done .how-state { color: var(--good); }
+.how-step.done .how-ico { background: rgba(63,191,127,.12); color: var(--good); }
+.how-step.done .how-n { background: var(--good); }
+.how-step.now { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc-soft), 0 6px 22px rgba(240,88,124,.12); }
+.how-step.now .how-state { color: var(--acc); }
+.how-keys { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 24px 16px; }
+.how-key { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; border: 1px dashed var(--line2); font-size: 12.5px; }
+.how-key em { font-style: normal; color: var(--muted); }
+.patch-row { cursor: pointer; transition: background-color .15s; }
+.patch-row:hover { background: var(--card2); }
+.patch-row.v-buff { box-shadow: inset 3px 0 0 var(--good); } .patch-row.v-nerf { box-shadow: inset 3px 0 0 var(--bad); } .patch-row.v-ajuste { box-shadow: inset 3px 0 0 var(--warn); }
+.patch-ch li.more { list-style: none; margin-left: -16px; color: var(--acc); font-size: 11.5px; }

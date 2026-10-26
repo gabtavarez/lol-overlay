@@ -194,3 +194,17 @@ test('início da partida: sugere os itens iniciais do meta (com quantidade)', ()
   assert.equal(adv.items[1].id, 2003);
   assert.match(adv.items[1].reason, /compre 2/);
 });
+
+test('Hecarim fed contra atirador ganhando a rota: resposta a ele aparece (não some atrás da build do meta)', () => {
+  const flagsReal = require('../data/champion-flags.json');
+  const I = { 3026: { name: 'Anjo Guardião', tags: ['Armor'], gold: { total: 3200 } }, 3072: { name: 'Sedenta por Sangue', tags: [], gold: { total: 3400 } }, 3033: { name: 'Lembrete Mortal', tags: [], gold: { total: 3000 } }, 3123: { name: 'Chamado do Carrasco', tags: [], gold: { total: 800 } },
+    3814: { name: 'Limiar da Noite', tags: [], gold: { total: 3000 } }, 6672: { name: 'Mata-Cráquens', tags: [], gold: { total: 3100 } }, 3006: { name: 'Grevas', tags: ['Boots'], gold: { total: 1100 } } };
+  const ddK = { item: (id) => I[id] || null };
+  const E = (champion, tags, k, d, a, position = '') => ({ champion, championId: champion, tags, level: 16, position, scores: { kills: k, deaths: d, assists: a }, items: [] });
+  const adv = buyAdvice({ dd: ddK, flags: flagsReal, build: { damageType: 'AD', core: [6672, 3072, 3026], boots: [3006] }, state: {
+    gameTime: 1880, laneOpponent: { champion: 'Sivir' },
+    me: { champion: 'Jinx', championId: 'Jinx', tags: ['Marksman'], position: 'BOTTOM', level: 15, gold: 700, items: [{ id: 6672 }, { id: 3006 }], scores: { kills: 6, deaths: 1, assists: 8 } },
+    enemies: [E('Teemo', ['Marksman', 'Assassin'], 3, 12, 4), E('Hecarim', ['Fighter', 'Tank'], 19, 4, 8), E('Zed', ['Assassin'], 8, 9, 3, 'MIDDLE'), E('Sivir', ['Marksman'], 6, 8, 1, 'BOTTOM'), E('Yuumi', ['Support', 'Mage'], 1, 4, 22)] } });
+  const hec = adv.items.filter((i) => /Hecarim/.test(i.reason));
+  assert.ok(hec.length, `nada contra o Hecarim: ${adv.items.map((i) => `${i.name} (${i.reason})`).join(' | ')}`);
+});

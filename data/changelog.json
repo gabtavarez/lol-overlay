@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.26.3",
+    "title": "Resposta a inimigo fed",
+    "items": [
+      "Corrigido: quando o item contra um inimigo fed também era da build do meta (ex.: Anjo Guardião contra Hecarim), o motivo aparecia só como \"Build do meta\" e a resposta sumia. Agora o motivo contra o inimigo vence e o item sobe na lista.",
+      "Rota ganha não diminui mais a prioridade da defesa contra um inimigo fed.",
+      "Anti-cura agora considera a cura do kit de Hecarim, Volibear, Renekton, Fiora, Nasus, Zac e Maokai."
+    ]
+  },
+  {
     "version": "0.26.2",
     "title": "Matchup contra atualizado",
     "items": [

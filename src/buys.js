@@ -151,10 +151,17 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const early = state.gameTime < 600;
   const cands = new Map(); // id -> { score, reason, tag }
 
+  // Mesmo item pedido por duas regras: fica a maior nota, mas o motivo reativo (contra quem) vence
+  // o "Build do meta" — senão a resposta ao inimigo fed some atrás do caminho padrão.
+  const REACTIVE_OVER = (t) => t && !['core', 'starter'].includes(t);
   const add = (id, score, reason, tag, vs = []) => {
     if (!id || ownedSet.has(id) || !dd.item(id)) return;
     const prev = cands.get(id);
-    if (!prev || score > prev.score) cands.set(id, { score, reason, tag, vs });
+    if (!prev) { cands.set(id, { score, reason, tag, vs }); return; }
+    const best = Math.max(score, prev.score);
+    if (REACTIVE_OVER(tag) && !REACTIVE_OVER(prev.tag)) cands.set(id, { score: best + 4, reason: `${reason} · também na build do meta`, tag, vs });
+    else if (REACTIVE_OVER(prev.tag) && !REACTIVE_OVER(tag)) cands.set(id, { ...prev, score: Math.max(prev.score, score + 4), reason: prev.reason.includes('build do meta') ? prev.reason : `${prev.reason} · também na build do meta` });
+    else if (score > prev.score) cands.set(id, { score, reason, tag, vs });
   };
   const ids = (list) => list.map((x) => x.e.championId).filter(Boolean).slice(0, 4);
 
@@ -259,13 +266,14 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const monoAP = apCount >= 4;
   if (apShare >= 0.55 || monoAP || (carryAp && carryAp.fed)) {
     const foco = who(t, (x) => x.w * x.d.ap);
-    react('mr', (52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp) + (monoAP ? 14 : 0)) * defFactor,
+    // rota ganha alivia a defesa, mas não contra um inimigo fed
+    react('mr', (52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp) + (monoAP ? 14 : 0)) * (carryAp && carryAp.fed ? 1 : defFactor),
       carryAp && carryAp.fed ? `Resistência mágica: ${foco} está fed` : monoAP ? `Time inimigo com ${apCount} campeões AP: RM é prioridade` : `Resistência mágica: dano inimigo mais AP · foco: ${foco}`,
       ids([...t].filter((x) => x.d.ap >= 0.5).sort((a, b) => b.w * b.d.ap - a.w * a.d.ap)));
   }
   if (adShare >= 0.55 || monoAD || (carryAd && carryAd.fed)) {
     const foco = who(t, (x) => x.w * x.d.ad);
-    react('armor', (52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd) + (monoAD ? 14 : 0)) * defFactor,
+    react('armor', (52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd) + (monoAD ? 14 : 0)) * (carryAd && carryAd.fed ? 1 : defFactor),
       carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : monoAD ? `Time inimigo quase todo AD (${adCount}): armadura é prioridade` : `Armadura: dano inimigo mais AD · foco: ${foco}`,
       ids([...t].filter((x) => x.d.ad >= 0.5).sort((a, b) => b.w * b.d.ad - a.w * a.d.ad)));
   }

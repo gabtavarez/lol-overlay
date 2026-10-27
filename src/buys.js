@@ -397,6 +397,20 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   // botas: se já tem botas, descarta sugestão de botas de outra categoria repetida
   if (hasBoots) for (const [id, c] of [...cands]) if (c.tag === 'boots') cands.delete(id);
 
+  /* --- 1º item lendário primeiro: sem ninguém fed e sem perder a rota, defesa completa espera o item principal --- */
+  const firstCore = pathLeft[0];
+  const urgent = t.some((x) => x.fed) || laneState === 'losing' || monoAD || monoAP; // time todo de um tipo de dano também justifica
+  if (legendaries === 0 && firstCore && cands.has(firstCore) && !urgent) {
+    const DEF_TAGS = ['armor', 'mr', 'antiburst', 'antiburstAd', 'anticrit', 'antishield'];
+    const top = cands.get(firstCore);
+    for (const [id, c] of [...cands]) {
+      if (id === firstCore || !DEF_TAGS.includes(c.tag)) continue;
+      if (((dd.item(id) || {}).gold || {}).total < 2200) continue; // componente barato pode vir antes
+      if (c.score >= top.score - 3) cands.set(id, { ...c, score: top.score - 6, reason: `${c.reason} · depois do 1º item` });
+    }
+    cands.set(firstCore, { ...top, reason: top.reason.startsWith('Build do meta') ? top.reason.replace('Build do meta', 'Build do meta · 1º item') : top.reason });
+  }
+
   /* --- defesa que já cobre: se você já tem o item defensivo e a ameaça daquele tipo está atrás, priorize dano --- */
   const DEF = {
     ad: new Set(['armor', 'antiburstAd', 'anticrit'].flatMap((n) => (reactive[n] || {})[cls] || [])),

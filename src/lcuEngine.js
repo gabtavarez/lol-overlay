@@ -212,6 +212,12 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
       timer = null;
     },
     tick,
+    /** Muda o intervalo de leitura (em partida o cliente quase não muda: lê bem menos). */
+    setPace(ms) {
+      if (!ms || ms === intervalMs) return;
+      intervalMs = ms;
+      if (timer) { clearInterval(timer); timer = setInterval(tick, intervalMs); }
+    },
     getCreds: () => creds,
     getProfile: () => profile,
     getRegion: () => region,

@@ -17,6 +17,7 @@ let moving = false;
 let previewing = false;
 let panels = { buys: null, info: null, gold: null, timers: null, kit: null, goals: null, coach: null };
 let dragging = false;
+let lastCoachSig = null;
 let full = true; // false = só o coach fixo na tela (TAB solto)
 
 // Partida de exemplo (modo mover/testar e as prévias das Configurações): Ahri x Zed aos 14 min.
@@ -199,6 +200,15 @@ function draw() {
   for (const b of Object.values(boxes)) b.classList.toggle('moving', moving);
   $('edit-bar').hidden = !moving;
 
+  // Só o coach na tela (TAB solto): redesenha apenas quando o conselho muda, não a cada leitura do jogo.
+  if (inGame && !sample && !full) {
+    const sig = JSON.stringify(advice.coach || null);
+    if (sig === lastCoachSig) return;
+    lastCoachSig = sig;
+    renderCoach(advice.coach);
+    return;
+  }
+  lastCoachSig = null;
   if (inGame && !sample) {
     $('gold').textContent = `${lastState.me.gold} g`;
     renderBuyList($('list'), advice.buys, lastState.assets.version);

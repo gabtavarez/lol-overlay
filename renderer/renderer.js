@@ -859,7 +859,7 @@ $('set-diag').addEventListener('click', async () => {
   const box = $('diag');
   const key = d.hook.loaded
     ? `ok${d.hook.lastKeyAgoMs === null ? ' (ainda não detectei nenhuma tecla: aperte uma)' : `, última tecla há ${Math.round(d.hook.lastKeyAgoMs / 1000)} s`} · TAB pressionado ${d.hook.tabPresses}×`
-    : `FALHOU (${d.hook.error || 'não iniciado'}): overlay fica sempre visível`;
+    : d.hook.poller === 'ok' ? 'desligado (o leitor direto já funciona; o hook só entra como reserva)' : `FALHOU (${d.hook.error || 'não iniciado'}): overlay fica sempre visível`;
   box.replaceChildren(
     h('div', { text: `Versão ${d.version}` }),
     h('div', { text: `Monitoramento da tecla TAB (hook): ${key}` }),

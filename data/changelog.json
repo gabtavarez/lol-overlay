@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.33.2",
+    "title": "1º item certo e menos peso durante a partida",
+    "items": [
+      "Corrigido: o app sugeria item defensivo completo (ex.: Ampulheta de Zhonya) como primeiro item só porque o time inimigo tinha mais dano físico. Agora o 1º item do meta vem primeiro; a defesa completa só passa na frente com inimigo fed, rota perdida ou time inteiro de um tipo de dano.",
+      "Desempenho: em partida, o app roda com prioridade abaixo do normal (o jogo ganha a CPU) e lê o cliente a cada 6 s em vez de 1,5 s.",
+      "Desempenho: o TAB passa a ser lido direto da tecla. O hook global de teclado/mouse (que recebia todo movimento do mouse) só liga se essa leitura falhar.",
+      "Desempenho: o coach fixo só redesenha quando a dica muda; sombras dos painéis mais leves e o aviso de voltar à base pulsa 3 vezes e para."
+    ]
+  },
+  {
     "version": "0.33.1",
     "title": "Início acessível no champ select",
     "items": [

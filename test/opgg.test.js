@@ -334,3 +334,14 @@ test('2 páginas de runas diferentes e tier list por elo', async () => {
   const tl = r.getTierListElo('middle', 'GOLD');
   assert.deepEqual(tl.data.map((x) => x.champion), ['AHRI', 'LUX']);
 });
+
+test('compras: 1º item do meta antes de defesa completa quando ninguém está fed', () => {
+  const build = parseAnalysis(ANALYSIS);
+  const enemies = [
+    player('Irelia', 'Irelia', ['Fighter'], { position: 'TOP', scores: { kills: 1, deaths: 1, assists: 0 } }),
+    player('Zed', 'Zed', ['Assassin']), player('Jinx', 'Jinx', ['Marksman']), player('Lux', 'Lux', ['Mage']), player('Thresh', 'Thresh', ['Support']),
+  ];
+  const out = buyAdvice({ state: { me: ME, enemies, gameTime: 120 }, build, dd });
+  assert.equal(out.items[0].id, 3146);
+  assert.match(out.items[0].reason, /1º item/);
+});

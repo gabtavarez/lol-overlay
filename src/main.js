@@ -1,3 +1,4 @@
+const os = require('os');
 const { app, BrowserWindow, Menu, globalShortcut, ipcMain, screen, shell } = require('electron');
 const path = require('path');
 const { DataDragon } = require('./ddragon');
@@ -65,6 +66,7 @@ let pollTab = false;
 let lastLivePhase = '';
 let updater = null;
 const DEVTOOLS_ALLOWED = !app.isPackaged && process.env.LOL_DEVTOOLS === '1';
+let quitting = false;
 const hook = { loaded: false, error: '', lastKeyAt: 0, tabPresses: 0, poller: 'não iniciado' };
 let lastRole = '';
 
@@ -87,6 +89,7 @@ function setStatus(text, level = 'info') {
 function publish() {
   if (liveState.phase !== lastLivePhase) {
     lastLivePhase = liveState.phase;
+    gameMode(liveState.phase === 'ingame');
     logger.log(`Live API: ${liveState.phase}${liveState.reason ? ` (${liveState.reason})` : ''}`);
   }
   lastState = pickState(liveState, lcuState);
@@ -235,6 +238,19 @@ function previewOverlay(ms = 5000) {
   updateOverlayVisibility();
 }
 
+/**
+ * Em partida o app cede a vez para o jogo: todos os processos do app em prioridade "abaixo do normal"
+ * e o cliente (LCU) lido a cada 6 s em vez de 1,5 s. Fora da partida volta ao normal.
+ */
+function gameMode(on) {
+  const prio = on ? os.constants.priority.PRIORITY_BELOW_NORMAL : os.constants.priority.PRIORITY_NORMAL;
+  for (const m of app.getAppMetrics()) {
+    try { os.setPriority(m.pid, prio); } catch { /* processo já saiu */ }
+  }
+  if (lcuEngine) lcuEngine.setPace(on ? 6000 : 1500);
+  logger.log(`modo partida: ${on ? 'ligado (prioridade baixa, cliente a cada 6 s)' : 'desligado'}`);
+}
+
 function setTab(source, down) {
   if (source === 'hook') hookTab = down;
   else pollTab = down;
@@ -251,7 +267,14 @@ function setTab(source, down) {
  * tecla (GetAsyncKeyState via PowerShell). Se uma falhar ou for bloqueada, a outra segura.
  */
 function startTabHook() {
+  // Leitura da tecla (GetAsyncKeyState) primeiro. O hook global (uiohook) recebe TODO movimento do mouse
+  // e tecla do sistema e pode atrasar a entrada no jogo: só entra se a leitura falhar.
   startKeyPoller();
+  setTimeout(() => { if (hook.poller !== 'ok') startUiohook(); }, 8000);
+}
+
+function startUiohook() {
+  if (hook.loaded) return true;
   try {
     const { uIOhook } = require('uiohook-napi');
     uIOhook.on('keydown', (e) => {
@@ -276,7 +299,7 @@ function startKeyPoller() {
   if (process.platform !== 'win32') return;
   const script = [
     "Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class K { [DllImport(\"user32.dll\")] public static extern short GetAsyncKeyState(int k); }'",
-    '$p = $false',
+    '$p = $null',
     'while ($true) {',
     '  $d = ([K]::GetAsyncKeyState(9) -band 0x8000) -ne 0',
     '  if ($d -ne $p) { $p = $d; Write-Output ([int]$d); [Console]::Out.Flush() }',
@@ -299,10 +322,12 @@ function startKeyPoller() {
     keyPoller.on('exit', (code) => {
       hook.poller = `encerrado (${code})`;
       logger.log(`leitor de teclas encerrou (${code})`);
+      if (!quitting) startUiohook(); // reserva
     });
     keyPoller.on('error', (err) => {
       hook.poller = `falhou: ${err.message}`;
       logger.log(`leitor de teclas falhou: ${err.message}`);
+      startUiohook();
     });
   } catch (err) {
     hook.poller = `falhou: ${err.message}`;
@@ -1259,6 +1284,7 @@ app.whenReady().then(() => {
 });
 
 app.on('will-quit', () => {
+  quitting = true;
   globalShortcut.unregisterAll();
   if (rpc) rpc.stop();
   try { require('uiohook-napi').uIOhook.stop(); } catch { /* hook não iniciado */ }

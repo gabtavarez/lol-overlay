@@ -22,7 +22,7 @@ function readJson(file) {
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
-  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp', 'runes', 'tierlistElo', 'synlist']) if (!cache[k]) cache[k] = {};
+  for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp', 'runes', 'tierlistElo', 'synlist', 'augments']) if (!cache[k]) cache[k] = {};
   const inflight = new Map();
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
@@ -71,6 +71,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
 
   // Campeão sem dados na rota pedida (ex.: off-meta ou recém-lançado): tenta as outras rotas.
   const ROLES = ['middle', 'top', 'jungle', 'bottom', 'utility'];
+  const MODES = ['aram', 'arena']; // "rotas" que na verdade são modos de jogo
   // Sem rota (modo treino, ARAM, personalizada): começa pela rota mais provável pelas tags do campeão.
   function guessRoles(champ) {
     const t = (champ && champ.tags) || [];
@@ -79,6 +80,18 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     return [first, ...ROLES.filter((r) => r !== first)];
   }
   async function analysisWithFallback(champ, role, priority) {
+    if (MODES.includes(role)) {
+      try {
+        if (role === 'arena') throw new Error('o OP.GG não tem builds de Arena'); // só ranqueada/ARAM/URF
+        return await client.analysis(champ, role, priority, null);
+      } catch (err) {
+        // OP.GG sem dados do modo para esse campeão: usa a build ranqueada da rota mais provável
+        for (const r of guessRoles(champ)) {
+          try { return { ...(await client.analysis(champ, r, priority, tierArg())), fromRole: r, modeFallback: role }; } catch { /* próxima */ }
+        }
+        throw err;
+      }
+    }
     if (!role) {
       for (const r of guessRoles(champ)) {
         try {
@@ -105,7 +118,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
 
   // Elo das builds: o padrão do OP.GG (Esmeralda+) mantém a chave antiga do cache.
   const tierArg = () => { const t = getTier(); return t && t !== 'EMERALD_PLUS' ? t : null; };
-  const buildKey = (champ, role) => `${norm(champ.id)}:${role || 'none'}${tierArg() ? `:${tierArg()}` : ''}`;
+  const buildKey = (champ, role) => `${norm(champ.id)}:${role || 'none'}${tierArg() && !MODES.includes(role) ? `:${tierArg()}` : ''}`;
 
   return {
     /** Tier list ranqueada de todas as rotas, atualizada a cada 3 h (segue o patch atual do OP.GG). */
@@ -139,7 +152,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
      * Até 2 páginas de runas com %: o OP.GG só devolve a mais jogada por consulta, então pergunta em
      * outros elos e fica com as 2 primeiras diferentes (a do seu elo sempre primeiro). Cache de 12 h.
      */
-    ensureRunePages: (champ, role, onDone) => (champ ? refresh('runes', buildKey(champ, role), async () => {
+    ensureRunePages: (champ, role, onDone) => (champ && !MODES.includes(role) ? refresh('runes', buildKey(champ, role), async () => {
       const r = role || (cache.builds[buildKey(champ, role)] && cache.builds[buildKey(champ, role)].data.fromRole) || guessRoles(champ)[0];
       const mine = tierArg() || 'EMERALD_PLUS';
       const tiers = [mine, ...RUNE_TIERS.filter((t) => t !== mine)];
@@ -209,8 +222,10 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     /** Erro da última tentativa de buscar a build (null se ok ou ainda não tentou). */
     buildError: (champ, role) => (champ ? failures.get(`builds:${buildKey(champ, role)}`) || null : null),
 
+    ensureAugments: (champ, onDone) => (champ && champ.key ? refresh('augments', String(champ.key), () => client.aramAugments(champ.key), onDone, 12 * 3600 * 1000) : Promise.resolve()),
+    getAugments: (champ) => { const e = champ && champ.key && cache.augments && cache.augments[String(champ.key)]; return e ? e.data : null; },
     ensureMatchup: (me, enemy, role, onDone) =>
-      me && enemy ? refresh('matchups', `${norm(me.id)}:${norm(enemy.id)}:${role || 'none'}`, () => client.matchup(me, enemy, role), onDone) : Promise.resolve(),
+      me && enemy && !MODES.includes(role) ? refresh('matchups', `${norm(me.id)}:${norm(enemy.id)}:${role || 'none'}`, () => client.matchup(me, enemy, role), onDone) : Promise.resolve(),
     ensureSynergy: (ally, allyRole, myRole, onDone) =>
       ally && allyRole && myRole ? refresh('synergies', `${norm(ally.id)}:${allyRole}:${myRole}`, () => client.synergies(ally, allyRole, myRole), onDone) : Promise.resolve(),
 

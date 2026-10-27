@@ -1,6 +1,6 @@
 /* Helpers compartilhados pela janela principal e pelo overlay do TAB. */
 const DD = 'https://ddragon.leagueoflegends.com';
-const ROLE_LABEL = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte' };
+const ROLE_LABEL = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte', aram: 'ARAM', arena: 'Arena' };
 
 // Nomes de jogadores, itens e motivos vêm de fora: sempre textContent, nunca innerHTML.
 function h(tag, props = {}, ...children) {

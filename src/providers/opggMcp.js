@@ -406,6 +406,7 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
     return new Promise((resolve, reject) => { queue.push({ run, priority, resolve, reject }); pump(); });
   }
 
+  const MODE_ROLES = ['aram', 'arena'];
   const ANALYSIS_FIELDS = [
     'data.summary.average_stats', 'data.damage_type', 'data.strong_counters', 'data.weak_counters',
     'data.core_items', 'data.boots', 'data.starter_items', 'data.fourth_items', 'data.fifth_items',
@@ -414,10 +415,13 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
   ];
 
   return {
+    // role 'aram' / 'arena' = modo de jogo (sem rota): pede a build daquele modo ao OP.GG
     analysis: async (champ, role, priority = 0, tier = null) =>
       parseAnalysis(await call('lol_get_champion_analysis', {
-        game_mode: 'ranked', champion: String(champ.id).toUpperCase(), position: POSITION[role] || 'none',
-        lang: 'en_US', desired_output_fields: ANALYSIS_FIELDS, ...(tier ? { tier } : {}),
+        // ARAM exige uma rota no parâmetro, mas ignora (mesmo resultado em qualquer uma)
+        game_mode: role === 'aram' ? 'aram' : 'ranked', champion: String(champ.id).toUpperCase(), position: role === 'aram' ? 'mid' : POSITION[role] || 'none',
+        lang: 'en_US', desired_output_fields: MODE_ROLES.includes(role) ? ANALYSIS_FIELDS.filter((f) => !/positions|counters|tier/.test(f)) : ANALYSIS_FIELDS,
+        ...(tier && !MODE_ROLES.includes(role) ? { tier } : {}),
       }, priority)),
     matchup: async (me, enemy, role) =>
       parseMatchup(await call('lol_get_lane_matchup_guide', {
@@ -468,6 +472,14 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
           'data.game_detail.teams[].key', `data.game_detail.teams[].game_stat.${TEAM_FIELDS}`],
       }, 20)),
     /** Só a página de runas mais jogada num elo (o OP.GG expõe 1 por consulta). */
+    /** Augments do ARAM: Desordem para um campeão (tier 3+), ordenados por desempenho. */
+    aramAugments: async (champKey) => {
+      const d = parseCompact(await call('lol_list_aram_augments', {
+        champion_id: Number(champKey), lang: 'pt_BR', desired_output_fields: ['data.augments[].{id,name,tier,performance,popular}'],
+      }, 5)).data || {};
+      return (d.augments || []).filter((a) => a && a.name).map((a) => ({ id: a.id, name: a.name, tier: a.tier, score: a.performance, pick: a.popular }))
+        .sort((a, b) => b.score - a.score);
+    },
     runes: async (champ, role, tier, priority = 1) =>
       parseRunePage(await call('lol_get_champion_analysis', {
         game_mode: 'ranked', champion: String(champ.id).toUpperCase(), position: POSITION[role] || 'none', lang: 'en_US',

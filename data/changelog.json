@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.33.0",
+    "title": "ARAM, Arena e sequência/tilt",
+    "items": [
+      "ARAM: o app reconhece o modo e usa a build de ARAM do OP.GG (itens, runas e feitiços, como Marcar/Avançar). No ARAM: Desordem, o guia mostra os augments com melhor desempenho do campeão.",
+      "Arena: o OP.GG não tem builds desse modo, então o app usa a build ranqueada da rota mais provável e avisa no guia. Importa só os itens (runas e feitiços não existem na Arena).",
+      "Em ARAM e Arena não há metas de farm/visão nem coach de rota, e o pós-partida não cobra visão.",
+      "Início: novo card \"Sequência e ritmo\" com as suas últimas 10 partidas, a sessão de hoje e a % de vitória por horário (madrugada, manhã, tarde, noite) com o melhor e o pior.",
+      "Depois de 2 derrotas seguidas o app sugere uma pausa e um campeão de conforto; com 3, sugere parar por hoje. O aviso também aparece no champ select."
+    ]
+  },
+  {
     "version": "0.32.0",
     "title": "Coach de rota",
     "items": [

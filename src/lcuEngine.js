@@ -1,6 +1,7 @@
 const { lcuRequest, lcuGetJson } = require('./lcu');
 const { loadProfile } = require('./profile');
-const { buildChampSelectState, puuidsToResolve } = require('./champSelect');
+const { buildChampSelectState, puuidsToResolve, modeRole } = require('./champSelect');
+const { tiltReport } = require('./tilt');
 const { recommendPicks } = require('./picker');
 const { toOpggRegion, buildMultisearchUrls } = require('./opgg');
 const { recommendBans } = require('./bans');
@@ -16,6 +17,16 @@ const REDISCOVER_MS = 5000;
  * histórico) em segundo plano e entrega o estado com as sugestões.
  */
 /** Resumo para a tela inicial: invocador, campeões com mais maestria e rota mais jogada. */
+/** Sequência/tilt com o campeão de conforto já resolvido para id/nome do Data Dragon. */
+function tiltFor(profile, dd) {
+  if (!profile || !profile.games) return null;
+  const t = tiltReport(profile.games, { mastery: profile.mastery });
+  const c = t.comfort && dd && dd.championByKey(t.comfort.championId);
+  t.comfort = c ? { ...t.comfort, id: c.id, name: c.name } : null;
+  t.recent = t.recent.map((g) => { const ch = dd && dd.championByKey(g.championId); return { ...g, id: ch ? ch.id : null, name: ch ? ch.name : '' }; });
+  return t;
+}
+
 function homeSummary(profile, dd) {
   if (!profile) return { loading: true, version: dd ? dd.version : null };
   const top = [...profile.mastery.entries()]
@@ -35,7 +46,7 @@ function homeSummary(profile, dd) {
     })
     .filter((r) => r.games)
     .sort((a, b) => b.games - a.games);
-  return { summoner: profile.summoner, top, roles, gamesAnalyzed: profile.gamesAnalyzed, version: dd ? dd.version : null };
+  return { summoner: profile.summoner, top, roles, gamesAnalyzed: profile.gamesAnalyzed, version: dd ? dd.version : null, tilt: tiltFor(profile, dd) };
 }
 
 function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, getBuild = () => null, prefetch = () => {}, getTierRows = () => [], intervalMs = 1500 }) {
@@ -49,6 +60,7 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
   let profileLoading = false;
   let region = null;
   let sessionId = null;
+  let queueInfo = null;
   const names = new Map();
   const acceptState = { accepted: false };
 
@@ -119,6 +131,13 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
     if (session.id !== sessionId) {
       sessionId = session.id;
       names.clear();
+      queueInfo = null;
+    }
+    // modo da fila (ARAM, Arena…): a sessão do champ select nem sempre traz; o gameflow traz
+    if (!queueInfo) {
+      queueInfo = await lcuGetJson(creds, '/lol-gameflow/v1/session')
+        .then((g) => { const q = (g && g.gameData && g.gameData.queue) || {}; return { id: q.id || 0, gameMode: q.gameMode || '' }; })
+        .catch(() => null);
     }
 
     const [pickable, bannable] = await Promise.all([
@@ -129,6 +148,9 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
 
     const dd = getDd();
     const state = buildChampSelectState(session, { names, dd, pickable, bannable });
+    if (queueInfo) { state.queueId = queueInfo.id || state.queueId; state.gameMode = queueInfo.gameMode; }
+    state.mode = modeRole(state);
+    state.tilt = tiltFor(profile, dd);
     const loaded = ensureProfile();
     state.advice = {
       picks: recommendPicks({

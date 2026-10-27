@@ -323,6 +323,10 @@ function drawGuide() {
   }
   if (sub.length) parts.push(h('div', { class: 'g-sub' }, ...sub));
   if (root.roleNote) parts.push(h('div', { class: 'g-tip', text: root.roleNote }));
+  if (root.augments && root.augments.length) {
+    parts.push(h('div', { class: 'g-aug' }, h('div', { class: 'lbl' }, h('span', { text: 'Augments que mais ganham (ARAM: Desordem)' })),
+      h('div', { class: 'g-aug-list' }, ...root.augments.map((a) => h('span', { class: `aug t${a.tier}`, title: `Desempenho ${Math.round(a.score)} · escolhido em ${Math.round((a.pick || 0) * 100)}%`, text: a.name })))));
+  }
   if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
   if ((g.changes || []).length) {
     const KIND = { items: 'Itens', spells: 'Feitiços', runes: 'Runas', shards: 'Fragmento', skills: 'Habilidades' };
@@ -427,7 +431,8 @@ function renderSelect(state) {
   els.clock.textContent = '';
 
   const picks = (state.advice && state.advice.picks) || { candidates: [], notes: [] };
-  els.selRole.textContent = state.myPosition ? ROLE_LABEL[state.myPosition] : 'rota não definida';
+  renderSelTilt(state.tilt, state.assets && state.assets.version);
+  els.selRole.textContent = state.mode ? ROLE_LABEL[state.mode] : state.myPosition ? ROLE_LABEL[state.myPosition] : 'rota não definida';
   const turnText = state.action === 'ban' ? 'Sua vez: banir' : state.action === 'pick' ? 'Sua vez: escolher' : '';
   els.turn.textContent = turnText;
   els.turn.hidden = !turnText;
@@ -592,6 +597,38 @@ window.overlay.onMaximized((max) => {
 const fmtPts = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} mi` : n >= 1e3 ? `${Math.round(n / 1e3)} mil` : String(n));
 let homeKey = '';
 
+/* ---------- sequência e tilt ---------- */
+const TILT_TONE = { stop: 'bad', pause: 'warn', tired: 'warn', hot: 'ok', ok: '', none: '' };
+function renderTilt(t, v) {
+  $('tilt-card').hidden = !t || t.status === 'none';
+  if (!t || t.status === 'none') return;
+  const dots = h('div', { class: 'tilt-dots', title: 'Mais recente à esquerda' }, ...t.recent.map((g) => h('span', { class: `tilt-dot ${g.win ? 'w' : 'l'}`, title: `${g.name || ''} · ${g.win ? 'vitória' : 'derrota'}` },
+    v && g.id ? h('img', { src: champIcon(v, g.id), alt: '' }) : null)));
+  const sess = t.session && t.session.games ? h('span', { class: 'muted small', text: `Sessão de hoje: ${t.session.wins}V ${t.session.losses}D` }) : null;
+  const comfort = t.comfort && (t.status === 'stop' || t.status === 'pause' || t.status === 'tired')
+    ? h('div', { class: 'tilt-comfort' }, v ? h('img', { src: champIcon(v, t.comfort.id), alt: '' }) : null,
+      h('span', { text: t.comfort.why === 'recent' ? `Conforto: ${t.comfort.name} (${Math.round(t.comfort.winRate * 100)}% em ${t.comfort.games} jogos recentes)` : `Conforto: ${t.comfort.name} (sua maior maestria)` }))
+    : null;
+  const hours = h('div', { class: 'tilt-hours' }, ...t.hours.map((x) => h('div', { class: `th${t.best && t.best.key === x.key ? ' best' : ''}${t.worst && t.worst.key === x.key ? ' worst' : ''}` },
+    h('div', { class: 'th-bar' }, h('div', { class: 'th-fill', style: `height:${x.winRate == null ? 0 : Math.round(8 + 92 * Math.min(1, Math.max(0, (x.winRate - 0.3) / 0.4)))}%` })),
+    h('b', { text: x.winRate == null ? '—' : `${Math.round(x.winRate * 100)}%` }),
+    h('span', { class: 'muted small', text: `${x.label} · ${x.games} jogo${x.games === 1 ? '' : 's'}` }))));
+  const hourNote = t.best ? h('p', { class: 'muted small', text: `Melhor horário: ${t.best.label.toLowerCase()} (${Math.round(t.best.winRate * 100)}%)${t.worst ? ` · pior: ${t.worst.label.toLowerCase()} (${Math.round(t.worst.winRate * 100)}%)` : ''}.` })
+    : h('p', { class: 'muted small', text: `Com ${MIN_HOURS} partidas ou mais em cada horário, o app mostra o seu melhor e pior horário.` });
+  $('tilt-body').replaceChildren(
+    h('div', { class: `tilt-status ${TILT_TONE[t.status] || ''}` }, h('b', { text: t.title }), h('span', { text: t.text })),
+    h('div', { class: 'tilt-row' }, dots, sess), ...(comfort ? [comfort] : []), hours, hourNote);
+}
+const MIN_HOURS = 5;
+function renderSelTilt(t, v) {
+  const show = t && ['stop', 'pause', 'tired'].includes(t.status);
+  $('sel-tilt').hidden = !show;
+  if (!show) return;
+  $('sel-tilt').className = `tilt-banner ${TILT_TONE[t.status]}`;
+  $('sel-tilt').replaceChildren(h('b', { text: t.title }), h('span', { text: ` ${t.text}` }),
+    ...(t.comfort ? [h('span', { class: 'tilt-comfort' }, v ? h('img', { src: champIcon(v, t.comfort.id), alt: '' }) : null, h('span', { text: `Conforto: ${t.comfort.name}` }))] : []));
+}
+
 function renderHome(state) {
   const home = state.home || {};
   const v = home.version || version;
@@ -604,7 +641,8 @@ function renderHome(state) {
   $('home-chips').replaceChildren(...chips.map(([t, c]) => h('span', { class: `chip ${c}`, text: t })));
   howState(state);
 
-  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v, home.elo]);
+  const tk = home.tilt ? `${home.tilt.status}:${home.tilt.recent.map((r) => (r.win ? 1 : 0)).join('')}` : '';
+  const key = JSON.stringify([state.client, home.summoner && home.summoner.puuid, (home.top || []).length, (home.fit || []).length, v, home.elo, tk]);
   if (key === homeKey) return; // evita redesenhar a cada 1,5 s
   homeKey = key;
   loadPatchCard(state);
@@ -620,6 +658,8 @@ function renderHome(state) {
   $('side-avatar').replaceWith(v && s && s.iconId
     ? Object.assign(h('img', { id: 'side-avatar', class: 'avatar', src: `${DD}/cdn/${v}/img/profileicon/${s.iconId}.png`, alt: '' }))
     : h('div', { id: 'side-avatar', class: 'avatar' }));
+
+  renderTilt(home.tilt, v);
 
   const champs = home.top || [];
   $('home-champs').replaceChildren(...(champs.length

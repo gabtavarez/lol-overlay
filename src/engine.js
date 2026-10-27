@@ -29,7 +29,8 @@ function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatch
       if (state.phase === 'ingame') {
         state.advice = recommend(state);
         const live = String(state.me.position || '').toLowerCase();
-        state.myRole = ROLES.includes(live) ? live : getRoleHint() || '';
+        const gm = String(state.gameMode || '').toUpperCase();
+        state.myRole = gm === 'ARAM' ? 'aram' : gm === 'CHERRY' ? 'arena' : ROLES.includes(live) ? live : getRoleHint() || '';
         try {
           const me = { id: state.me.championId };
           const opp = state.laneOpponent ? { id: state.laneOpponent.championId } : null;

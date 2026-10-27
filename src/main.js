@@ -90,7 +90,7 @@ function publish() {
     logger.log(`Live API: ${liveState.phase}${liveState.reason ? ` (${liveState.reason})` : ''}`);
   }
   lastState = pickState(liveState, lcuState);
-  if (lcuState.phase === 'champselect' && lcuState.myPosition) lastRole = lcuState.myPosition;
+  if (lcuState.phase === 'champselect') lastRole = lcuState.mode || lcuState.myPosition || (MODE_ROLES.includes(lastRole) ? '' : lastRole);
   send('state', lastState);
   updateOverlayVisibility();
   updatePresence();
@@ -384,6 +384,7 @@ function laneEnemy() {
     if (picked) return picked.champion;
   }
   const role = lastRole || lcuState.myPosition;
+  if (MODE_ROLES.includes(role)) return null; // ARAM/Arena não têm oponente de rota
   const e = enemies.find((x) => x.position === role) || enemies.find((x) => !x.position && x.predicted === role && x.confidence >= 50);
   return e ? e.champion : null;
 }
@@ -393,7 +394,9 @@ function buildFor(champ, role) {
   return withMatchup(remote.getBuild(champ, role), opp && remote.getMatchup(champ, opp, role), opp && opp.name);
 }
 
-const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte' };
+const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte', aram: 'ARAM', arena: 'Arena' };
+const MODE_ROLES = ['aram', 'arena'];
+const MAYHEM_QUEUES = [2400, 3100]; // ARAM: Desordem (com augments)
 const pctTxt = (x) => (typeof x === 'number' && x > 0 ? `${Math.round(x * (x <= 1 ? 100 : 1))}%` : null);
 
 /** Até 2 builds para escolher: a mais jogada e, se houver, a do matchup; senão uma rota de itens alternativa. */
@@ -403,6 +406,7 @@ function buildVariants(champ, role) {
   const opp = laneEnemy();
   const mu = opp && remote.getMatchup(champ, opp, role);
   const wr = pctTxt(base.winRate);
+  if (role === 'arena') return [{ label: 'Mais jogada', sub: pctTxt(base.winRate) ? `WR ${pctTxt(base.winRate)}` : 'OP.GG', build: base, changes: [] }];
   const out = [{ label: 'Mais jogada', sub: [pctTxt(base.corePick) && `${pctTxt(base.corePick)} dos jogadores`, wr && `WR ${wr}`].filter(Boolean).join(' · ') || 'OP.GG', build: base, changes: [] }];
   // Contra o oponente de rota (ou a comp inimiga): OP.GG do matchup + regras próprias (feitiço, fragmento, 2ª árvore).
   const enemies = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
@@ -460,6 +464,7 @@ async function importBuild(championId, what, variant = 0, runePage = 0, forRole 
   if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
   const done = [];
   try {
+    if (role === 'arena' && what !== 'items') what = 'items'; // Arena: sem runas e feitiços para importar
     if (what !== 'spells' && what !== 'items') {
       const pages = remote.getRunePages(champ, role);
       const v = variants[variant] || {};
@@ -522,14 +527,25 @@ async function guideFor(championId) {
       changes: v.changes || [], runesForMatchup: (v.changes || []).some((c) => c.kind === 'runes' || c.kind === 'shards') },
   }));
   const fromRole = remote.getBuild(champ, role) && remote.getBuild(champ, role).fromRole;
-  const roleNote = fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;
+  const b0 = remote.getBuild(champ, role);
+  const roleNote = b0 && b0.modeFallback ? `O OP.GG não tem dados de ${ROLE_PT[b0.modeFallback]} para ${champ.name}: usando a build ranqueada de ${ROLE_PT[fromRole]}.`
+    : MODE_ROLES.includes(role) ? `Build de ${ROLE_PT[role]} (OP.GG)${role === 'arena' ? ': itens do modo; runas e feitiços não se aplicam.' : '.'}`
+      : fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;
   const opp = laneEnemy();
   const opponents = (lcuState.enemies || []).filter((x) => x.champion).map((x) => ({ id: x.champion.id, name: x.champion.name }));
   const mode = matchupPick && matchupPick.session === lcuState.sessionId ? matchupPick.id : 'auto';
   const pending = opp && !remote.getMatchup(champ, opp, role) ? `Buscando o matchup contra ${opp.name}…` : null;
   const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
   const runePages = runePagesFor(champ, role, build);
-  return { ...variants[0].guide, variants, runePages, roleNote, opponents, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
+  // ARAM: Desordem: augments com melhor desempenho do campeão (OP.GG)
+  let augments = null;
+  if (role === 'aram' && MAYHEM_QUEUES.includes(lcuState.queueId)) {
+    const full = dd.champions[champ.id] || champ;
+    augments = remote.getAugments(full);
+    if (!augments) remote.ensureAugments(full, () => send('guide-updated', { championId: String(champ.id) }));
+    else augments = augments.slice(0, 8);
+  }
+  return { ...variants[0].guide, variants, runePages, roleNote, opponents, augments, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
 let skinCatalog = async () => null;
@@ -696,7 +712,13 @@ async function champDetail(id, wanted) {
 
 /** Busca (se preciso) tier list, builds dos inimigos e dos candidatos de pick. */
 function prefetchChampSelect(state, done) {
-  if (state.phase !== 'champselect' || !state.myPosition || !dd) return;
+  if (state.phase !== 'champselect' || !dd) return;
+  if (state.mode) { // ARAM/Arena: só a build do modo do seu campeão (e do banco, no ARAM)
+    const mine = state.me && state.me.champion;
+    if (mine) remote.ensureBuild(mine, state.mode, done, 25);
+    return;
+  }
+  if (!state.myPosition) return;
   const role = state.myPosition;
   remote.ensureTiers(role, done);
   const mine = state.me && state.me.champion;

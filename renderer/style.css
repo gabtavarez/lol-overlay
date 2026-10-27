@@ -745,3 +745,35 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .cur-btn.off { opacity: .45; }
 .cur-btn:disabled { opacity: .3; cursor: default; }
 .pf-legend { align-items: center; }
+
+/* sequência e tilt */
+.tilt { padding: 4px 16px 14px; display: grid; gap: 12px; }
+.tilt-status { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.tilt-status b { font-size: 14px; }
+.tilt-status span { color: var(--muted); font-size: 12.5px; }
+.tilt-status.bad { border-color: rgba(229,72,77,.45); background: rgba(229,72,77,.07); } .tilt-status.bad b { color: var(--bad); }
+.tilt-status.warn { border-color: rgba(229,168,61,.45); background: rgba(229,168,61,.07); } .tilt-status.warn b { color: var(--warn); }
+.tilt-status.ok { border-color: rgba(63,191,127,.4); background: rgba(63,191,127,.06); } .tilt-status.ok b { color: var(--good); }
+.tilt-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tilt-dots { display: flex; gap: 5px; }
+.tilt-dot { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; border: 2px solid var(--line); display: block; }
+.tilt-dot img { width: 100%; height: 100%; display: block; }
+.tilt-dot.w { border-color: var(--good); } .tilt-dot.l { border-color: var(--bad); opacity: .8; }
+.tilt-comfort { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.tilt-comfort img { width: 24px; height: 24px; border-radius: 6px; }
+.tilt-hours { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.th { display: grid; gap: 3px; justify-items: center; text-align: center; }
+.th-bar { width: 100%; height: 56px; display: flex; align-items: flex-end; background: rgba(255,255,255,.03); border-radius: 6px; overflow: hidden; }
+.th-fill { width: 100%; background: rgba(139,141,152,.4); border-radius: 6px 6px 0 0; }
+.th.best .th-fill { background: var(--good); } .th.worst .th-fill { background: var(--bad); }
+.th b { font-size: 13px; }
+.tilt-banner { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 12.5px; }
+.tilt-banner.bad { border-color: rgba(229,72,77,.45); background: rgba(229,72,77,.07); } .tilt-banner.bad b { color: var(--bad); }
+.tilt-banner.warn { border-color: rgba(229,168,61,.45); background: rgba(229,168,61,.07); } .tilt-banner.warn b { color: var(--warn); }
+.tilt-banner .tilt-comfort { margin-left: auto; }
+
+/* augments (ARAM: Desordem) */
+.g-aug { margin: 10px 0; }
+.g-aug-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.aug { font-size: 12px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--line); }
+.aug.t4, .aug.t5 { border-color: rgba(229,168,61,.5); color: var(--warn); }

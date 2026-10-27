@@ -32,7 +32,7 @@ function gradeMatch(stats, ctx) {
   const kp = ctx.teamKills ? (stats.kills + stats.assists) / ctx.teamKills : null;
   areas.push({ key: 'combat', label: 'Combate', score: clamp(42 + Math.min(kda, 6) * 9 + (kp != null ? (kp - 0.5) * 60 : 0) - Math.max(0, stats.deaths - 6) * 4),
     text: `KDA ${kda.toFixed(2)}${kp != null ? ` · ${Math.round(kp * 100)}% de participação` : ''}` });
-  if (stats.vision != null || stats.wards != null) {
+  if (!t.mode && (stats.vision != null || stats.wards != null)) {
     const v = stats.vision != null ? stats.vision / min : stats.wards / min;
     const target = stats.vision != null ? t.vision || 0.8 : ctx.role === 'utility' ? 1.1 : 0.45;
     areas.push({ key: 'vision', label: 'Visão', score: clamp(70 + (v / target - 1) * 80),

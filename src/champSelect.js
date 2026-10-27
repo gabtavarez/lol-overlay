@@ -67,6 +67,16 @@ function banStatus(session) {
   return { hasBanPhase, myBanDone, bannedKeys };
 }
 
+const ARAM_QUEUES = [450, 2400, 3100, 100, 720];
+const ARENA_QUEUES = [1700, 1710, 1720];
+/** Modo de jogo como "rota" das builds: 'aram' | 'arena' | null (Summoner's Rift). */
+function modeRole({ queueId, gameMode } = {}) {
+  const gm = String(gameMode || '').toUpperCase();
+  if (gm === 'ARAM' || ARAM_QUEUES.includes(queueId)) return 'aram';
+  if (gm === 'CHERRY' || ARENA_QUEUES.includes(queueId)) return 'arena';
+  return null;
+}
+
 /** Converte a sessão crua do champ select no estado consumido pelo recomendador e pela UI. */
 function buildChampSelectState(session, { names, dd, pickable = [], bannable = [] }) {
   const localCellId = session.localPlayerCellId;
@@ -95,4 +105,4 @@ function buildChampSelectState(session, { names, dd, pickable = [], bannable = [
   };
 }
 
-module.exports = { buildChampSelectState, puuidsToResolve, normalizePosition, POSITIONS };
+module.exports = { modeRole, buildChampSelectState, puuidsToResolve, normalizePosition, POSITIONS };

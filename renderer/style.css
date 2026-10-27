@@ -724,7 +724,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .pf-legend { display: flex; gap: 8px; flex-wrap: wrap; margin: -2px 0 4px; }
 .sk-filters select { height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: #101115; color: var(--text); }
 .sk-filters input[type=text] { min-width: 240px; }
-.sk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.skin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
 .sk-tile { position: relative; aspect-ratio: 308 / 560; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: #1b1d23; transition: transform .18s ease, border-color .18s ease; }
 .sk-tile:hover { transform: translateY(-2px); border-color: var(--line2); }
 .sk-tile img { width: 100%; height: 100%; object-fit: cover; }

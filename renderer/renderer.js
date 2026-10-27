@@ -1883,7 +1883,7 @@ function skinGallery(d) {
       sel('sk-rar', rarities.map((r) => [r, r === 'all' ? 'Toda raridade' : r]), f.rar, (v) => { f.rar = v; }),
       sel('sk-sort', [['rarity', 'Raridade'], ['champion', 'Campeão'], ['recent', 'Mais recentes']], f.sort, (v) => { f.sort = v; }),
       legacy, h('span', { class: 'muted small', text: `${list.length} skin${list.length === 1 ? '' : 's'}` })),
-    list.length ? h('div', { class: 'sk-grid' }, ...tiles) : h('p', { class: 'muted pad', text: 'Nenhuma skin com esses filtros.' }),
+    list.length ? h('div', { class: 'skin-grid' }, ...tiles) : h('p', { class: 'muted pad', text: 'Nenhuma skin com esses filtros.' }),
     more);
 }
 

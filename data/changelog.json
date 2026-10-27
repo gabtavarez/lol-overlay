@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.33.3",
+    "title": "Ordem de habilidades corrigida",
+    "items": [
+      "Corrigido: a grade da ordem de habilidades (guia e página do campeão) aparecia embaralhada desde a galeria de skins, que usava o mesmo estilo. Voltou a ser uma linha por habilidade, níveis 1 a 18."
+    ]
+  },
+  {
     "version": "0.33.2",
     "title": "1º item certo e menos peso durante a partida",
     "items": [

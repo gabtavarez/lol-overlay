@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.32.0",
+    "title": "Coach de rota",
+    "items": [
+      "Novo painel \"Coach de rota\" em partida: uma frase do que fazer agora (trocar, all-in, recuar, rotacionar) com selo verde, amarelo ou vermelho.",
+      "Lê sozinho: quem chegou primeiro no nível 2, 3 e 6, itens fechados de cada lado, sua vida contra Incendiar, oponente morto, onde o caçador inimigo apareceu por último, objetivos chegando e o seu farm contra a meta e contra o oponente.",
+      "Flash e outros feitiços do oponente: marque nos timers (clique ou Ctrl+Shift+1…5) e o coach mostra quando voltam e avisa a janela sem Flash.",
+      "Fica sempre na tela em partida (sem precisar do TAB) e não pega o clique do jogo. Ctrl+Shift+C liga/desliga; mova com Ctrl+Shift+M."
+    ]
+  },
+  {
     "version": "0.31.0",
     "title": "Assassino x lutador e troca de defesa por dano",
     "items": [

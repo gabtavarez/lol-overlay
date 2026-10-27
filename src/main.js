@@ -17,6 +17,7 @@ const { laterItems } = require('./buildPath');
 const { spawn } = require('child_process');
 const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
+const { laneCoach } = require('./coach');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit, mainRoleOf } = require('./fit');
 const { applyBlind } = require('./blind');
@@ -44,6 +45,7 @@ const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
 let mainWin = null;
 let overlayWin = null;
 let liveEngine = null;
+const spellMarks = { map: {}, at: 0 }; // feitiços inimigos marcados no overlay: 'riotId:Spell' -> pronto em (tempo de jogo)
 let lcuEngine = null;
 let remote = null;
 let dd = null;
@@ -53,6 +55,7 @@ let settings = null;
 let meta = { tiers: {}, counters: {} };
 let overlayAlways = false;
 let tabDown = false;
+let lastFull = null;
 let moveMode = false;
 let previewTimer = null;
 let logger = { log() {}, file: '' };
@@ -192,7 +195,12 @@ function updateOverlayVisibility() {
   const inGame = lastState.phase === 'ingame';
   const always = overlayAlways || settings.get().overlay.mode === 'always';
   const previewing = Boolean(previewTimer);
-  const show = moveMode || previewing || (inGame && (tabDown || always));
+  const ov = settings.get().overlay;
+  // coach de rota fica sempre na tela em partida; os outros painéis só com TAB (ou modo sempre)
+  const coachPinned = inGame && (ov.enabled || {}).coach !== false && ov.coachPinned !== false;
+  const full = moveMode || previewing || (inGame && (tabDown || always));
+  const show = full || coachPinned;
+  if (full !== lastFull) { lastFull = full; send('overlay-full', full); }
   const visible = overlayWin.isVisible();
   if (show && !visible) {
     placeOverlayOnActiveDisplay();
@@ -320,6 +328,12 @@ function registerShortcuts() {
   globalShortcut.register('CommandOrControl+Shift+Q', () => app.quit());
   // Ctrl+Shift+1..5: marca o Flash do inimigo n (na ordem do placar) no painel de timers.
   for (let n = 1; n <= 5; n++) globalShortcut.register(`CommandOrControl+Shift+${n}`, () => send('spell-mark', { index: n - 1, spell: 'SummonerFlash' }));
+  // Ctrl+Shift+C: liga/desliga o coach de rota.
+  globalShortcut.register('CommandOrControl+Shift+C', () => {
+    const cur = settings.get().overlay.enabled || {};
+    send('settings-changed', settings.update({ overlay: { enabled: { coach: cur.coach === false } } }));
+    updateOverlayVisibility();
+  });
 }
 
 /* ---------- dados ---------- */
@@ -802,6 +816,13 @@ function decorateLive(state) {
   state.advice.phases = meC && opC ? phaseCompare(meC, opC) : null;
   state.advice.oppKit = opC ? abilityCard(opC, state.laneOpponent.level) : null;
   state.advice.goals = liveGoals(state, myTier(), state.myRole);
+  if (state.gameTime + 30 < spellMarks.at) spellMarks.map = {}; // nova partida
+  spellMarks.at = state.gameTime;
+  try {
+    state.advice.coach = laneCoach(state, { dd, marks: spellMarks.map, tier: myTier(), role: state.myRole });
+  } catch (err) {
+    logger.log(`coach falhou: ${err.message}`);
+  }
   return state;
 }
 
@@ -1089,6 +1110,12 @@ function registerIpc() {
   ipcMain.handle('overlay:preview', () => { previewOverlay(5000); return true; });
 
   // O painel só captura o mouse enquanto o cursor está sobre ele; no resto da tela o clique vai para o jogo.
+  ipcMain.on('overlay:spell-marks', (_e, map) => {
+    if (map && typeof map === 'object') {
+      spellMarks.map = Object.fromEntries(Object.entries(map).filter(([k, v]) => typeof k === 'string' && k.length < 80 && Number.isFinite(v)).slice(0, 20));
+      if (liveEngine) liveEngine.tick();
+    }
+  });
   ipcMain.on('overlay:interactive', (_e, on) => {
     if (!moveMode && overlayWin && !overlayWin.isDestroyed()) overlayWin.setIgnoreMouseEvents(!on, { forward: true });
   });

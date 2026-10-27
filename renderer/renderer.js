@@ -715,6 +715,7 @@ const OVERLAYS = [
   ['timers', 'Timers', 'Dragão, arauto e barão; clique nos feitiços inimigos (ou Ctrl+Shift+1…5) para cronometrar o Flash.'],
   ['kit', 'Habilidades do oponente', 'Recarga de Q/W/E/R do oponente de rota e da ult no nível atual dele.'],
   ['goals', 'Metas da partida', 'CS/min e visão/min no ritmo do elo acima do seu, com quanto falta.'],
+  ['coach', 'Coach de rota', 'O que fazer agora na rota (trocar, all-in, recuar, rotacionar) por nível, itens, vida, caçador, objetivos e o Flash marcado. Ctrl+Shift+C liga/desliga.'],
 ];
 function fillOverlayList() {
   const en = (settings.overlay && settings.overlay.enabled) || {};

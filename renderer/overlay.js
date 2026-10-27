@@ -7,7 +7,7 @@ if (!window.overlay) {
   const noop = () => {};
   window.overlay = new Proxy({}, { get: (_t, k) => (k === 'getSettings' ? async () => ({}) : noop) });
 }
-const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox'), timers: $('timersbox'), kit: $('kitbox'), goals: $('goalsbox') };
+const boxes = { buys: $('buys'), info: $('info'), gold: $('goldbox'), timers: $('timersbox'), kit: $('kitbox'), goals: $('goalsbox'), coach: $('coachbox') };
 let enabled = {};
 const extras = { recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') };
 
@@ -15,8 +15,9 @@ const BASE_WIDTH = 330;
 let lastState = null;
 let moving = false;
 let previewing = false;
-let panels = { buys: null, info: null, gold: null, timers: null, kit: null, goals: null };
+let panels = { buys: null, info: null, gold: null, timers: null, kit: null, goals: null, coach: null };
 let dragging = false;
+let full = true; // false = só o coach fixo na tela (TAB solto)
 
 // Partida de exemplo (modo mover/testar e as prévias das Configurações): Ahri x Zed aos 14 min.
 function sampleState(version) {
@@ -46,6 +47,11 @@ function sampleState(version) {
       phases: [{ label: 'Early', verdict: 'theirs', text: 'Zed mais forte' }, { label: 'Mid', verdict: 'even', text: 'Equilibrado' }, { label: 'Late', verdict: 'mine', text: 'Você mais forte' }],
       scout: [{ who: 'Rota', champion: 'Zed', riotId: 'Zed#BR1', profile: { tier: 'EMERALD', division: 2, lp: 40, wins: 120, losses: 98, hot: true, champs: [] }, onChamp: { games: 80, wins: 46 } }],
       oppKit: { champion: 'Zed', source: 'Meraki', abilities: [{ key: 'Q', name: 'Shuriken Laminar', cd: '6 s' }, { key: 'W', name: 'Sombra Viva', cd: '20→15 s' }, { key: 'E', name: 'Corte Sombrio', cd: '5→3 s' }, { key: 'R', name: 'Marca da Morte', cd: '120→80 s' }], ult: { rank: 2, cd: 100 } },
+      coach: { tone: 'go', label: 'All-in', vs: 'Zed', head: 'Você tem ult e Zed não: janela de all-in.', rows: [
+        { label: 'Níveis', text: 'Você 6 · Zed 5' },
+        { label: 'Feitiços de Zed', text: 'Flash volta em 3:32 · Incendiar pronto' },
+        { label: 'Caçador', text: 'Lee Sin apareceu no topo há 18 s: seu lado está livre.' },
+        { label: 'Farm', text: '96 CS · 6.8/min (meta 7.5) · +4 contra Zed' }] },
       goals: { aimTier: 'DIAMOND', cs: { now: 6.8, target: 7.5, diff: -10, ok: false }, vision: { now: 0.62, target: 0.6, ok: true } },
     },
   };
@@ -91,6 +97,17 @@ function renderGoals(g) {
     row('Visão/min', g.vision.now, g.vision.target, g.vision.ok));
 }
 
+/* ---------- coach de rota ---------- */
+function renderCoach(c) {
+  if (!c) return;
+  $('coach-vs').textContent = c.vs ? `vs ${c.vs}` : '';
+  const pill = $('coach-pill');
+  pill.textContent = c.label;
+  pill.className = `c-pill ${c.tone}`;
+  $('coach-head').textContent = c.head;
+  $('coach-rows').replaceChildren(...(c.rows || []).map((r) => h('div', { class: 'c-row' }, h('b', { text: r.label }), h('span', { text: r.text }))));
+}
+
 /* ---------- rota: fases + scouting ---------- */
 function renderInfo(advice, state) {
   const ph = advice.phases;
@@ -122,6 +139,7 @@ function markSpell(enemy, spell) {
   if (marks.has(key) && marks.get(key) > lastState.gameTime) marks.delete(key); // clicar de novo desmarca
   else marks.set(key, lastState.gameTime + cd);
   renderTimers(lastState);
+  if (lastState.phase === 'ingame' && !moving && !previewing) window.overlay.reportSpellMarks(Object.fromEntries(marks));
 }
 
 function renderTimers(state) {
@@ -152,7 +170,7 @@ window.overlay.onSpellMark(({ index, spell }) => {
 
 function defaults() {
   const y = Math.round(window.innerHeight * 0.3);
-  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 }, timers: { x: window.innerWidth - 300, y: Math.max(10, y - 250), scale: 1 }, kit: { x: 362, y: Math.max(10, y - 170), scale: 1 }, goals: { x: 362, y: y + 10, scale: 1 } };
+  return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 }, timers: { x: window.innerWidth - 300, y: Math.max(10, y - 250), scale: 1 }, kit: { x: 362, y: Math.max(10, y - 170), scale: 1 }, goals: { x: 362, y: y + 10, scale: 1 }, coach: { x: Math.round(window.innerWidth / 2 - 160), y: 12, scale: 1 } };
 }
 
 function apply(name) {
@@ -175,7 +193,9 @@ function draw() {
   boxes.timers.hidden = !(sample || (inGame && ((advice.timers && advice.timers.length) || lastState.enemies.length)));
   boxes.kit.hidden = !(sample || (inGame && advice.oppKit));
   boxes.goals.hidden = !(sample || (inGame && advice.goals));
+  boxes.coach.hidden = !(sample || (inGame && advice.coach));
   for (const [name, el] of Object.entries(boxes)) if (enabled[name] === false) el.hidden = true; // desligado em Configurações > Overlays
+  if (!full && !sample) for (const [name, el] of Object.entries(boxes)) if (name !== 'coach') el.hidden = true;
   for (const b of Object.values(boxes)) b.classList.toggle('moving', moving);
   $('edit-bar').hidden = !moving;
 
@@ -188,6 +208,7 @@ function draw() {
     renderTimers(lastState);
     renderKit(advice.oppKit);
     renderGoals(advice.goals);
+    renderCoach(advice.coach);
   } else if (sample) {
     const st = sampleState(lastState && lastState.assets && lastState.assets.version);
     const v = st.assets.version;
@@ -200,6 +221,7 @@ function draw() {
     renderTimers(st);
     renderKit(st.advice.oppKit);
     renderGoals(st.advice.goals);
+    renderCoach(st.advice.coach);
   }
   if (PREVIEW_ONLY) {
     for (const [name, el] of Object.entries(boxes)) el.hidden = name !== PREVIEW_ONLY;
@@ -220,7 +242,7 @@ function current(name) {
 }
 
 for (const [name, el] of Object.entries(boxes)) {
-  el.addEventListener('pointerenter', () => window.overlay.setInteractive(true));
+  el.addEventListener('pointerenter', () => { if (full || moving) window.overlay.setInteractive(true); }); // coach fixo (sem TAB) não rouba o clique do jogo
   el.addEventListener('pointerleave', () => { if (!dragging) window.overlay.setInteractive(false); });
 
   el.querySelector('.drag').addEventListener('pointerdown', (e) => {
@@ -279,6 +301,7 @@ window.overlay.onSettings((s) => {
   draw();
 });
 window.overlay.onMoveMode((on) => { moving = on; draw(); });
+if (window.overlay.onFull) window.overlay.onFull((on) => { full = on; draw(); });
 window.overlay.onPreview((on) => { previewing = on; draw(); });
 window.overlay.getSettings().then((s) => {
   if (PREVIEW_ONLY) return;

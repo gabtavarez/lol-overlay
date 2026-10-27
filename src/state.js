@@ -93,7 +93,9 @@ function buildState(raw, dd) {
   }
 
   const active = raw.activePlayer || {};
-  const myState = { ...me, gold: Math.floor(active.currentGold || 0), level: active.level || me.level };
+  const cs = active.championStats || {};
+  const hp = cs.maxHealth ? Math.max(0, Math.min(1, (cs.currentHealth || 0) / cs.maxHealth)) : null;
+  const myState = { ...me, gold: Math.floor(active.currentGold || 0), level: active.level || me.level, hp };
   const enemies = players.filter((p) => p.team !== me.team);
   const allies = players.filter((p) => p.team === me.team && p !== me);
   const laneOpponent = myState.position

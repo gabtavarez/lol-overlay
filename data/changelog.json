@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.33.1",
+    "title": "Início acessível no champ select",
+    "items": [
+      "Dá para abrir o Início durante o champ select ou a partida (para ver sequência, patch e campeões). A aba \"Champ select\" / \"Partida\" com o selo AO VIVO volta para a tela da fase, e o app volta sozinho para ela quando a fase muda."
+    ]
+  },
+  {
     "version": "0.33.0",
     "title": "ARAM, Arena e sequência/tilt",
     "items": [

@@ -38,8 +38,9 @@ let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tie
 let lastView = 'waiting';
 const VIEWS = ['waiting', 'select', 'game', 'profile', 'tierlist', 'history', 'patches', 'settings'];
 function showView(name) {
+  if (name && name !== lastView && page === 'home') page = 'auto'; // mudou de fase (ex.: champ select -> partida): volta a seguir a fase
   if (name) lastView = name;
-  const v = settingsOpen ? 'settings' : page !== 'auto' ? page : lastView;
+  const v = settingsOpen ? 'settings' : page === 'home' ? 'waiting' : page !== 'auto' ? page : lastView;
   for (const id of VIEWS) $(id).hidden = v !== id;
   const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
   for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
@@ -1128,7 +1129,9 @@ $('nav-tier').addEventListener('click', () => goPage('tierlist'));
 $('nav-history').addEventListener('click', () => goPage('history'));
 $('nav-patches').addEventListener('click', () => goPage('patches'));
 $('nav-profile').addEventListener('click', () => goPage('profile'));
-for (const id of ['nav-home', 'nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
+// Início também abre durante o champ select/partida (a aba AO VIVO continua a um clique)
+$('nav-home').addEventListener('click', () => goPage(lastView === 'waiting' ? 'auto' : 'home'));
+for (const id of ['nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
 
 /* ---------- histórico / pós-partida ---------- */
 

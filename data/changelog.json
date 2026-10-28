@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.33.5",
+    "title": "Tanque de verdade",
+    "items": [
+      "Corrigido: lutadores e assassinos com 2 itens que dão um pouco de armadura/RM (ex.: Locke, Lee Sin) eram contados como tanques e puxavam Tormento de Liandry e afins. Agora tanque é quem é tanque ou quem empilhou muita resistência (3+ itens defensivos, 150+ de armadura e RM somadas)."
+    ]
+  },
+  {
     "version": "0.33.4",
     "title": "Sequência e histórico sem partidas repetidas",
     "items": [

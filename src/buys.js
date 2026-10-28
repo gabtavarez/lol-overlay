@@ -359,7 +359,14 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     }
   }
 
-  const tanks = enemies.filter((e) => e.tags[0] === 'Tank' || e.items.filter((i) => i.tags.includes('Armor') || i.tags.includes('SpellBlock')).length >= 2);
+  // Tanque = campeão tanque de fato, ou alguém que empilhou MUITA resistência em itens. Lutador/assassino com
+  // 2 itens híbridos (Dança da Morte, Mandíbula…) não é tanque: ~80 de resistência não justifica % de vida.
+  const isTanky = (e) => {
+    const r = itemResists(e, dd);
+    const heavy = (e.items || []).filter((i) => { const st = statsOf(dd, i.id); return (st.FlatArmorMod || 0) + (st.FlatSpellBlockMod || 0) >= 40; }).length;
+    return r.armor + r.mr >= 150 && heavy >= 3;
+  };
+  const tanks = enemies.filter((e) => e.tags[0] === 'Tank' || isTanky(e));
   if (tanks.length >= 2 && me.items.length >= 2) {
     const names = tanks.slice(0, 2).map((e) => e.champion).join(', ');
     const tv = tanks.map((e) => e.championId).filter(Boolean).slice(0, 4);

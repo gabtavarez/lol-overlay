@@ -53,10 +53,12 @@ function fromSrc() {
       if (/\btr\(\[/.test(line)) for (const m of line.matchAll(/'([^'\\\n]+)'/g)) if (/\s/.test(m[1])) out.add(m[1]);
       for (const m of line.matchAll(/\btr\(\w+ === '\w+' \? '((?:[^'\\]|\\.)*)' : '((?:[^'\\]|\\.)*)'/g)) { out.add(m[1]); out.add(m[2]); }
       for (const m of line.matchAll(/\btr\([\w.]+ \? '((?:[^'\\]|\\.)*)' : '((?:[^'\\]|\\.)*)'/g)) { out.add(m[1]); out.add(m[2]); }
-      if (/(label|title|who|tip): '|_PT = \{|^\s+\w+: '[A-ZÀ-Ú][^']+[.:]'/.test(line)) {
+      // tabelas de rótulos: [id, 'Nome', 'Icone'] e chave: ['Nome', true]
+      if (/\[\d+, '|\w+: \['[A-ZÀ-Ú]/.test(line)) for (const m of line.matchAll(/'([A-ZÀ-Ú][a-zà-ú][^'\\\n]*)'/g)) if (!/^[A-Z][a-z]+[A-Z]/.test(m[1])) out.add(m[1]);
+      if (/(label|title|who|tip): '|_PT = \{|const [A-Z_]+ = \{|^\s+\w+: '[A-ZÀ-Ú][^']+[.:]'/.test(line)) {
         for (const m of line.matchAll(/(?:label|title|who|tip|\d+|\w+): '((?:[^'\\\n]|\\.)*)'/g)) {
           const v = m[1];
-          if (/[a-zà-ú]/.test(v) && /^[A-ZÀ-Úa-zà-ú]/.test(v) && !/^[a-z]+([-_][a-z]+)*$/.test(v)) out.add(v);
+          if (/[a-zà-ú]/.test(v) && /^[A-ZÀ-Úa-zà-ú]/.test(v) && !/^[a-z]+([-_][a-z]+)*$/.test(v) && !/^[A-Z][a-z]+[A-Z]\w+$/.test(v) && !/^[a-z]{2}_[A-Z]{2}$/.test(v)) out.add(v);
         }
       }
     }

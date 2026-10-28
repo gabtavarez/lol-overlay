@@ -466,7 +466,7 @@ function buildVariants(champ, role) {
   }) : [];
   if (t && changes.length) {
     const label = opp ? i18n.t('Contra {champ}', { champ: opp.name }) : i18n.t('Contra a comp');
-    out.push({ label, sub: i18n.t('{n} ajuste(s) para o matchup', { n: changes.length }), build: t.build, changes });
+    out.push({ label, sub: i18n.t(changes.length === 1 ? '1 ajuste para o matchup' : '{n} ajustes para o matchup', { n: changes.length }), build: t.build, changes });
   } else {
     const later = laterItems(base);
     if (base.core.length >= 2 && later.length >= 2) {
@@ -1004,7 +1004,7 @@ function registerIpc() {
   });
   ipcMain.handle('patches:open', async (_e, version) => {
     if (!/^\d{2}\.\d{1,2}$/.test(String(version))) return { ok: false };
-    await shell.openExternal(require('./patchNotes').noteUrl(String(version)));
+    await shell.openExternal(require('./patchNotes').noteUrl(String(version), { pt: 'pt-br', en: 'en-us', es: 'es-mx' }[appLang()] || 'pt-br'));
     return { ok: true };
   });
   ipcMain.handle('patches:note', async (_e, version) => {
@@ -1016,7 +1016,9 @@ function registerIpc() {
     const version = app.getVersion();
     const log = require('../data/changelog.json');
     const seen = settings.get().lastSeenVersion || '';
-    return { version, unseen: seen !== version, current: log.find((e) => e.version === version) || null, history: log.slice(0, 6) };
+    const L = appLang();
+    const loc = (e) => (e && e[L] ? { version: e.version, title: e[L].title, items: e[L].items } : e); // novidades no idioma do app
+    return { version, unseen: seen !== version, current: loc(log.find((e) => e.version === version)) || null, history: log.slice(0, 6).map(loc) };
   });
   ipcMain.handle('whatsnew:seen', () => { settings.update({ lastSeenVersion: app.getVersion() }); return true; });
 
@@ -1234,7 +1236,7 @@ app.whenReady().then(() => {
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   rpc = createDiscordRpc({ log: (m) => logger.log(m) });
   skinCatalog = profileView.createSkinCatalog({ cacheDir: path.join(userData, 'cdragon'), log: (m) => logger.log(m), lang: (DD_LANG[appLang()] || 'pt_BR').toLowerCase() });
-  patchNotes = createPatchNotes({ cacheDir: path.join(userData, 'patchnotes'), resolve: (n, k) => resolveEntity(n, k), log: (m) => logger.log(m) });
+  patchNotes = createPatchNotes({ cacheDir: path.join(userData, 'patchnotes'), resolve: (n, k) => resolveEntity(n, k), log: (m) => logger.log(m), locale: { pt: 'pt-br', en: 'en-us', es: 'es-mx' }[appLang()] || 'pt-br' });
   configurePresence();
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
   remote = createRemoteData({

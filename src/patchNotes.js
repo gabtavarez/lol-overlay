@@ -10,8 +10,11 @@ const { parse } = require('node-html-parser');
  */
 
 const SITE = 'https://www.leagueoflegends.com';
-const LIST_URL = `${SITE}/pt-br/news/tags/patch-notes/`;
-const noteUrl = (v) => `${SITE}/pt-br/news/game-updates/league-of-legends-patch-${v.replace('.', '-')}-notes/`;
+// locale do site da Riot: pt-br, en-us, es-mx (notas oficiais no idioma do app)
+const listUrl = (loc = 'pt-br') => `${SITE}/${loc}/news/tags/patch-notes/`;
+const noteUrl = (v, loc = 'pt-br') => `${SITE}/${loc}/news/game-updates/league-of-legends-patch-${v.replace('.', '-')}-notes/`;
+// o endereço muda entre idiomas/patches: tenta o link da lista e os formatos conhecidos
+const noteUrls = (v, loc, known) => [...new Set([known, noteUrl(v, loc), `${SITE}/${loc}/news/game-updates/patch-${v.replace('.', '-')}-notes/`].filter(Boolean))];
 
 const clean = (s) => String(s || '').replace(/ /g, ' ').replace(/[ \t]+/g, ' ').replace(/\s*\n\s*/g, '\n').trim();
 const textOf = (el) => clean(el ? el.structuredText || el.text : '');
@@ -36,7 +39,7 @@ function avgNumber(s) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
-const LOWER_BETTER = /recarga|custo|tempo de conjura|tempo de canaliza|cooldown|atraso|tempo de reapari|tempo para/i;
+const LOWER_BETTER = /recarga|custo|tempo de conjura|tempo de canaliza|cooldown|atraso|tempo de reapari|tempo para|cost|cast time|channel|delay|respawn|time to|enfriamiento|costo|coste|tiempo de lanzamiento|canaliza|retraso|reaparici|tiempo para/i;
 
 /** Palpite de direção: 'buff' | 'nerf' | null (texto, NOVO/REMOVIDO ou números iguais). */
 function direction(label, from, to) {
@@ -62,7 +65,7 @@ function direction(label, from, to) {
 
 function parseChange(text) {
   const t = clean(text);
-  const tag = /^NOVO\b/i.test(t) ? 'new' : /^REMOVIDO\b/i.test(t) ? 'removed' : null;
+  const tag = /^(NOVO|NEW|NUEVO)\b/i.test(t) ? 'new' : /^(REMOVIDO|REMOVED|ELIMINADO)\b/i.test(t) ? 'removed' : null;
   const i = t.indexOf(':');
   const label = i > 0 && i < 90 ? t.slice(0, i).trim() : null;
   const rest = label ? t.slice(i + 1).trim() : t;
@@ -80,10 +83,10 @@ function verdict(entity) {
   return 'ajuste';
 }
 
-const sectionKind = (id, title) => (/champions/.test(id) || /^Campe/.test(title) ? 'champions'
-  : /items/.test(id) || /^Itens/.test(title) ? 'items'
-    : /bugfix|qol/.test(id) || /Correç/.test(title) ? 'bugfixes'
-      : /skins|chromas/.test(id) || /skins|Cromas/i.test(title) ? 'skins' : 'other');
+const sectionKind = (id, title) => (/champions/.test(id) || /^(Campe|Champion)/.test(title) ? 'champions'
+  : /items/.test(id) || /^(Itens|Items|Objetos)/.test(title) ? 'items'
+    : /bugfix|qol/.test(id) || /Correç|Correcci|Bug ?fix/i.test(title) ? 'bugfixes'
+      : /skins|chromas/.test(id) || /skins|Cromas|Chromas|Aspectos/i.test(title) ? 'skins' : 'other');
 
 /** HTML do patch-notes-container -> { intro, sections }. `resolve(name, kind)` -> { id, icon } | null. */
 function parseNotesHtml(html, resolve = () => null) {
@@ -193,6 +196,16 @@ function extractFromPage(pageHtml) {
 }
 
 /** Versões das notas mais recentes (ex.: ['26.21', '26.20', …]) a partir da página da tag. */
+/** { '26.21': 'https://…/patch-26-21-notes/' } a partir dos links da página de lista. */
+function extractUrls(listHtml) {
+  const out = {};
+  for (const m of String(listHtml).matchAll(/href="(\/[a-z]{2}-[a-z]{2}\/news\/game-updates\/[a-z0-9-]*?patch-(\d{2})-(\d{1,2})-notes\/?)"/g)) {
+    const v = `${m[2]}.${m[3]}`;
+    if (!out[v]) out[v] = `${SITE}${m[1]}`;
+  }
+  return out;
+}
+
 function extractVersions(listHtml) {
   const seen = new Set();
   for (const m of String(listHtml).matchAll(/patch-(\d{2})-(\d{1,2})-notes/g)) seen.add(`${m[1]}.${m[2]}`);
@@ -203,8 +216,10 @@ function extractVersions(listHtml) {
   });
 }
 
-function createPatchNotes({ cacheDir, fetchImpl = fetch, resolve = () => null, log = () => {} }) {
+function createPatchNotes({ cacheDir: baseDir, fetchImpl = fetch, resolve = () => null, log = () => {}, locale = 'pt-br' }) {
   const mem = new Map();
+  let urls = {};
+  const cacheDir = locale === 'pt-br' ? baseDir : path.join(baseDir, locale);
   const file = (name) => path.join(cacheDir, name);
   async function readCache(name, ttl) {
     try {
@@ -220,7 +235,7 @@ function createPatchNotes({ cacheDir, fetchImpl = fetch, resolve = () => null, l
     } catch { /* só memória */ }
   }
   async function get(url) {
-    const res = await fetchImpl(url, { headers: { 'accept-language': 'pt-BR' } });
+    const res = await fetchImpl(url, { headers: { 'accept-language': locale } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.text();
   }
@@ -229,7 +244,10 @@ function createPatchNotes({ cacheDir, fetchImpl = fetch, resolve = () => null, l
       const cached = !force && (await readCache('list.json', 6 * 3600 * 1000));
       if (cached) return cached;
       try {
-        const versions = extractVersions(await get(LIST_URL)).slice(0, 8);
+        const html = await get(listUrl(locale));
+        urls = extractUrls(html);
+        await writeCache('urls.json', urls);
+        const versions = extractVersions(html).slice(0, 8);
         if (!versions.length) throw new Error('nenhuma atualização encontrada');
         await writeCache('list.json', versions);
         return versions;
@@ -247,8 +265,14 @@ function createPatchNotes({ cacheDir, fetchImpl = fetch, resolve = () => null, l
       let data = await readCache(name, 24 * 3600 * 1000);
       if (!data) {
         try {
-          const url = noteUrl(version);
-          const page = extractFromPage(await get(url));
+          if (!Object.keys(urls).length) urls = (await readCache('urls.json', 0)) || {};
+          let url = null;
+          let html = null;
+          for (const u of noteUrls(version, locale, urls[version])) {
+            try { html = await get(u); url = u; break; } catch { /* próximo formato */ }
+          }
+          if (!html) throw new Error('notas não encontradas');
+          const page = extractFromPage(html);
           data = { version, url, title: page.title, date: page.date, ...parseNotesHtml(page.body, resolve) };
           await writeCache(name, data);
         } catch (err) {
@@ -263,4 +287,4 @@ function createPatchNotes({ cacheDir, fetchImpl = fetch, resolve = () => null, l
   };
 }
 
-module.exports = { createPatchNotes, parseNotesHtml, extractFromPage, extractVersions, parseChange, direction, imgUrl, noteUrl };
+module.exports = { createPatchNotes, parseNotesHtml, extractFromPage, extractVersions, extractUrls, parseChange, direction, imgUrl, noteUrl };

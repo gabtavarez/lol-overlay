@@ -1,12 +1,50 @@
 [
   {
+    "version": "0.36.0",
+    "title": "Patch notes no seu idioma",
+    "items": [
+      "Patch notes em inglês ou espanhol, direto do site da Riot.",
+      "Novidades também traduzidas."
+    ],
+    "en": {
+      "title": "Patch notes in your language",
+      "items": [
+        "Patch notes in English or Spanish, from Riot's site.",
+        "What's new also translated."
+      ]
+    },
+    "es": {
+      "title": "Notas del parche en tu idioma",
+      "items": [
+        "Notas del parche en inglés o español, del sitio de Riot.",
+        "Novedades también traducidas."
+      ]
+    }
+  },
+  {
     "version": "0.35.0",
     "title": "Inglês e espanhol (parte 2)",
     "items": [
       "Overlay, coach de rota e motivos das compras traduzidos.",
       "Pós-partida, sequência, perfil e tier list traduzidos.",
       "Feitiços e runas com os nomes oficiais de cada região."
-    ]
+    ],
+    "en": {
+      "title": "English and Spanish (part 2)",
+      "items": [
+        "Overlay, lane coach and buy reasons translated.",
+        "Post-game, streak, profile and tier list translated.",
+        "Spells and runes with each region's official names."
+      ]
+    },
+    "es": {
+      "title": "Inglés y español (parte 2)",
+      "items": [
+        "Overlay, coach de línea y motivos de compra traducidos.",
+        "Post-partida, racha, perfil y tier list traducidos.",
+        "Hechizos y runas con los nombres oficiales de cada región."
+      ]
+    }
   },
   {
     "version": "0.34.0",
@@ -15,14 +53,42 @@
       "Novo: Configurações → Idioma (Português, English, Español).",
       "Telas e menus traduzidos; o resto vem nas próximas versões.",
       "Campeões, itens e runas com os nomes oficiais de cada região."
-    ]
+    ],
+    "en": {
+      "title": "English and Spanish (part 1)",
+      "items": [
+        "New: Settings → Language (Português, English, Español).",
+        "Screens and menus translated; the rest comes next.",
+        "Champions, items and runes with each region's official names."
+      ]
+    },
+    "es": {
+      "title": "Inglés y español (parte 1)",
+      "items": [
+        "Nuevo: Configuración → Idioma (Português, English, Español).",
+        "Pantallas y menús traducidos; el resto llega pronto.",
+        "Campeones, objetos y runas con los nombres oficiales de cada región."
+      ]
+    }
   },
   {
     "version": "0.33.8",
     "title": "Novidades mais curtas",
     "items": [
       "Janela de novidades mais enxuta: só o essencial de cada versão."
-    ]
+    ],
+    "en": {
+      "title": "Shorter what's new",
+      "items": [
+        "Leaner what's new window: just the essentials."
+      ]
+    },
+    "es": {
+      "title": "Novedades más cortas",
+      "items": [
+        "Ventana de novedades más simple: solo lo esencial."
+      ]
+    }
   },
   {
     "version": "0.33.7",
@@ -30,35 +96,97 @@
     "items": [
       "Histórico volta sozinho se o cliente falhar.",
       "Botão Atualizar relê o perfil na hora."
-    ]
+    ],
+    "en": {
+      "title": "Profile no longer empty",
+      "items": [
+        "History comes back on its own if the client fails.",
+        "Refresh button reloads the profile right away."
+      ]
+    },
+    "es": {
+      "title": "El perfil ya no queda vacío",
+      "items": [
+        "El historial vuelve solo si el cliente falla.",
+        "El botón Actualizar recarga el perfil al instante."
+      ]
+    }
   },
   {
     "version": "0.33.6",
     "title": "Banidos fora do pick",
     "items": [
       "Campeões banidos não aparecem mais na sugestão de pick."
-    ]
+    ],
+    "en": {
+      "title": "Bans out of picks",
+      "items": [
+        "Banned champions no longer show in pick suggestions."
+      ]
+    },
+    "es": {
+      "title": "Baneados fuera del pick",
+      "items": [
+        "Los campeones baneados ya no aparecen en las sugerencias."
+      ]
+    }
   },
   {
     "version": "0.33.5",
     "title": "Tanque de verdade",
     "items": [
       "Lutador com 2 itens defensivos não conta mais como tanque."
-    ]
+    ],
+    "en": {
+      "title": "Real tanks",
+      "items": [
+        "Fighters with 2 defensive items no longer count as tanks."
+      ]
+    },
+    "es": {
+      "title": "Tanques de verdad",
+      "items": [
+        "Luchadores con 2 objetos defensivos ya no cuentan como tanques."
+      ]
+    }
   },
   {
     "version": "0.33.4",
     "title": "Sequência corrigida",
     "items": [
       "Partidas não são mais contadas em dobro (fim da sequência falsa)."
-    ]
+    ],
+    "en": {
+      "title": "Streak fixed",
+      "items": [
+        "Games are no longer counted twice (no more fake streaks)."
+      ]
+    },
+    "es": {
+      "title": "Racha corregida",
+      "items": [
+        "Las partidas ya no se cuentan dos veces (sin rachas falsas)."
+      ]
+    }
   },
   {
     "version": "0.33.3",
     "title": "Ordem de habilidades",
     "items": [
       "Grade de habilidades voltou ao normal."
-    ]
+    ],
+    "en": {
+      "title": "Skill order",
+      "items": [
+        "Skill grid is back to normal."
+      ]
+    },
+    "es": {
+      "title": "Orden de habilidades",
+      "items": [
+        "La grilla de habilidades volvió a la normalidad."
+      ]
+    }
   },
   {
     "version": "0.33.2",
@@ -66,14 +194,40 @@
     "items": [
       "1º item do meta antes de defesa completa (sem inimigo fed).",
       "App mais leve em partida: prioridade baixa e menos leituras."
-    ]
+    ],
+    "en": {
+      "title": "Right 1st item, lighter app",
+      "items": [
+        "Meta 1st item before full defense (when no one is fed).",
+        "Lighter in game: low priority and fewer reads."
+      ]
+    },
+    "es": {
+      "title": "1.er objeto correcto y app más ligera",
+      "items": [
+        "1.er objeto meta antes de defensa completa (sin enemigo fed).",
+        "Más ligera en partida: prioridad baja y menos lecturas."
+      ]
+    }
   },
   {
     "version": "0.33.1",
     "title": "Início no champ select",
     "items": [
       "Dá pra abrir o Início durante a seleção e a partida."
-    ]
+    ],
+    "en": {
+      "title": "Home during champ select",
+      "items": [
+        "You can open Home during champ select and in game."
+      ]
+    },
+    "es": {
+      "title": "Inicio en la selección",
+      "items": [
+        "Puedes abrir Inicio durante la selección y la partida."
+      ]
+    }
   },
   {
     "version": "0.33.0",
@@ -82,7 +236,23 @@
       "Build de ARAM do OP.GG e augments no ARAM: Desordem.",
       "Arena: usa a build ranqueada e avisa.",
       "Novo card Sequência e ritmo, com alerta de tilt e melhor horário."
-    ]
+    ],
+    "en": {
+      "title": "ARAM, Arena and tilt",
+      "items": [
+        "OP.GG ARAM builds and augments in ARAM: Mayhem.",
+        "Arena: uses the ranked build and says so.",
+        "New Streak card with tilt alert and best time to play."
+      ]
+    },
+    "es": {
+      "title": "ARAM, Arena y tilt",
+      "items": [
+        "Builds de ARAM de OP.GG y aumentos en ARAM: Caos.",
+        "Arena: usa la build clasificatoria y avisa.",
+        "Nueva tarjeta de Racha con alerta de tilt y mejor horario."
+      ]
+    }
   },
   {
     "version": "0.32.0",
@@ -91,7 +261,23 @@
       "Painel fixo em partida: trocar, all-in, recuar ou rotacionar.",
       "Lê níveis, itens, vida, caçador, objetivos e Flash marcado.",
       "Ctrl+Shift+C liga/desliga."
-    ]
+    ],
+    "en": {
+      "title": "Lane coach",
+      "items": [
+        "Pinned panel in game: trade, all-in, back off or rotate.",
+        "Reads levels, items, health, jungler, objectives and marked Flash.",
+        "Ctrl+Shift+C toggles it."
+      ]
+    },
+    "es": {
+      "title": "Coach de línea",
+      "items": [
+        "Panel fijo en partida: tradear, all-in, retroceder o rotar.",
+        "Lee niveles, objetos, vida, jungla, objetivos y Flash marcado.",
+        "Ctrl+Shift+C lo activa/desactiva."
+      ]
+    }
   },
   {
     "version": "0.31.0",
@@ -100,14 +286,42 @@
       "Respostas próprias contra assassinos e lutadores.",
       "Para de pedir defesa quando você já está coberto.",
       "Fim de jogo: sugere trocar defesa por dano."
-    ]
+    ],
+    "en": {
+      "title": "Assassin vs fighter",
+      "items": [
+        "Dedicated answers vs assassins and fighters.",
+        "Stops asking for defense when you're covered.",
+        "Late game: suggests swapping defense for damage."
+      ]
+    },
+    "es": {
+      "title": "Asesino vs luchador",
+      "items": [
+        "Respuestas propias contra asesinos y luchadores.",
+        "Deja de pedir defensa cuando ya estás cubierto.",
+        "Late game: sugiere cambiar defensa por daño."
+      ]
+    }
   },
   {
     "version": "0.30.1",
     "title": "Filtro por moeda",
     "items": [
       "Selos RP, Essência Mítica e Gacha viraram filtros."
-    ]
+    ],
+    "en": {
+      "title": "Currency filter",
+      "items": [
+        "RP, Mythic Essence and Gacha badges are now filters."
+      ]
+    },
+    "es": {
+      "title": "Filtro por moneda",
+      "items": [
+        "Las etiquetas RP, Esencia Mítica y Gacha ahora son filtros."
+      ]
+    }
   },
   {
     "version": "0.30.0",
@@ -115,7 +329,21 @@
     "items": [
       "Todas as skins com busca e filtros.",
       "Sugestões de skin com preço e moeda."
-    ]
+    ],
+    "en": {
+      "title": "Skin gallery",
+      "items": [
+        "Every skin with search and filters.",
+        "Skin suggestions with price and currency."
+      ]
+    },
+    "es": {
+      "title": "Galería de aspectos",
+      "items": [
+        "Todos los aspectos con búsqueda y filtros.",
+        "Sugerencias de aspectos con precio y moneda."
+      ]
+    }
   },
   {
     "version": "0.29.1",
@@ -124,7 +352,23 @@
       "Sugestões de ban não somem mais.",
       "Todos os seus campeões alterados no patch.",
       "Como funciona mais visual; rotas no mapa."
-    ]
+    ],
+    "en": {
+      "title": "Bans and patch",
+      "items": [
+        "Ban suggestions no longer disappear.",
+        "All your champions changed in the patch.",
+        "More visual How it works; lanes on the map."
+      ]
+    },
+    "es": {
+      "title": "Bans y parche",
+      "items": [
+        "Las sugerencias de ban ya no desaparecen.",
+        "Todos tus campeones cambiados en el parche.",
+        "Cómo funciona más visual; líneas en el mapa."
+      ]
+    }
   },
   {
     "version": "0.29.0",
@@ -133,7 +377,23 @@
       "Classe certa para magos sem build do OP.GG.",
       "Respostas para suporte encantador.",
       "Versão Contra X com feitiço, runa e skills do matchup."
-    ]
+    ],
+    "en": {
+      "title": "Smarter builds",
+      "items": [
+        "Right class for mages without an OP.GG build.",
+        "Answers for enchanter supports.",
+        "Vs X version with matchup spell, rune and skills."
+      ]
+    },
+    "es": {
+      "title": "Builds más inteligentes",
+      "items": [
+        "Clase correcta para magos sin build de OP.GG.",
+        "Respuestas para soportes encantadores.",
+        "Versión Contra X con hechizo, runa y habilidades del enfrentamiento."
+      ]
+    }
   },
   {
     "version": "0.28.1",
@@ -141,7 +401,21 @@
     "items": [
       "Animações leves no app e no overlay.",
       "Até 20 skins sugeridas."
-    ]
+    ],
+    "en": {
+      "title": "Animations",
+      "items": [
+        "Light animations in the app and overlay.",
+        "Up to 20 suggested skins."
+      ]
+    },
+    "es": {
+      "title": "Animaciones",
+      "items": [
+        "Animaciones suaves en la app y el overlay.",
+        "Hasta 20 aspectos sugeridos."
+      ]
+    }
   },
   {
     "version": "0.28.0",
@@ -149,7 +423,21 @@
     "items": [
       "Aba Perfil: maestria, estilo de jogo e coleção.",
       "Pós-partida com nota S a D por área."
-    ]
+    ],
+    "en": {
+      "title": "Profile and game grade",
+      "items": [
+        "Profile tab: mastery, playstyle and collection.",
+        "Post-game with S to D grade per area."
+      ]
+    },
+    "es": {
+      "title": "Perfil y nota de la partida",
+      "items": [
+        "Pestaña Perfil: maestría, estilo de juego y colección.",
+        "Post-partida con nota de S a D por área."
+      ]
+    }
   },
   {
     "version": "0.27.0",
@@ -157,42 +445,116 @@
     "items": [
       "Dano e penetração pelos itens que o inimigo comprou.",
       "Anti-escudo e anti-crítico."
-    ]
+    ],
+    "en": {
+      "title": "Buys from enemy items",
+      "items": [
+        "Damage and penetration from what the enemy bought.",
+        "Anti-shield and anti-crit."
+      ]
+    },
+    "es": {
+      "title": "Compras según objetos enemigos",
+      "items": [
+        "Daño y penetración según lo que compró el enemigo.",
+        "Antiescudos y anticrítico."
+      ]
+    }
   },
   {
     "version": "0.26.3",
     "title": "Resposta a inimigo fed",
     "items": [
       "Item contra inimigo fed não some mais da lista."
-    ]
+    ],
+    "en": {
+      "title": "Answer to fed enemies",
+      "items": [
+        "Item vs a fed enemy no longer vanishes from the list."
+      ]
+    },
+    "es": {
+      "title": "Respuesta al enemigo fed",
+      "items": [
+        "El objeto contra un enemigo fed ya no desaparece de la lista."
+      ]
+    }
   },
   {
     "version": "0.26.2",
     "title": "Matchup atualizado",
     "items": [
       "Seletor de matchup acompanha cada pick inimigo."
-    ]
+    ],
+    "en": {
+      "title": "Matchup updated",
+      "items": [
+        "Matchup picker follows each enemy pick."
+      ]
+    },
+    "es": {
+      "title": "Enfrentamiento actualizado",
+      "items": [
+        "El selector de enfrentamiento sigue cada pick enemigo."
+      ]
+    }
   },
   {
     "version": "0.26.1",
     "title": "Bans de volta",
     "items": [
       "Sugestões de ban em toda a fase de bans."
-    ]
+    ],
+    "en": {
+      "title": "Bans are back",
+      "items": [
+        "Ban suggestions through the whole ban phase."
+      ]
+    },
+    "es": {
+      "title": "Vuelven los bans",
+      "items": [
+        "Sugerencias de ban durante toda la fase de bans."
+      ]
+    }
   },
   {
     "version": "0.26.0",
     "title": "Patch notes no app",
     "items": [
       "Notas oficiais com ícones, buffs e nerfs."
-    ]
+    ],
+    "en": {
+      "title": "Patch notes in the app",
+      "items": [
+        "Official notes with icons, buffs and nerfs."
+      ]
+    },
+    "es": {
+      "title": "Notas del parche en la app",
+      "items": [
+        "Notas oficiales con íconos, buffs y nerfs."
+      ]
+    }
   },
   {
     "version": "0.25.1",
     "title": "Counters corrigidos",
     "items": [
       "Até 7 counters de cada lado, com % certa."
-    ]
+    ],
+    "en": {
+      "title": "Counters fixed",
+      "items": [
+        "Up to 7 counters on each side, with the right %."
+      ]
+    },
+    "es": {
+      "title": "Counters corregidos",
+      "items": [
+        "Hasta 7 counters de cada lado, con el % correcto."
+      ]
+    }
   },
   {
     "version": "0.25.0",
@@ -201,27 +563,79 @@
       "Selo Seguro/Arriscado às cegas.",
       "Patch nos seus campeões.",
       "Status no Discord."
-    ]
+    ],
+    "en": {
+      "title": "Blind picks, patch and Discord",
+      "items": [
+        "Safe/Risky blind badge.",
+        "Patch on your champions.",
+        "Discord status."
+      ]
+    },
+    "es": {
+      "title": "A ciegas, parche y Discord",
+      "items": [
+        "Etiqueta Seguro/Arriesgado a ciegas.",
+        "Parche en tus campeones.",
+        "Estado en Discord."
+      ]
+    }
   },
   {
     "version": "0.24.0",
     "title": "Selo Bom contra",
     "items": [
       "Itens mostram contra o que são bons."
-    ]
+    ],
+    "en": {
+      "title": "Good vs badge",
+      "items": [
+        "Items show what they're good against."
+      ]
+    },
+    "es": {
+      "title": "Etiqueta Bueno contra",
+      "items": [
+        "Los objetos muestran contra qué son buenos."
+      ]
+    }
   },
   {
     "version": "0.23.0",
     "title": "Página do campeão",
     "items": [
       "Build, runas, skills, counters e parceiros pela tier list."
-    ]
+    ],
+    "en": {
+      "title": "Champion page",
+      "items": [
+        "Build, runes, skills, counters and partners from the tier list."
+      ]
+    },
+    "es": {
+      "title": "Página del campeón",
+      "items": [
+        "Build, runas, habilidades, counters y compañeros desde la tier list."
+      ]
+    }
   },
   {
     "version": "0.22.0",
     "title": "Tier list por elo",
     "items": [
       "Tier list por elo e 2 páginas de runas."
-    ]
+    ],
+    "en": {
+      "title": "Tier list by rank",
+      "items": [
+        "Tier list by rank and 2 rune pages."
+      ]
+    },
+    "es": {
+      "title": "Tier list por liga",
+      "items": [
+        "Tier list por liga y 2 páginas de runas."
+      ]
+    }
   }
 ]

@@ -401,7 +401,7 @@ function fillOtp() {
   const rows = d && d.list && d.list.length ? d.list.map((p, idx) => {
     const b = p.build;
     const wr = p.games ? `${Math.round((p.wins / p.games) * 100)}% em ${p.games}` : '';
-    const tier = p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()}${p.division ? ` ${p.division}` : ''} · ${p.lp} PDL` : '';
+    const tier = p.tier ? `${tierName(p.tier)}${p.division ? ` ${p.division}` : ''} · ${p.lp} ${t('PDL')}` : '';
     return h('div', { class: 'otp' },
       h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: `#${p.rank} ${p.riotId}` }), h('div', { class: 'why', text: [tier, wr].filter(Boolean).join(' · ') })),
       b ? h('div', { class: 'otp-build' },
@@ -474,6 +474,7 @@ function renderSelect(state) {
 
 /* ---------- em partida ---------- */
 
+const tierName = (tier) => t(TIER_PT[String(tier || '').toUpperCase()] || tier || '');
 const TIER_PT = { IRON: 'Ferro', BRONZE: 'Bronze', SILVER: 'Prata', GOLD: 'Ouro', PLATINUM: 'Platina', EMERALD: 'Esmeralda', DIAMOND: 'Diamante', MASTER: 'Mestre', GRANDMASTER: 'Grão-Mestre', CHALLENGER: 'Desafiante' };
 const fmtK = (g) => (Math.abs(g) >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(g));
 const signedK = (d) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmtK(Math.abs(d))}`;
@@ -535,7 +536,7 @@ function renderGame(state) {
   const sc = adv.scout || [];
   $('scout').replaceChildren(...(sc.length ? sc.map((x) => {
     const p = x.profile;
-    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''} · ${p.lp} PDL` : p ? tr('Sem elo solo') : x.error ? tr('Sem dados: {err}', { err: x.error }) : tr('Carregando…');
+    const rank = p && p.tier ? `${tierName(p.tier)} ${p.division || ''} · ${p.lp} ${t('PDL')}` : p ? tr('Sem elo solo') : x.error ? tr('Sem dados: {err}', { err: x.error }) : tr('Carregando…');
     const wr = p && p.wins + p.losses ? `${Math.round((p.wins / (p.wins + p.losses)) * 100)}% em ${p.wins + p.losses} jogos` : '';
     const mains = p ? p.champs.slice(0, 3).map((c) => c.name).join(', ') : '';
     const on = x.onChamp ? `${tr('{n} jogos de {champ}', { n: x.onChamp.games, champ: x.champion })} (${Math.round((x.onChamp.wins / x.onChamp.games) * 100)}%)` : p ? tr('primeira vez de {champ} na temporada?', { champ: x.champion }) : '';
@@ -614,7 +615,7 @@ function renderTilt(t, v) {
   const hours = h('div', { class: 'tilt-hours' }, ...t.hours.map((x) => h('div', { class: `th${t.best && t.best.key === x.key ? ' best' : ''}${t.worst && t.worst.key === x.key ? ' worst' : ''}` },
     h('div', { class: 'th-bar' }, h('div', { class: 'th-fill', style: `height:${x.winRate == null ? 0 : Math.round(8 + 92 * Math.min(1, Math.max(0, (x.winRate - 0.3) / 0.4)))}%` })),
     h('b', { text: x.winRate == null ? '—' : `${Math.round(x.winRate * 100)}%` }),
-    h('span', { class: 'muted small', text: tr('{when} · {n} jogos', { when: tr(x.label), n: x.games }) }))));
+    h('span', { class: 'muted small', text: tr(x.games === 1 ? '{when} · 1 jogo' : '{when} · {n} jogos', { when: tr(x.label), n: x.games }) }))));
   const hourNote = t.best ? h('p', { class: 'muted small', text: `${tr('Melhor horário: {when} ({p}%)', { when: tr(t.best.label).toLowerCase(), p: Math.round(t.best.winRate * 100) })}${t.worst ? ` · ${tr('pior: {when} ({p}%)', { when: tr(t.worst.label).toLowerCase(), p: Math.round(t.worst.winRate * 100) })}` : ''}.` })
     : h('p', { class: 'muted small', text: tr('Com {n} partidas ou mais em cada horário, o app mostra o seu melhor e pior horário.', { n: MIN_HOURS }) });
   $('tilt-body').replaceChildren(
@@ -653,7 +654,7 @@ function renderHome(state) {
   $('home-hello').textContent = s && s.gameName ? t('Olá, {name}', { name: s.gameName }) : t('Bem-vindo');
   $('side-name').textContent = s && s.gameName ? s.gameName : t('Invocador');
   const rk = s && s.rank;
-  $('side-sub').textContent = s ? (rk ? `${rk.tier[0]}${rk.tier.slice(1).toLowerCase()} ${rk.division || ''} · ${rk.lp} PDL` : `#${s.tagLine || ''}${s.level ? ` · ${tr('nível {n}', { n: s.level })}` : ''}`) : state.client === 'open' ? t('Carregando…') : t('Cliente fechado');
+  $('side-sub').textContent = s ? (rk ? `${tierName(rk.tier)} ${rk.division || ''} · ${rk.lp} ${t('PDL')}` : `#${s.tagLine || ''}${s.level ? ` · ${tr('nível {n}', { n: s.level })}` : ''}`) : state.client === 'open' ? t('Carregando…') : t('Cliente fechado');
   const old = document.getElementById('side-rank');
   if (old) old.remove();
   if (rk) $('side-me').append(Object.assign(rankImg(rk.tier, 'rank-img side-rank'), { id: 'side-rank', title: `${rk.wins}V ${rk.losses}D` }));
@@ -685,18 +686,18 @@ function renderHome(state) {
   const rk2 = s && s.rank;
   $('elo-card').hidden = !(rk2 || (el && (el.lp || el.week)));
   if (!$('elo-card').hidden) {
-    const sign = (n) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${Math.abs(n)} PDL`;
+    const sign = (n) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${Math.abs(n)} ${t('PDL')}`;
     const lp = el && el.lp;
     const wk = el && el.week;
     const cell = (label, value, cls = '') => h('div', { class: 'elo-c' }, h('b', { text: label }), h('span', { class: `elo-v ${cls}`, text: value }));
     const champLine = (list) => list.map((c) => `${c.champion} ${c.wins}/${c.games}`).join(' · ') || '—';
     $('elo-body').replaceChildren(
       h('div', { class: 'elo-c elo-main' }, rk2 ? rankImg(rk2.tier, 'rank-big') : '', h('div', {},
-        h('div', { class: 'strong', text: rk2 ? `${TIER_PT[rk2.tier] || rk2.tier} ${rk2.division || ''} · ${rk2.lp} PDL` : 'Sem elo' }),
+        h('div', { class: 'strong', text: rk2 ? `${tierName(rk2.tier)} ${rk2.division || ''} · ${rk2.lp} ${t('PDL')}` : 'Sem elo' }),
         h('div', { class: 'muted small', text: rk2 ? `${rk2.wins}V ${rk2.losses}D · ${Math.round((rk2.wins / Math.max(1, rk2.wins + rk2.losses)) * 100)}%` : '' }))),
       cell('Hoje', lp ? sign(lp.today) : '—', lp ? (lp.today > 0 ? 'up' : lp.today < 0 ? 'down' : '') : ''),
       cell('7 dias', lp ? sign(lp.week) : '—', lp ? (lp.week > 0 ? 'up' : lp.week < 0 ? 'down' : '') : ''),
-      cell('Sequência', wk && wk.streak ? tr(wk.streak.wins ? '{n} vitória(s)' : '{n} derrota(s)', { n: wk.streak.count }) : '—', wk && wk.streak ? (wk.streak.wins ? 'up' : 'down') : ''),
+      cell('Sequência', wk && wk.streak ? tr(wk.streak.wins ? (wk.streak.count === 1 ? '1 vitória' : '{n} vitórias') : (wk.streak.count === 1 ? '1 derrota' : '{n} derrotas'), { n: wk.streak.count }) : '—', wk && wk.streak ? (wk.streak.wins ? 'up' : 'down') : ''),
       cell('Semana', wk ? `${wk.weekWins}V ${wk.weekGames - wk.weekWins}D` : '—'),
       h('div', { class: 'elo-c elo-wide' }, h('b', { text: 'Melhores da semana' }), h('span', { class: 'up', text: wk ? champLine(wk.best) : '—' })),
       h('div', { class: 'elo-c elo-wide' }, h('b', { text: 'Piores da semana' }), h('span', { class: 'down', text: wk ? champLine(wk.worst) : '—' })));
@@ -1423,7 +1424,7 @@ async function loadPatchCard(state) {
         h('div', { class: 'nm' }, document.createTextNode(c.name),
           h('span', { class: `pv ${c.verdict || 'ajuste'}`, text: c.verdict ? VERD[c.verdict] : 'Alterado' })),
         c.changes.length
-          ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 4).map(line), more > 0 ? h('li', { class: 'more', text: tr('+{n} mudança(s) nas notas', { n: more }) }) : null)
+          ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 4).map(line), more > 0 ? h('li', { class: 'more', text: tr(more === 1 ? '+1 mudança nas notas' : '+{n} mudanças nas notas', { n: more }) }) : null)
           : h('div', { class: 'muted small', text: 'Mexido neste patch, sem números no Data Dragon: provavelmente dano.' })));
     row.addEventListener('click', () => goPage('patches'));
     row.title = 'Abrir as notas do patch';
@@ -1600,7 +1601,7 @@ function ago(ts) {
   if (d === 2) return tr('anteontem');
   if (d < 30) return tr('há {n} dias', { n: d });
   const m = Math.floor(d / 30);
-  if (m < 12) return tr('há {n} mês(es)', { n: m });
+  if (m < 12) return tr(m === 1 ? 'há 1 mês' : 'há {n} meses', { n: m });
   const y = Math.floor(d / 365);
   return `há ${y} ${y === 1 ? 'ano' : 'anos'}`;
 }
@@ -1707,7 +1708,7 @@ function drawMasteryTab(d) {
     h('div', { class: 'pf-prog' },
       h('div', { class: 'pf-prog-h' }, h('span', { text: tr('Rumo ao nível {n}', { n: c.level + 1 }) }), h('b', { text: c.untilNext > 0 ? tr('faltam {n}', { n: c.untilNext.toLocaleString() }) : 'pronto' })),
       h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round(c.progress * 100)}%` })),
-      c.daysToNext ? h('div', { class: 'pf-pace', text: tr('No seu ritmo atual, nível {n} em ~{d} dia(s)', { n: c.level + 1, d: c.daysToNext }) }) : null),
+      c.daysToNext ? h('div', { class: 'pf-pace', text: tr(c.daysToNext === 1 ? 'No seu ritmo atual, nível {n} em ~1 dia' : 'No seu ritmo atual, nível {n} em ~{d} dias', { n: c.level + 1, d: c.daysToNext }) }) : null),
     c.marksNeeded ? h('div', { class: 'pf-row' }, h('span', { class: 'muted small', text: 'Marcas para subir' }),
       h('span', { class: 'pf-marks' }, ...Array.from({ length: c.marksNeeded }, (_, i) => h('i', { class: i < c.marks ? 'on' : '' })))) : null,
     c.grades.length ? h('div', { class: 'pf-row col' }, h('span', { class: 'muted small', text: 'Notas desta temporada' }),

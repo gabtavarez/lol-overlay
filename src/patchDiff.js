@@ -5,6 +5,7 @@
  */
 
 // atributo -> [nome, maior é melhor?]
+const { t: tr } = require('./i18n');
 const STATS = {
   hp: ['Vida', true], hpperlevel: ['Vida por nível', true], mp: ['Mana', true], mpperlevel: ['Mana por nível', true],
   movespeed: ['Velocidade de movimento', true], armor: ['Armadura', true], armorperlevel: ['Armadura por nível', true],
@@ -28,15 +29,15 @@ function diffChampion(prev, cur) {
     const a = prev.stats && prev.stats[k];
     const b = cur.stats && cur.stats[k];
     if (typeof a !== 'number' || typeof b !== 'number' || a === b) continue;
-    out.push({ what: label, from: fmt(a), to: fmt(b), buff: (b > a) === higherBetter });
+    out.push({ what: tr(label), from: fmt(a), to: fmt(b), buff: (b > a) === higherBetter });
   }
   (cur.spells || []).slice(0, 4).forEach((s, i) => {
     const p = (prev.spells || [])[i];
     if (!p) return;
     const key = `${'QWER'[i]} (${s.name})`;
-    if (!same(p.cooldown, s.cooldown)) out.push({ what: `${key}: recarga`, from: `${list(p.cooldown)} s`, to: `${list(s.cooldown)} s`, buff: sum(s.cooldown) < sum(p.cooldown) });
-    if (!same(p.cost, s.cost) && sum(p.cost) + sum(s.cost) > 0) out.push({ what: `${key}: custo`, from: list(p.cost), to: list(s.cost), buff: sum(s.cost) < sum(p.cost) });
-    if (!same(p.range, s.range) && sum(s.range) < 25000 && sum(p.range) < 25000) out.push({ what: `${key}: alcance`, from: list(p.range), to: list(s.range), buff: sum(s.range) > sum(p.range) });
+    if (!same(p.cooldown, s.cooldown)) out.push({ what: `${key}: ${tr('recarga')}`, from: `${list(p.cooldown)} s`, to: `${list(s.cooldown)} s`, buff: sum(s.cooldown) < sum(p.cooldown) });
+    if (!same(p.cost, s.cost) && sum(p.cost) + sum(s.cost) > 0) out.push({ what: `${key}: ${tr('custo')}`, from: list(p.cost), to: list(s.cost), buff: sum(s.cost) < sum(p.cost) });
+    if (!same(p.range, s.range) && sum(s.range) < 25000 && sum(p.range) < 25000) out.push({ what: `${key}: ${tr('alcance')}`, from: list(p.range), to: list(s.range), buff: sum(s.range) > sum(p.range) });
   });
   return out;
 }

@@ -37,7 +37,7 @@ function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id),
     else if (csm < 5.5) bad.push({ title: tr('Farm baixo'), text: `${csm.toFixed(1)} CS/min` });
   }
   if (s.deaths >= 7) bad.push({ title: tr('Muitas mortes'), text: tr('{n} mortes', { n: s.deaths }) });
-  else if (s.deaths <= 2 && detail.duration > 900) good.push({ title: tr('Jogou seguro'), text: tr('só {n} morte(s)', { n: s.deaths }) });
+  else if (s.deaths <= 2 && detail.duration > 900) good.push({ title: tr('Jogou seguro'), text: tr(s.deaths === 1 ? 'só 1 morte' : 'só {n} mortes', { n: s.deaths }) });
   if (myTeam && myTeam.kills) {
     const kp = (s.kills + s.assists) / myTeam.kills;
     if (kp >= 0.6) good.push({ title: tr('Presente nas lutas'), text: tr('{p}% de participação em abates', { p: Math.round(kp * 100) }) });

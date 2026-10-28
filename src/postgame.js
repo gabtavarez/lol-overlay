@@ -23,7 +23,7 @@ function analyze(rec) {
     else if (csm < 5.5) bad.push({ title: tr('Farm baixo'), text: tr('{csm} CS/min: cada onda perdida são ~125 g', { csm: csm.toFixed(1) }) });
   }
   if (deaths >= 7) bad.push({ title: tr('Muitas mortes'), text: tr('{n} mortes: {g} g de abate entregues ao inimigo (aprox.)', { n: deaths, g: Math.round(deaths * 300) }) });
-  else if (deaths <= 2 && rec.duration > 900) good.push({ title: tr('Jogou seguro'), text: tr('só {n} morte(s)', { n: deaths }) });
+  else if (deaths <= 2 && rec.duration > 900) good.push({ title: tr('Jogou seguro'), text: tr(deaths === 1 ? 'só 1 morte' : 'só {n} mortes', { n: deaths }) });
   if (rec.teamKills > 0) {
     const kp = (kills + assists) / rec.teamKills;
     if (kp >= 0.6) good.push({ title: tr('Presente nas lutas'), text: tr('{p}% de participação em abates', { p: Math.round(kp * 100) }) });

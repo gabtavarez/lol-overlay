@@ -46,3 +46,15 @@ test('i18n main: coach, compras e sequência saem no idioma escolhido (e voltam 
   }
   assert.equal(tiltReport([g(0.5, false), g(1, false)]).title, '2 derrotas seguidas');
 });
+
+test('patch notes em inglês/espanhol: direção, tags e links da lista', () => {
+  const { parseChange, extractUrls } = require('../src/patchNotes');
+  assert.equal(parseChange('Cooldown: 10/9/8 ⇒ 8/7/6 seconds').dir, 'buff');
+  assert.equal(parseChange('Enfriamiento: 8 ⇒ 10 segundos').dir, 'nerf');
+  assert.equal(parseChange('Base damage: 50 ⇒ 60').dir, 'buff');
+  assert.equal(parseChange('NEW: passive now heals').tag, 'new');
+  assert.equal(parseChange('ELIMINADO: escudo').tag, 'removed');
+  const urls = extractUrls('<a href="/en-us/news/game-updates/patch-26-21-notes/">x</a><a href="/en-us/news/game-updates/league-of-legends-patch-26-20-notes/">y</a>');
+  assert.equal(urls['26.21'], 'https://www.leagueoflegends.com/en-us/news/game-updates/patch-26-21-notes/');
+  assert.ok(urls['26.20'].includes('league-of-legends-patch-26-20'));
+});

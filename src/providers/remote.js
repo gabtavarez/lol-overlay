@@ -222,8 +222,8 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
     /** Erro da última tentativa de buscar a build (null se ok ou ainda não tentou). */
     buildError: (champ, role) => (champ ? failures.get(`builds:${buildKey(champ, role)}`) || null : null),
 
-    ensureAugments: (champ, onDone) => (champ && champ.key ? refresh('augments', String(champ.key), () => client.aramAugments(champ.key), onDone, 12 * 3600 * 1000) : Promise.resolve()),
-    getAugments: (champ) => { const e = champ && champ.key && cache.augments && cache.augments[String(champ.key)]; return e ? e.data : null; },
+    ensureAugments: (champ, onDone, lang = 'pt_BR') => (champ && champ.key ? refresh('augments', `${champ.key}:${lang}`, () => client.aramAugments(champ.key, lang), onDone, 12 * 3600 * 1000) : Promise.resolve()),
+    getAugments: (champ, lang = 'pt_BR') => { const e = champ && champ.key && cache.augments && cache.augments[`${champ.key}:${lang}`]; return e ? e.data : null; },
     ensureMatchup: (me, enemy, role, onDone) =>
       me && enemy && !MODES.includes(role) ? refresh('matchups', `${norm(me.id)}:${norm(enemy.id)}:${role || 'none'}`, () => client.matchup(me, enemy, role), onDone) : Promise.resolve(),
     ensureSynergy: (ally, allyRole, myRole, onDone) =>

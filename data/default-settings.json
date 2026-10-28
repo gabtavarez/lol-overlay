@@ -51,5 +51,6 @@
   "buildTier": "EMERALD_PLUS",
   "lastSeenVersion": "",
   "discordRpc": false,
-  "discordClientId": ""
+  "discordClientId": "",
+  "language": "pt"
 }

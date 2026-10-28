@@ -7,7 +7,7 @@ const { lcuGetJson } = require('./lcu');
  * Tudo vem do cliente do LoL (maestria, histórico, inventário) + CommunityDragon (lista de skins).
  */
 
-const CDRAGON_SKINS = 'https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/pt_br/v1/skins.json';
+const CDRAGON_SKINS = (lang = 'pt_br') => `https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${lang}/v1/skins.json`;
 const DAY = 24 * 3600 * 1000;
 
 const RARITY = {
@@ -28,8 +28,8 @@ const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirado
 
 /* ---------- CommunityDragon: lista de skins (pt-BR), enxuta e em cache por 7 dias ---------- */
 
-function createSkinCatalog({ cacheDir, fetchImpl = fetch, log = () => {} }) {
-  const file = path.join(cacheDir, 'skins.json');
+function createSkinCatalog({ cacheDir, fetchImpl = fetch, log = () => {}, lang = 'pt_br' }) {
+  const file = path.join(cacheDir, lang === 'pt_br' ? 'skins.json' : `skins.${lang}.json`); // nomes das skins no idioma do app
   let mem = null;
   return async function catalog() {
     if (mem) return mem;
@@ -38,7 +38,7 @@ function createSkinCatalog({ cacheDir, fetchImpl = fetch, log = () => {} }) {
       if (Date.now() - st.mtimeMs < 7 * DAY) { mem = JSON.parse(await fs.readFile(file, 'utf8')); return mem; }
     } catch { /* sem cache */ }
     try {
-      const res = await fetchImpl(CDRAGON_SKINS);
+      const res = await fetchImpl(CDRAGON_SKINS(lang));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const raw = await res.json();
       const slim = {};

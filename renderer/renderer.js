@@ -1,3 +1,4 @@
+translateDom(document.body); // textos fixos do HTML no idioma escolhido
 const WEIGHTS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 const STAT_SHARD = { 5001: 'Vida', 5002: 'Armadura', 5003: 'RM', 5005: 'Vel. ataque', 5007: 'Redução de recarga', 5008: 'Força adaptativa', 5010: 'Vel. movimento', 5011: 'Vida', 5013: 'Tenacidade' };
 
@@ -52,13 +53,13 @@ function showView(name) {
 
 function slot(p) {
   const champName = p.champion ? p.champion.name : '';
-  const known = p.position ? ROLE_LABEL[p.position] : '';
-  const guess = !known && p.predicted ? `${ROLE_LABEL[p.predicted]}?` : '';
+  const known = p.position ? t(ROLE_LABEL[p.position]) : '';
+  const guess = !known && p.predicted ? `${t(ROLE_LABEL[p.predicted])}?` : '';
   const el = h('div', { class: `dp${p.isMe ? ' me' : ''}` },
     version && p.champion ? h('img', { src: champIcon(version, p.champion.id), alt: champName }) : h('span', { class: 'ph' }),
     h('span', { class: `dp-role${guess ? ' guess' : ''}` }, (p.position || p.predicted) ? roleImg(p.position || p.predicted, 'dp-ico') : '', document.createTextNode(guess ? '?' : '')));
-  const flex = p.flex && p.flex.length ? ` · flex: ${p.flex.map((r) => ROLE_LABEL[r]).join('/')}` : '';
-  el.title = [champName || 'Escolhendo…', p.isMe ? 'você' : playerLabel(p), guess ? `rota prevista (${p.confidence}%)${flex}` : known].filter(Boolean).join(' · ');
+  const flex = p.flex && p.flex.length ? ` · flex: ${p.flex.map((r) => t(ROLE_LABEL[r])).join('/')}` : '';
+  el.title = [champName || t('Escolhendo…'), p.isMe ? t('você') : playerLabel(p), guess ? `rota prevista (${p.confidence}%)${flex}` : known].filter(Boolean).join(' · ');
   return el;
 }
 
@@ -104,8 +105,8 @@ function renderGuide(state, picks) {
 
   if (!pickId) {
     $('guide-tabs').replaceChildren();
-    els.guideTitle.textContent = 'Guia do campeão';
-    els.guideWhy.textContent = 'Escolha um campeão para ver runas, feitiços e itens.';
+    els.guideTitle.textContent = t('Guia do campeão');
+    els.guideWhy.textContent = t('Escolha um campeão para ver runas, feitiços e itens.');
     els.guideBody.replaceChildren();
     setImportEnabled(false);
     return;
@@ -409,7 +410,7 @@ function fillOtp() {
           btn.addEventListener('click', async () => {
             btn.textContent = '…';
             const r = await window.overlay.importOtp(otp.id, idx);
-            btn.textContent = r.ok ? '✓ Importado' : 'Importar';
+            btn.textContent = r.ok ? t('✓ Importado') : t('Importar');
             btn.classList.toggle('on', r.ok);
             els.impMsg.textContent = r.ok ? `Build de ${p.riotId.split('#')[0]}: ${r.done.join(', ')} importados.${r.notes && r.notes.length ? ` (${r.notes[0]})` : ''}` : `Não consegui importar: ${r.error}`;
           });
@@ -433,7 +434,7 @@ function renderSelect(state) {
 
   const picks = (state.advice && state.advice.picks) || { candidates: [], notes: [] };
   renderSelTilt(state.tilt, state.assets && state.assets.version);
-  els.selRole.textContent = state.mode ? ROLE_LABEL[state.mode] : state.myPosition ? ROLE_LABEL[state.myPosition] : 'rota não definida';
+  els.selRole.textContent = state.mode ? t(ROLE_LABEL[state.mode]) : state.myPosition ? t(ROLE_LABEL[state.myPosition]) : t('rota não definida');
   const turnText = state.action === 'ban' ? 'Sua vez: banir' : state.action === 'pick' ? 'Sua vez: escolher' : '';
   els.turn.textContent = turnText;
   els.turn.hidden = !turnText;
@@ -444,9 +445,9 @@ function renderSelect(state) {
 
   els.team.replaceChildren(...[state.me, ...state.allies].filter(Boolean).map((p) => slot(p)));
   els.selEnemies.replaceChildren(...state.enemies.map((p) => slot(p)));
-  const flexes = state.enemies.filter((p) => p.flex && p.flex.length && p.champion).map((p) => `${p.champion.name} (${p.flex.map((r) => ROLE_LABEL[r]).join('/')})`);
+  const flexes = state.enemies.filter((p) => p.flex && p.flex.length && p.champion).map((p) => `${p.champion.name} (${p.flex.map((r) => t(ROLE_LABEL[r])).join('/')})`);
   const guessed = state.enemies.some((p) => p.predicted);
-  $('enemy-roles').textContent = [guessed ? 'Rotas inimigas com "?" são previsões' : '', flexes.length ? `Flex: ${flexes.join(', ')}` : ''].filter(Boolean).join(' · ');
+  $('enemy-roles').textContent = [guessed ? t('Rotas inimigas com "?" são previsões') : '', flexes.length ? `Flex: ${flexes.join(', ')}` : ''].filter(Boolean).join(' · ');
   const opgg = state.opgg || {};
   els.opggAllies.disabled = !opgg.allies;
   els.opggEnemies.hidden = !opgg.enemies;
@@ -523,7 +524,7 @@ function renderGame(state) {
   if (gl) {
     $('goals-aim').textContent = `ritmo de ${TIER_PT[gl.aimTier] || gl.aimTier} (um elo acima do seu)`;
     const cell = (label, now, target, ok, extra) => h('div', { class: 'goal' }, h('b', { text: label }), h('span', { class: `goal-v ${ok ? 'up' : 'down'}`, text: String(now) }), h('span', { class: 'muted small', text: `meta ${target}${extra || ''}` }));
-    $('goals-body').replaceChildren(...(gl.cs ? [cell('CS/min', gl.cs.now, gl.cs.target, gl.cs.ok, ` · ${gl.cs.diff >= 0 ? '+' : ''}${gl.cs.diff} CS`)] : []), cell('Visão/min', gl.vision.now, gl.vision.target, gl.vision.ok));
+    $('goals-body').replaceChildren(...(gl.cs ? [cell(t('CS/min'), gl.cs.now, gl.cs.target, gl.cs.ok, ` · ${gl.cs.diff >= 0 ? '+' : ''}${gl.cs.diff} CS`)] : []), cell(t('Visão/min'), gl.vision.now, gl.vision.target, gl.vision.ok));
   }
 
   // habilidades do oponente
@@ -574,7 +575,7 @@ function render(state) {
     els.waitingText.textContent = `Erro ao processar a partida: ${state.reason}`;
     els.dot.className = 'dot bad';
   } else {
-    els.waitingText.textContent = state.client === 'open' ? 'Pronto para a próxima partida' : 'Abra o cliente do LoL';
+    els.waitingText.textContent = state.client === 'open' ? t('Pronto para a próxima partida') : t('Abra o cliente do LoL');
     els.dot.className = state.client === 'open' ? 'dot ok' : 'dot warn';
   }
   renderHome(state);
@@ -590,12 +591,12 @@ $('win-close').addEventListener('click', () => window.overlay.winClose());
 $('bar').addEventListener('dblclick', (e) => { if (!e.target.closest('button')) window.overlay.winToggleMax(); });
 window.overlay.onMaximized((max) => {
   $('win-max').replaceChildren(svgIcon(max ? 'restore' : 'max'));
-  $('win-max').title = max ? 'Restaurar' : 'Maximizar';
+  $('win-max').title = max ? t('Restaurar') : t('Maximizar');
 });
 
 /* ---------- tela inicial ---------- */
 
-const fmtPts = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} mi` : n >= 1e3 ? `${Math.round(n / 1e3)} mil` : String(n));
+const fmtPts = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}${LANG === 'en' ? 'M' : ' mi'}` : n >= 1e3 ? `${Math.round(n / 1e3)}${LANG === 'en' ? 'k' : ' mil'}` : String(n));
 let homeKey = '';
 
 /* ---------- sequência e tilt ---------- */
@@ -635,7 +636,7 @@ function renderHome(state) {
   const v = home.version || version;
   if (v) version = version || v;
   const chips = [
-    [state.client === 'open' ? 'Cliente conectado' : 'Cliente fechado', state.client === 'open' ? 'ok' : 'warn'],
+    [state.client === 'open' ? t('Cliente conectado') : t('Cliente fechado'), state.client === 'open' ? 'ok' : 'warn'],
     [v ? `Patch ${v.split('.').slice(0, 2).join('.')}` : 'Carregando dados…', ''],
     [`v${appVersion || '…'}`, ''],
   ];
@@ -649,10 +650,10 @@ function renderHome(state) {
   loadPatchCard(state);
 
   const s = home.summoner;
-  $('home-hello').textContent = s && s.gameName ? `Olá, ${s.gameName}` : 'Bem-vindo';
-  $('side-name').textContent = s && s.gameName ? s.gameName : 'Invocador';
+  $('home-hello').textContent = s && s.gameName ? t('Olá, {name}', { name: s.gameName }) : t('Bem-vindo');
+  $('side-name').textContent = s && s.gameName ? s.gameName : t('Invocador');
   const rk = s && s.rank;
-  $('side-sub').textContent = s ? (rk ? `${rk.tier[0]}${rk.tier.slice(1).toLowerCase()} ${rk.division || ''} · ${rk.lp} PDL` : `#${s.tagLine || ''}${s.level ? ` · nível ${s.level}` : ''}`) : state.client === 'open' ? 'Carregando…' : 'Cliente fechado';
+  $('side-sub').textContent = s ? (rk ? `${rk.tier[0]}${rk.tier.slice(1).toLowerCase()} ${rk.division || ''} · ${rk.lp} PDL` : `#${s.tagLine || ''}${s.level ? ` · nível ${s.level}` : ''}`) : state.client === 'open' ? t('Carregando…') : t('Cliente fechado');
   const old = document.getElementById('side-rank');
   if (old) old.remove();
   if (rk) $('side-me').append(Object.assign(rankImg(rk.tier, 'rank-img side-rank'), { id: 'side-rank', title: `${rk.wins}V ${rk.losses}D` }));
@@ -666,17 +667,17 @@ function renderHome(state) {
   $('home-champs').replaceChildren(...(champs.length
     ? champs.map((c) => h('div', { class: 'hc' },
       v ? h('img', { src: champIcon(v, c.id), alt: c.name }) : h('span', { class: 'ic' }),
-      h('div', {}, h('div', { class: 'hc-name', text: c.name }), h('div', { class: 'muted small', text: `Maestria ${c.level} · ${fmtPts(c.points)} pts` }))))
+      h('div', {}, h('div', { class: 'hc-name', text: c.name }), h('div', { class: 'muted small', text: t('Maestria {lvl} · {pts} pts', { lvl: c.level, pts: fmtPts(c.points) }) }))))
     : [h('p', { class: 'muted pad', text: state.client === 'open' ? (home.loading ? 'Carregando sua maestria…' : 'Sem dados de maestria.') : 'Abra o cliente do LoL para ver sua maestria.' })]));
 
   const roles = home.roles || [];
   const max = Math.max(1, ...roles.map((r) => r.games));
   $('home-roles').replaceChildren(...(roles.length
     ? [...roles.map((r) => h('div', { class: 'role-row' },
-      h('span', { class: 'role-name' }, roleImg(r.role), document.createTextNode(ROLE_LABEL[r.role] || r.role)),
+      h('span', { class: 'role-name' }, roleImg(r.role), document.createTextNode(t(ROLE_LABEL[r.role]) || r.role)),
       h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((r.games / max) * 100)}%` })),
-      h('span', { class: 'muted small', text: `${r.games} jogos · ${Math.round(r.winRate * 100)}%` }))),
-      h('p', { class: 'muted small', text: `Últimas ${home.gamesAnalyzed || 0} partidas de Summoner's Rift.` })]
+      h('span', { class: 'muted small', text: t('{n} jogos · {wr}%', { n: r.games, wr: Math.round(r.winRate * 100) }) }))),
+      h('p', { class: 'muted small', text: t('Últimas {n} partidas de Summoner\'s Rift.', { n: home.gamesAnalyzed || 0 }) })]
     : [h('p', { class: 'muted', text: 'Calculado do seu histórico recente quando o cliente estiver aberto.' })]));
 
   // elo e evolução
@@ -703,7 +704,7 @@ function renderHome(state) {
 
   const fit = home.fit || [];
   const fitSub = document.querySelector('#home-fit').previousElementSibling.querySelector('.muted');
-  if (fitSub && home.mainRole) fitSub.textContent = `fortes no ${ROLE_LABEL[home.mainRole] || home.mainRole} (sua rota principal) e parecidos com os que você joga lá`;
+  if (fitSub && home.mainRole) fitSub.textContent = `fortes no ${t(ROLE_LABEL[home.mainRole]) || home.mainRole} (sua rota principal) e parecidos com os que você joga lá`;
   $('home-fit').replaceChildren(...(fit.length ? fit.map((c) => h('div', { class: 'fit' },
     v ? h('img', { class: 'ic', src: champIcon(v, c.id), alt: '' }) : h('span', { class: 'ic' }),
     h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: c.name }),
@@ -729,7 +730,7 @@ window.overlay.onAutoImport((r) => {
 
 async function doImport(what) {
   if (!shownId) return;
-  els.impMsg.textContent = 'Importando…';
+  els.impMsg.textContent = t('Importando…');
   const res = await window.overlay.importBuild(shownId, what, variant, runePage);
   els.impMsg.textContent = res.ok ? `Importado: ${res.done.join(' e ')}.` : `Não consegui importar: ${res.error}`;
   if (res.ok) {
@@ -788,6 +789,7 @@ function fillSettings() {
   $('set-tier').value = settings.buildTier || 'EMERALD_PLUS';
   $('set-riotid').value = settings.myRiotId || '';
   $('set-flash').value = settings.flashKey || 'F';
+  $('set-lang').value = settings.language || 'pt';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
   $('set-discord').checked = settings.discordRpc === true;
   $('set-discord-id').value = settings.discordClientId || '';
@@ -799,7 +801,7 @@ function fillSettings() {
 async function showDiscordStatus() {
   const d = await window.overlay.getDiagnostics().catch(() => ({}));
   const st = d.discord || 'off';
-  $('discord-status').textContent = st === 'connected' ? '· conectado' : st === 'connecting' ? '· procurando o Discord aberto…' : '';
+  $('discord-status').textContent = st === 'connected' ? t('· conectado') : st === 'connecting' ? t('· procurando o Discord aberto…') : '';
 }
 
 async function openSettings() {
@@ -835,7 +837,7 @@ async function saveSettings() {
       blacklist: splitList(els.setBlacklist.value),
     },
   });
-  els.setMsg.textContent = settings.discordRpc && !settings.discordClientId ? 'Salvo. Falta o Application ID do Discord para ativar o status.' : 'Salvo.';
+  els.setMsg.textContent = settings.discordRpc && !settings.discordClientId ? t('Salvo. Falta o Application ID do Discord para ativar o status.') : t('Salvo.');
   showFlashKey();
   setTimeout(showDiscordStatus, 2500);
 }
@@ -854,6 +856,11 @@ async function toggleFlashKey() {
 window.overlay.getSettings().then((s) => { settings = s; showFlashKey(); });
 
 $('set-test').addEventListener('click', () => window.overlay.previewOverlay());
+// Idioma: salva na hora e o app reinicia já no idioma novo (telas e dados da Riot)
+$('set-lang').addEventListener('change', async () => {
+  els.setMsg.textContent = t('Reiniciando no idioma escolhido…');
+  settings = await window.overlay.setSettings({ language: $('set-lang').value });
+});
 $('set-diag').addEventListener('click', async () => {
   const d = await window.overlay.getDiagnostics();
   const box = $('diag');
@@ -879,24 +886,24 @@ function showUpdate(u) {
   btn.classList.toggle('primary', u.state === 'ready');
   btn.disabled = u.state === 'checking' || u.state === 'downloading';
   $('update-label').textContent = {
-    checking: 'Procurando…',
-    downloading: `Baixando ${u.version || ''} ${u.percent || 0}%`,
-    ready: `Reiniciar e atualizar (${u.version})`,
-    none: 'Atualizado ✓',
-  }[u.state] || 'Procurar atualizações';
+    checking: t('Procurando…'),
+    downloading: t('Baixando {v} {p}%', { v: u.version || '', p: u.percent || 0 }),
+    ready: t('Reiniciar e atualizar ({v})', { v: u.version }),
+    none: t('Atualizado ✓'),
+  }[u.state] || t('Procurar atualizações');
   btn.title = u.message || '';
   if (u.state === 'error' && u.message) els.status.textContent = u.message;
 }
 $('update-btn').addEventListener('click', async () => {
   const btn = $('update-btn');
   if ($('update-label').textContent.startsWith('Reiniciar')) return window.overlay.installUpdate();
-  $('update-label').textContent = 'Procurando…';
+  $('update-label').textContent = t('Procurando…');
   showUpdate(await window.overlay.checkUpdate());
 });
 $('set-update-now').addEventListener('click', async () => {
-  els.setMsg.textContent = 'Verificando…';
+  els.setMsg.textContent = t('Verificando…');
   const u = await window.overlay.checkUpdate();
-  els.setMsg.textContent = u.message || (u.state === 'downloading' ? `Baixando ${u.version}…` : u.state === 'ready' ? 'Atualização pronta.' : 'Verificação concluída.');
+  els.setMsg.textContent = u.message || (u.state === 'downloading' ? `Baixando ${u.version}…` : u.state === 'ready' ? t('Atualização pronta.') : t('Verificação concluída.'));
 });
 window.overlay.onUpdate(showUpdate);
 window.overlay.getUpdate().then(showUpdate);
@@ -1092,7 +1099,7 @@ function drawChamp() {
   const msg = h('span', { class: 'muted small' });
   const imp = h('button', { class: 'btn primary', type: 'button', text: 'Importar runas e feitiços' });
   imp.addEventListener('click', async () => {
-    msg.textContent = 'Importando…';
+    msg.textContent = t('Importando…');
     const res = await window.overlay.importBuild(cv.id, 'both', 0, cv.runePage, cv.role);
     msg.textContent = res.ok ? `Importado: ${res.done.join(', ')}.` : `Não consegui importar: ${res.error}`;
   });
@@ -1515,7 +1522,7 @@ function pnEntity(e, mine) {
 function drawPatches() {
   const body = $('pn-body');
   const n = pn.note;
-  $('pn-title').textContent = pn.version ? `Patch ${pn.version}` : 'Patch notes';
+  $('pn-title').textContent = pn.version ? `Patch ${pn.version}` : t('Patch notes');
   $('pn-date').textContent = n && n.date ? new Date(n.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
   $('pn-date').hidden = !$('pn-date').textContent;
   if (!n) {
@@ -1626,8 +1633,8 @@ function drawProfile() {
   const body = $('pf-body');
   const d = pf.data;
   const s = d && d.summoner;
-  $('pf-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : 'Seu perfil';
-  $('pf-title').textContent = { mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: 'Sua coleção' }[pf.tab];
+  $('pf-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : t('Seu perfil');
+  $('pf-title').textContent = { mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: t('Sua coleção') }[pf.tab];
   if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
   if (!d.mastery) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver o perfil.' }))); return; }
   // anima só quando troca de aba ou chegam dados novos (clicar numa bolha não repete a animação)

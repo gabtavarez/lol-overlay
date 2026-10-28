@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.34.0",
+    "title": "Inglês e espanhol (parte 1)",
+    "items": [
+      "Novo: Configurações → Idioma (Português, English, Español).",
+      "Telas e menus traduzidos; o resto vem nas próximas versões.",
+      "Campeões, itens e runas com os nomes oficiais de cada região."
+    ]
+  },
+  {
     "version": "0.33.8",
     "title": "Novidades mais curtas",
     "items": [

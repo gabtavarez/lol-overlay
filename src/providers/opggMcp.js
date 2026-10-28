@@ -473,9 +473,9 @@ function createMcpClient({ fetchImpl = fetch, endpoint = ENDPOINT, gapMs = MIN_G
       }, 20)),
     /** Só a página de runas mais jogada num elo (o OP.GG expõe 1 por consulta). */
     /** Augments do ARAM: Desordem para um campeão (tier 3+), ordenados por desempenho. */
-    aramAugments: async (champKey) => {
+    aramAugments: async (champKey, lang = 'pt_BR') => {
       const d = parseCompact(await call('lol_list_aram_augments', {
-        champion_id: Number(champKey), lang: 'pt_BR', desired_output_fields: ['data.augments[].{id,name,tier,performance,popular}'],
+        champion_id: Number(champKey), lang, desired_output_fields: ['data.augments[].{id,name,tier,performance,popular}'],
       }, 5)).data || {};
       return (d.augments || []).filter((a) => a && a.name).map((a) => ({ id: a.id, name: a.name, tier: a.tier, score: a.performance, pick: a.popular }))
         .sort((a, b) => b.score - a.score);

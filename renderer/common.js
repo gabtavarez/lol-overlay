@@ -7,7 +7,8 @@ function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {
     if (k === 'class') el.className = v;
-    else if (k === 'text') el.textContent = v;
+    else if (k === 'text') el.textContent = typeof t === 'function' ? t(v) : v;
+    else if ((k === 'title' || k === 'placeholder') && typeof t === 'function') el.setAttribute(k, t(v));
     else if (k === 'style') el.style.cssText = v; // via CSSOM: permitido pelo CSP
     else el.setAttribute(k, v);
   }

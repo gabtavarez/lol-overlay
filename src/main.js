@@ -166,7 +166,7 @@ function createMainWindow() {
     webPreferences: webPrefs(),
   });
   lockDownWindow(mainWin);
-  mainWin.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+  mainWin.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), { query: { lang: appLang() } });
   mainWin.on('closed', () => app.quit());
   const sendMax = () => send('win:maximized', mainWin.isMaximized());
   mainWin.on('maximize', sendMax);
@@ -190,7 +190,7 @@ function createOverlayWindow() {
   lockDownWindow(overlayWin);
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
   overlayWin.setIgnoreMouseEvents(true, { forward: true });
-  overlayWin.loadFile(path.join(__dirname, '..', 'renderer', 'overlay.html'));
+  overlayWin.loadFile(path.join(__dirname, '..', 'renderer', 'overlay.html'), { query: { lang: appLang() } });
 }
 
 function updateOverlayVisibility() {
@@ -366,7 +366,7 @@ function registerShortcuts() {
 async function loadDataDragon() {
   const instance = new DataDragon({
     cacheDir: path.join(app.getPath('userData'), 'ddragon'),
-    lang: 'pt_BR',
+    lang: DD_LANG[appLang()] || 'pt_BR',
   });
   try {
     await instance.init();
@@ -381,7 +381,7 @@ async function loadDataDragon() {
 
 async function loadRuneIndex(version) {
   try {
-    const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/pt_BR/runesReforged.json`);
+    const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/${DD_LANG[appLang()] || 'pt_BR'}/runesReforged.json`);
     if (res.ok) {
       runeStyles = await res.json();
       runeIndex = indexRunes(runeStyles);
@@ -421,6 +421,9 @@ function buildFor(champ, role) {
 
 const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte', aram: 'ARAM', arena: 'Arena' };
 const MODE_ROLES = ['aram', 'arena'];
+/** Idioma do app -> locale dos dados da Riot (nomes de campeões, itens, runas e habilidades oficiais da região). */
+const DD_LANG = { pt: 'pt_BR', en: 'en_US', es: 'es_MX' };
+const appLang = () => (settings && settings.get().language) || 'pt';
 const MAYHEM_QUEUES = [2400, 3100]; // ARAM: Desordem (com augments)
 const pctTxt = (x) => (typeof x === 'number' && x > 0 ? `${Math.round(x * (x <= 1 ? 100 : 1))}%` : null);
 
@@ -566,8 +569,9 @@ async function guideFor(championId) {
   let augments = null;
   if (role === 'aram' && MAYHEM_QUEUES.includes(lcuState.queueId)) {
     const full = dd.champions[champ.id] || champ;
-    augments = remote.getAugments(full);
-    if (!augments) remote.ensureAugments(full, () => send('guide-updated', { championId: String(champ.id) }));
+    const lang = DD_LANG[appLang()] || 'pt_BR';
+    augments = remote.getAugments(full, lang);
+    if (!augments) remote.ensureAugments(full, () => send('guide-updated', { championId: String(champ.id) }), lang);
     else augments = augments.slice(0, 8);
   }
   return { ...variants[0].guide, variants, runePages, roleNote, opponents, augments, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
@@ -1184,7 +1188,10 @@ function registerIpc() {
 
   ipcMain.handle('settings:get', () => settings.get());
   ipcMain.handle('settings:set', (_e, patch) => {
+    const before = appLang();
     const next = settings.update(patch);
+    // idioma novo: reinicia para recarregar telas e os dados da Riot no idioma escolhido
+    if (next.language !== before) { setTimeout(() => { app.relaunch(); app.exit(0); }, 300); return next; }
     send('settings-changed', next);
     updateOverlayVisibility();
     configurePresence();
@@ -1207,7 +1214,7 @@ app.whenReady().then(() => {
   elo = createEloTracker({ dir: userData });
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   rpc = createDiscordRpc({ log: (m) => logger.log(m) });
-  skinCatalog = profileView.createSkinCatalog({ cacheDir: path.join(userData, 'cdragon'), log: (m) => logger.log(m) });
+  skinCatalog = profileView.createSkinCatalog({ cacheDir: path.join(userData, 'cdragon'), log: (m) => logger.log(m), lang: (DD_LANG[appLang()] || 'pt_BR').toLowerCase() });
   patchNotes = createPatchNotes({ cacheDir: path.join(userData, 'patchnotes'), resolve: (n, k) => resolveEntity(n, k), log: (m) => logger.log(m) });
   configurePresence();
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });

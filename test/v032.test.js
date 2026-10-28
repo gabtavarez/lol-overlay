@@ -69,3 +69,13 @@ test('perfil: página repetida do cliente não duplica partidas (sequência fals
   assert.equal(out.analyzed, 3);
   assert.deepEqual(tiltReport(out.games, { now: 400, tzOffsetMin: 180 }).streak, { type: 'win', count: 2 });
 });
+
+test('novidades: curtas (até 4 itens de até 90 caracteres, título curto)', () => {
+  const log = require('../data/changelog.json');
+  for (const e of log) {
+    assert.ok(e.title.length <= 40, `título longo em ${e.version}`);
+    assert.ok(e.items.length >= 1 && e.items.length <= 4, `itens demais em ${e.version}`);
+    for (const i of e.items) assert.ok(i.length <= 90, `item longo em ${e.version}: ${i}`);
+  }
+  assert.equal(log[0].version, require('../package.json').version); // toda versão nova tem novidade
+});

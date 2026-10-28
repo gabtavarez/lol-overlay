@@ -1,229 +1,209 @@
 [
   {
-    "version": "0.33.7",
-    "title": "Histórico zerado no Perfil",
+    "version": "0.33.8",
+    "title": "Novidades mais curtas",
     "items": [
-      "Corrigido: se o cliente falhava ao entregar o histórico (comum logo após uma partida), o Perfil e a Sequência ficavam zerados por 10 minutos. Agora o app tenta de novo na hora, mantém o histórico anterior enquanto isso e volta a tentar a cada 30 s.",
-      "Perfil: o botão Atualizar relê o histórico e a maestria do cliente na hora."
+      "Janela de novidades mais enxuta: só o essencial de cada versão."
+    ]
+  },
+  {
+    "version": "0.33.7",
+    "title": "Perfil não zera mais",
+    "items": [
+      "Histórico volta sozinho se o cliente falhar.",
+      "Botão Atualizar relê o perfil na hora."
     ]
   },
   {
     "version": "0.33.6",
-    "title": "Banidos fora da sugestão de pick",
+    "title": "Banidos fora do pick",
     "items": [
-      "Corrigido: campeões banidos ainda podiam aparecer na sugestão de pick. O cliente atual informa os bans só nas ações do draft, e o app agora lê de lá também."
+      "Campeões banidos não aparecem mais na sugestão de pick."
     ]
   },
   {
     "version": "0.33.5",
     "title": "Tanque de verdade",
     "items": [
-      "Corrigido: lutadores e assassinos com 2 itens que dão um pouco de armadura/RM (ex.: Locke, Lee Sin) eram contados como tanques e puxavam Tormento de Liandry e afins. Agora tanque é quem é tanque ou quem empilhou muita resistência (3+ itens defensivos, 150+ de armadura e RM somadas)."
+      "Lutador com 2 itens defensivos não conta mais como tanque."
     ]
   },
   {
     "version": "0.33.4",
-    "title": "Sequência e histórico sem partidas repetidas",
+    "title": "Sequência corrigida",
     "items": [
-      "Corrigido: o cliente do LoL às vezes devolve a mesma página do histórico várias vezes, e cada partida era contada até 4 vezes. Isso criava sequências falsas (ex.: \"12 vitórias seguidas\" com 3 reais) e inflava as contas por horário e por rota. Agora cada partida conta uma vez."
+      "Partidas não são mais contadas em dobro (fim da sequência falsa)."
     ]
   },
   {
     "version": "0.33.3",
-    "title": "Ordem de habilidades corrigida",
+    "title": "Ordem de habilidades",
     "items": [
-      "Corrigido: a grade da ordem de habilidades (guia e página do campeão) aparecia embaralhada desde a galeria de skins, que usava o mesmo estilo. Voltou a ser uma linha por habilidade, níveis 1 a 18."
+      "Grade de habilidades voltou ao normal."
     ]
   },
   {
     "version": "0.33.2",
-    "title": "1º item certo e menos peso durante a partida",
+    "title": "1º item certo e mais leve",
     "items": [
-      "Corrigido: o app sugeria item defensivo completo (ex.: Ampulheta de Zhonya) como primeiro item só porque o time inimigo tinha mais dano físico. Agora o 1º item do meta vem primeiro; a defesa completa só passa na frente com inimigo fed, rota perdida ou time inteiro de um tipo de dano.",
-      "Desempenho: em partida, o app roda com prioridade abaixo do normal (o jogo ganha a CPU) e lê o cliente a cada 6 s em vez de 1,5 s.",
-      "Desempenho: o TAB passa a ser lido direto da tecla. O hook global de teclado/mouse (que recebia todo movimento do mouse) só liga se essa leitura falhar.",
-      "Desempenho: o coach fixo só redesenha quando a dica muda; sombras dos painéis mais leves e o aviso de voltar à base pulsa 3 vezes e para."
+      "1º item do meta antes de defesa completa (sem inimigo fed).",
+      "App mais leve em partida: prioridade baixa e menos leituras."
     ]
   },
   {
     "version": "0.33.1",
-    "title": "Início acessível no champ select",
+    "title": "Início no champ select",
     "items": [
-      "Dá para abrir o Início durante o champ select ou a partida (para ver sequência, patch e campeões). A aba \"Champ select\" / \"Partida\" com o selo AO VIVO volta para a tela da fase, e o app volta sozinho para ela quando a fase muda."
+      "Dá pra abrir o Início durante a seleção e a partida."
     ]
   },
   {
     "version": "0.33.0",
-    "title": "ARAM, Arena e sequência/tilt",
+    "title": "ARAM, Arena e tilt",
     "items": [
-      "ARAM: o app reconhece o modo e usa a build de ARAM do OP.GG (itens, runas e feitiços, como Marcar/Avançar). No ARAM: Desordem, o guia mostra os augments com melhor desempenho do campeão.",
-      "Arena: o OP.GG não tem builds desse modo, então o app usa a build ranqueada da rota mais provável e avisa no guia. Importa só os itens (runas e feitiços não existem na Arena).",
-      "Em ARAM e Arena não há metas de farm/visão nem coach de rota, e o pós-partida não cobra visão.",
-      "Início: novo card \"Sequência e ritmo\" com as suas últimas 10 partidas, a sessão de hoje e a % de vitória por horário (madrugada, manhã, tarde, noite) com o melhor e o pior.",
-      "Depois de 2 derrotas seguidas o app sugere uma pausa e um campeão de conforto; com 3, sugere parar por hoje. O aviso também aparece no champ select."
+      "Build de ARAM do OP.GG e augments no ARAM: Desordem.",
+      "Arena: usa a build ranqueada e avisa.",
+      "Novo card Sequência e ritmo, com alerta de tilt e melhor horário."
     ]
   },
   {
     "version": "0.32.0",
     "title": "Coach de rota",
     "items": [
-      "Novo painel \"Coach de rota\" em partida: uma frase do que fazer agora (trocar, all-in, recuar, rotacionar) com selo verde, amarelo ou vermelho.",
-      "Lê sozinho: quem chegou primeiro no nível 2, 3 e 6, itens fechados de cada lado, sua vida contra Incendiar, oponente morto, onde o caçador inimigo apareceu por último, objetivos chegando e o seu farm contra a meta e contra o oponente.",
-      "Flash e outros feitiços do oponente: marque nos timers (clique ou Ctrl+Shift+1…5) e o coach mostra quando voltam e avisa a janela sem Flash.",
-      "Fica sempre na tela em partida (sem precisar do TAB) e não pega o clique do jogo. Ctrl+Shift+C liga/desliga; mova com Ctrl+Shift+M."
+      "Painel fixo em partida: trocar, all-in, recuar ou rotacionar.",
+      "Lê níveis, itens, vida, caçador, objetivos e Flash marcado.",
+      "Ctrl+Shift+C liga/desliga."
     ]
   },
   {
     "version": "0.31.0",
-    "title": "Assassino x lutador e troca de defesa por dano",
+    "title": "Assassino x lutador",
     "items": [
-      "Assassinos AD (Zed, Talon, Qiyana, Kha'Zix…) agora têm respostas próprias: Limiar da Noite, Anjo Guardião, Malmortius e Presa da Serpente. Lutadores (Darius, Sett…) recebem Dança da Morte, Esterco de Sterak, Visão Espiritual e Cutelo Negro.",
-      "Defesa que já cobre: se você já tem o item defensivo e ninguém daquele tipo de dano está fed, o app para de pedir mais defesa e puxa os itens de dano.",
-      "Fim de jogo com inventário cheio: quando o inimigo quase não tem mais aquele tipo de dano, sugere trocar o item defensivo por um de dano."
+      "Respostas próprias contra assassinos e lutadores.",
+      "Para de pedir defesa quando você já está coberto.",
+      "Fim de jogo: sugere trocar defesa por dano."
     ]
   },
   {
     "version": "0.30.1",
-    "title": "Filtro por moeda nas skins sugeridas",
+    "title": "Filtro por moeda",
     "items": [
-      "Skins que valem o investimento: os selos RP, Essência Mítica e Gacha viraram filtros clicáveis (com a quantidade de cada). Dá para combinar mais de um; \"limpar filtro\" volta a mostrar todas."
+      "Selos RP, Essência Mítica e Gacha viraram filtros."
     ]
   },
   {
     "version": "0.30.0",
-    "title": "Galeria de skins e sugestões com preço",
+    "title": "Galeria de skins",
     "items": [
-      "Coleção: galeria com todas as skins do jogo, com busca por skin ou campeão e filtros (tenho / não tenho, raridade, legado) e ordem por raridade, campeão ou mais recentes.",
-      "Skins que valem o investimento: até 40 sugestões, em três filtros — Campeões que jogo, Lançamentos recentes e Em promoção.",
-      "Cada skin mostra a moeda com ícone: RP (com o valor e a promoção), Essência Mítica, Gacha (Santuário) ou Legado (fora da loja). Os preços vêm da loja do seu cliente; sem ela, o valor padrão da raridade (aprox.).",
-      "\"Mais compradas\" não entrou: a Riot não divulga números de venda."
+      "Todas as skins com busca e filtros.",
+      "Sugestões de skin com preço e moeda."
     ]
   },
   {
     "version": "0.29.1",
-    "title": "Bans estáveis, patch dos seus campeões completo e tela inicial mais didática",
+    "title": "Bans e patch",
     "items": [
-      "Corrigido: as sugestões de ban sumiam quando alguém banía até você marcar outro campeão. Agora ficam visíveis a fase toda (saindo só os já banidos).",
-      "Início: \"Patch nos seus campeões\" usa as notas oficiais da Riot e mostra todos os seus campeões que levaram buff, nerf ou ajuste (inclusive mudanças de dano). Clique para abrir as notas.",
-      "Início: \"Como funciona\" virou um passo a passo visual (cliente → seleção → partida → pós-partida), marcando em que passo você está, com os atalhos de teclado.",
-      "Perfil → Estilo de jogo: as rotas agora aparecem sobre o mapa do Summoner's Rift."
+      "Sugestões de ban não somem mais.",
+      "Todos os seus campeões alterados no patch.",
+      "Como funciona mais visual; rotas no mapa."
     ]
   },
   {
     "version": "0.29.0",
-    "title": "Builds mais espertas: classe, suporte, inventário cheio e matchup",
+    "title": "Builds mais espertas",
     "items": [
-      "Corrigido: mago sem build do OP.GG (ex.: Ahri) era tratado como AD e recebia itens de AD. Agora a classe vem das tags do campeão quando falta a build.",
-      "Suporte encantador (Lulu, Janna, Soraka, Nami…) ganhou respostas próprias: Medalhão dos Solari, Bênção de Mikael, Redenção, Juramento do Cavaleiro e anti-cura (Orbe do Esquecimento).",
-      "Inventário cheio: cada sugestão diz o que vender ou trocar; elixir no fim de jogo (nível 9+) e lembrete de sentinela de controle.",
-      "Champ select: versão \"Contra X\" com o que muda no matchup — feitiço (Purificar contra muito CC, Exaustão/Barreira contra assassino), fragmento de tenacidade, Determinação na 2ª árvore em matchup difícil, além de itens, runas e ordem de habilidades do OP.GG para o confronto.",
-      "Bloco \"O que muda\" mostra cada ajuste e a fonte (OP.GG ou regra do app); a ordem de habilidades indica quando foi ajustada ao matchup.",
-      "Importação (manual e automática ao travar) usa a versão do matchup quando ela existe."
+      "Classe certa para magos sem build do OP.GG.",
+      "Respostas para suporte encantador.",
+      "Versão Contra X com feitiço, runa e skills do matchup."
     ]
   },
   {
     "version": "0.28.1",
-    "title": "Animações e mais skins sugeridas",
+    "title": "Animações",
     "items": [
-      "Animações leves no app todo: troca de tela suave, cards e listas entrando em sequência, barras que crescem, bolhas da maestria, janela de novidades e hover nos botões e cards. Respeita a opção do Windows de reduzir animações.",
-      "Overlay em partida: painéis aparecem com fade e o aviso de voltar à base pulsa de leve.",
-      "Coleção: até 20 skins sugeridas (no máximo 2 por campeão), ainda só Supremas, Lendárias e Míticas à venda dos campeões que você joga."
+      "Animações leves no app e no overlay.",
+      "Até 20 skins sugeridas."
     ]
   },
   {
     "version": "0.28.0",
-    "title": "Perfil completo e pós-partida com nota",
+    "title": "Perfil e nota da partida",
     "items": [
-      "Nova aba \"Perfil\" com três telas: Maestria (bolhas por pontos, detalhes do campeão, rumo ao próximo nível no seu ritmo, marcas, notas da temporada, campeões por nível e mains esquecidos), Estilo de jogo (sua rota no mapa, classes, modos e leque de campeões) e Coleção (campeões, skins, cromas, legado, suas joias, raridades e campeões com mais skins).",
-      "Coleção: \"Skins que valem o investimento\" — só Supremas, Lendárias e Míticas à venda, dos campeões que você mais joga e ainda não tem, com o preço.",
-      "Pós-partida: nota geral (S a D) e por área (Farm, Combate, Visão, Dano, Objetivos), com \"Foco para a próxima\" e uma dica concreta.",
-      "Pós-partida: placar dos 10 jogadores com dano, CS e itens.",
-      "Corrigido: a mesma partida aparecia duas vezes no histórico (gravada pelo app + OP.GG). Partidas canceladas (remake) gravadas pelo app saem da lista."
+      "Aba Perfil: maestria, estilo de jogo e coleção.",
+      "Pós-partida com nota S a D por área."
     ]
   },
   {
     "version": "0.27.0",
-    "title": "Compras lendo os itens do inimigo",
+    "title": "Compras pelos itens do inimigo",
     "items": [
-      "Tipo de dano pelos itens: Kai'Sa AP, Ezreal AP e afins passam a contar como dano mágico (o app avisa \"build fora do padrão\").",
-      "Penetração pela defesa que o inimigo comprou: AD olha a armadura e AP olha a RM dos itens (ex.: \"Ornn (+145 armadura)\").",
-      "Escudos: com 3+ fontes (Lulu, Sett, Medalhão…), sugere Presa da Serpente para campeões AD.",
-      "Crítico: carry inimigo com 2+ itens de crítico faz tanques e lutadores receberem o Presságio de Randuin.",
-      "Quando duas regras pedem o mesmo item, os motivos aparecem juntos."
+      "Dano e penetração pelos itens que o inimigo comprou.",
+      "Anti-escudo e anti-crítico."
     ]
   },
   {
     "version": "0.26.3",
     "title": "Resposta a inimigo fed",
     "items": [
-      "Corrigido: quando o item contra um inimigo fed também era da build do meta (ex.: Anjo Guardião contra Hecarim), o motivo aparecia só como \"Build do meta\" e a resposta sumia. Agora o motivo contra o inimigo vence e o item sobe na lista.",
-      "Rota ganha não diminui mais a prioridade da defesa contra um inimigo fed.",
-      "Anti-cura agora considera a cura do kit de Hecarim, Volibear, Renekton, Fiora, Nasus, Zac e Maokai."
+      "Item contra inimigo fed não some mais da lista."
     ]
   },
   {
     "version": "0.26.2",
-    "title": "Matchup contra atualizado",
+    "title": "Matchup atualizado",
     "items": [
-      "Corrigido: o seletor \"Matchup contra\" só listava os inimigos que já tinham escolhido quando o guia abriu (ex.: só a Vayne). Agora ele se atualiza a cada pick inimigo e o modo automático encontra o oponente de rota assim que ele aparece."
+      "Seletor de matchup acompanha cada pick inimigo."
     ]
   },
   {
     "version": "0.26.1",
-    "title": "Sugestões de ban de volta",
+    "title": "Bans de volta",
     "items": [
-      "Champ select: as sugestões de ban aparecem durante toda a fase de bans (até você banir), com destaque \"sua vez\" quando chega o seu turno.",
-      "Corrigido: a lista ficava vazia quando o cliente não informava os campeões baníveis ou o meta da rota ainda não tinha carregado; agora usa a tier list do OP.GG e a taxa de ban como reserva."
+      "Sugestões de ban em toda a fase de bans."
     ]
   },
   {
     "version": "0.26.0",
-    "title": "Patch notes dentro do app",
+    "title": "Patch notes no app",
     "items": [
-      "Nova aba lateral \"Patch notes\": as notas oficiais da Riot (em português) organizadas por seção, com ícones de campeões, itens e habilidades.",
-      "Cada mudança aparece como antes → depois, em verde quando fortalece e em vermelho quando enfraquece, com o selo Buff, Nerf ou Ajuste em cada campeão e item.",
-      "Resumo no topo: quantos buffs e nerfs, e atalhos para os seus campeões que mudaram (destacados com \"Você joga\").",
-      "Filtros (Seus campeões, Campeões, Itens, Modos), busca por campeão/item/habilidade e as últimas 6 atualizações."
+      "Notas oficiais com ícones, buffs e nerfs."
     ]
   },
   {
     "version": "0.25.1",
-    "title": "Counters mais completos e corrigidos",
+    "title": "Counters corrigidos",
     "items": [
-      "Página do campeão: \"Perde para\" e \"Ganha de\" mostram até 7 campeões cada (os 3 principais do OP.GG + matchups com amostra menor, marcados ao passar o mouse).",
-      "Corrigido: em \"Ganha de\" a % aparecia invertida (era a WR do adversário); agora é a sua WR no confronto."
+      "Até 7 counters de cada lado, com % certa."
     ]
   },
   {
     "version": "0.25.0",
-    "title": "Pick às cegas, patch dos seus campeões e Discord",
+    "title": "Às cegas, patch e Discord",
     "items": [
-      "Champ select: quando seu oponente de rota ainda não escolheu, os picks ganham o selo \"Seguro às cegas\" ou \"Arriscado às cegas\" (pelos counters do OP.GG) e os seguros sobem na lista.",
-      "Início: card \"Patch nos seus campeões\" com o que mudou (recarga, custo, alcance e atributos) nos seus mais jogados, marcado como buff, nerf ou ajuste.",
-      "Discord: mostra no seu perfil o que você está fazendo (cliente, champ select ou partida, com campeão e elo). Ative em Configurações.",
-      "Esta janela de novidades aparece sempre que o app atualizar."
+      "Selo Seguro/Arriscado às cegas.",
+      "Patch nos seus campeões.",
+      "Status no Discord."
     ]
   },
   {
     "version": "0.24.0",
-    "title": "Selo \"Bom contra\"",
+    "title": "Selo Bom contra",
     "items": [
-      "Itens sugeridos mostram contra o que são bons (Dano mágico, Cura, Assassinos, Tanques…) e os inimigos que motivaram a escolha."
+      "Itens mostram contra o que são bons."
     ]
   },
   {
     "version": "0.23.0",
     "title": "Página do campeão",
     "items": [
-      "Clique num campeão da Tier list para ver build, 2 páginas de runas, ordem de skills, counters e melhores parceiros."
+      "Build, runas, skills, counters e parceiros pela tier list."
     ]
   },
   {
     "version": "0.22.0",
-    "title": "Tier list por elo e 2 páginas de runas",
+    "title": "Tier list por elo",
     "items": [
-      "Tier list filtrável por elo (Ouro até Desafiante).",
-      "Guia com 2 páginas de runas, cada uma com % de pick e de vitória."
+      "Tier list por elo e 2 páginas de runas."
     ]
   }
 ]

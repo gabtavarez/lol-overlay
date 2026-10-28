@@ -1380,7 +1380,7 @@ async function showWhatsNew(force = false) {
   $('wn-items').replaceChildren(...cur.items.map((t) => h('li', { text: t })));
   const old = wn.history.filter((e) => e.version !== cur.version);
   $('wn-old').hidden = !old.length;
-  $('wn-hist').replaceChildren(...old.map((e) => h('div', { class: 'wn-old' }, h('b', { text: `v${e.version} · ${e.title}` }), h('ul', {}, ...e.items.map((t) => h('li', { text: t }))))));
+  $('wn-hist').replaceChildren(...old.slice(0, 4).map((e) => h('div', { class: 'wn-old' }, h('b', { text: `v${e.version} · ${e.title}` })))); // versões anteriores: só o título
   $('whatsnew').hidden = false;
 }
 $('wn-ok').addEventListener('click', () => { $('whatsnew').hidden = true; window.overlay.seenWhatsNew(); });

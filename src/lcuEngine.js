@@ -70,8 +70,10 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
       profileLoading = true;
       loadProfile(creds)
         .then((p) => {
-          profile = p;
-          profileAt = Date.now();
+          // histórico vazio costuma ser o cliente ainda carregando (ex.: logo após a partida): mantém o antigo e tenta logo
+          const empty = !p.games || !p.games.length;
+          profile = empty && profile && profile.games && profile.games.length ? { ...p, games: profile.games, roleStats: profile.roleStats, gamesAnalyzed: profile.gamesAnalyzed } : p;
+          profileAt = empty ? Date.now() - PROFILE_TTL_MS + PROFILE_RETRY_MS : Date.now();
         })
         .catch(() => {
           profileAt = Date.now() - PROFILE_TTL_MS + PROFILE_RETRY_MS; // tenta de novo em ~30 s
@@ -220,6 +222,13 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
     },
     getCreds: () => creds,
     getProfile: () => profile,
+    /** Recarrega o perfil agora (botão Atualizar). */
+    async reloadProfile() {
+      if (!creds) return profile;
+      const p = await loadProfile(creds).catch(() => null);
+      if (p && (p.games.length || !profile)) { profile = p; profileAt = Date.now(); }
+      return profile;
+    },
     getRegion: () => region,
   };
 }

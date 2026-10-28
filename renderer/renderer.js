@@ -1605,7 +1605,7 @@ async function loadProfile(force = false) {
   if (pf.data && !force) { drawProfile(); return; }
   pf.loading = true;
   drawProfile();
-  pf.data = await window.overlay.getProfile().catch((e) => ({ error: e.message }));
+  pf.data = await window.overlay.getProfile(force).catch((e) => ({ error: e.message }));
   pf.loading = false;
   if (pf.data && pf.data.mastery && !pf.sel && pf.data.mastery.rows[0]) pf.sel = pf.data.mastery.rows[0].id;
   drawProfile();

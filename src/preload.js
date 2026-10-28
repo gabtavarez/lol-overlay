@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('overlay', {
   getGuide: (championId) => ipcRenderer.invoke('guide:get', championId),
   importBuild: (championId, what, variant = 0, runePage = 0, role = null) => ipcRenderer.invoke('import:build', { championId, what, variant, runePage, role }),
   getPatchMine: () => ipcRenderer.invoke('patch:mine'),
-  getProfile: () => ipcRenderer.invoke('profile:get'),
+  getProfile: (force) => ipcRenderer.invoke('profile:get', Boolean(force)),
   listPatches: (force) => ipcRenderer.invoke('patches:list', force),
   getPatchNote: (version) => ipcRenderer.invoke('patches:note', version),
   openPatch: (version) => ipcRenderer.invoke('patches:open', version),

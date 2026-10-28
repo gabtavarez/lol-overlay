@@ -948,9 +948,9 @@ function registerIpc() {
   });
 
   // Perfil: maestria, estilo de jogo, coleção e sugestões de skins (cliente do LoL + CommunityDragon).
-  ipcMain.handle('profile:get', async () => {
+  ipcMain.handle('profile:get', async (_e, force) => {
     const creds = lcuEngine && lcuEngine.getCreds();
-    const profile = lcuEngine && lcuEngine.getProfile();
+    const profile = lcuEngine && (force ? await lcuEngine.reloadProfile() : lcuEngine.getProfile());
     if (!dd || !profile) return { error: creds ? 'Carregando seu perfil do cliente…' : 'Abra o cliente do LoL para ver o perfil.' };
     const out = { summoner: profile.summoner, version: dd.version };
     try {

@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.33.7",
+    "title": "Histórico zerado no Perfil",
+    "items": [
+      "Corrigido: se o cliente falhava ao entregar o histórico (comum logo após uma partida), o Perfil e a Sequência ficavam zerados por 10 minutos. Agora o app tenta de novo na hora, mantém o histórico anterior enquanto isso e volta a tentar a cada 30 s.",
+      "Perfil: o botão Atualizar relê o histórico e a maestria do cliente na hora."
+    ]
+  },
+  {
     "version": "0.33.6",
     "title": "Banidos fora da sugestão de pick",
     "items": [

@@ -95,7 +95,7 @@ async function loadProfile(creds) {
   } catch { /* sem elo */ }
 
   const pages = [];
-  for (let i = 0; i < MAX_PAGES; i++) {
+  for (let i = 0, tries = 0; i < MAX_PAGES; i++) {
     try {
       const page = await lcuGetJson(
         creds,
@@ -108,6 +108,8 @@ async function loadProfile(creds) {
       pages.push(page);
       if (list.length < PAGE_SIZE) break;
     } catch {
+      // a 1ª página às vezes falha logo após a partida: tenta mais uma vez antes de desistir
+      if (i === 0 && tries++ < 1) { i -= 1; await new Promise((r) => setTimeout(r, 1500)); continue; }
       break;
     }
   }

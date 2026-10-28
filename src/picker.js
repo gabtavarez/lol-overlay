@@ -203,7 +203,8 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
   const taken = new Set(
     [...champSelect.allies, ...champSelect.enemies].filter((p) => p.locked).map((p) => p.championKey),
   );
-  const banned = new Set([...champSelect.bans.mine, ...champSelect.bans.theirs].map(Number));
+  // bans da sessão antiga (bans.*) + bans concluídos nas ações do draft atual (o cliente novo só informa por ali)
+  const banned = new Set([...champSelect.bans.mine, ...champSelect.bans.theirs, ...(champSelect.bannedKeys || [])].map(Number));
   pool = pool.filter(
     (c) => !taken.has(Number(c.key)) && !banned.has(Number(c.key)) && !blacklist.has(c.id),
   );

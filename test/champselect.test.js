@@ -152,6 +152,12 @@ test('picker: banidos, blacklist e pool personalizável', async () => {
       profile, dd, settings: settingsWith({}), meta: EMPTY_META,
     });
     assert.ok(!ids(banned).includes('Jinx'));
+    // draft atual: o ban só aparece nas ações (bannedKeys), não em bans.*
+    const bannedDraft = recommendPicks({
+      champSelect: { ...base, bans: { mine: [], theirs: [] }, bannedKeys: [222] },
+      profile, dd, settings: settingsWith({}), meta: EMPTY_META,
+    });
+    assert.ok(!ids(bannedDraft).includes('Jinx'));
 
     const blacklisted = recommendPicks({
       champSelect: base, profile, dd, meta: EMPTY_META,

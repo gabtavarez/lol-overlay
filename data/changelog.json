@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.33.6",
+    "title": "Banidos fora da sugestão de pick",
+    "items": [
+      "Corrigido: campeões banidos ainda podiam aparecer na sugestão de pick. O cliente atual informa os bans só nas ações do draft, e o app agora lê de lá também."
+    ]
+  },
+  {
     "version": "0.33.5",
     "title": "Tanque de verdade",
     "items": [

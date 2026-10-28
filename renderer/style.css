@@ -777,3 +777,12 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .g-aug-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .aug { font-size: 12px; padding: 4px 9px; border-radius: 6px; border: 1px solid var(--line); }
 .aug.t4, .aug.t5 { border-color: rgba(229,168,61,.5); color: var(--warn); }
+
+/* idioma (barra do topo) */
+.flag { width: 18px; height: 12px; border-radius: 2px; display: block; box-shadow: 0 0 0 1px rgba(255,255,255,.12); flex: none; }
+#lang-btn { padding: 0 8px; }
+#lang-btn b { font-size: 11px; letter-spacing: .04em; color: var(--muted); }
+.lang-menu { position: fixed; z-index: 50; min-width: 160px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.lang-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font-size: 12.5px; cursor: pointer; text-align: left; }
+.lang-menu button:hover { background: rgba(255,255,255,.06); }
+.lang-menu button.on { color: var(--acc); }

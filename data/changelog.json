@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.36.1",
+    "title": "Idioma na barra do topo",
+    "items": [
+      "Botão com bandeira ao lado de atualizar: troca o idioma em um clique."
+    ],
+    "en": {
+      "title": "Language in the top bar",
+      "items": [
+        "Flag button next to update: switch language in one click."
+      ]
+    },
+    "es": {
+      "title": "Idioma en la barra superior",
+      "items": [
+        "Botón con bandera junto a actualizar: cambia el idioma en un clic."
+      ]
+    }
+  },
+  {
     "version": "0.36.0",
     "title": "Patch notes no seu idioma",
     "items": [

@@ -857,6 +857,54 @@ async function toggleFlashKey() {
 window.overlay.getSettings().then((s) => { settings = s; showFlashKey(); });
 
 $('set-test').addEventListener('click', () => window.overlay.previewOverlay());
+
+/* ---------- idioma na barra do topo (bandeiras desenhadas em SVG: o Windows não mostra emoji de bandeira) ---------- */
+function flagSvg(lang) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 30 20');
+  svg.setAttribute('class', 'flag');
+  const add = (tag, attrs) => { const el = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); svg.append(el); return el; };
+  if (lang === 'pt') { // Brasil
+    add('rect', { width: 30, height: 20, fill: '#009c3b' });
+    add('polygon', { points: '15,2.5 27.5,10 15,17.5 2.5,10', fill: '#ffdf00' });
+    add('circle', { cx: 15, cy: 10, r: 4.6, fill: '#002776' });
+    add('path', { d: 'M10.6 9.2 Q15 7.6 19.4 10.4', stroke: '#fff', 'stroke-width': 0.9, fill: 'none' });
+  } else if (lang === 'en') { // Estados Unidos
+    add('rect', { width: 30, height: 20, fill: '#b22234' });
+    for (let i = 0; i < 6; i++) add('rect', { y: (2 * i + 1) * 20 / 13, width: 30, height: 20 / 13, fill: '#fff' });
+    add('rect', { width: 13, height: 20 * 7 / 13, fill: '#3c3b6e' });
+  } else { // Espanha
+    add('rect', { width: 30, height: 20, fill: '#aa151b' });
+    add('rect', { y: 5, width: 30, height: 10, fill: '#f1bf00' });
+  }
+  return svg;
+}
+function drawLangButton() {
+  $('lang-btn').replaceChildren(flagSvg(LANG), h('b', { text: LANG.toUpperCase() }));
+  $('lang-btn').title = t('Idioma');
+}
+function closeLangMenu() { const m = document.querySelector('.lang-menu'); if (m) m.remove(); }
+$('lang-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (document.querySelector('.lang-menu')) { closeLangMenu(); return; }
+  const r = $('lang-btn').getBoundingClientRect();
+  const menu = h('div', { class: 'lang-menu' }, ...Object.entries(LANGS).map(([code, name]) => {
+    const b = h('button', { type: 'button', class: code === LANG ? 'on' : '' }, flagSvg(code), h('span', { text: name }));
+    b.addEventListener('click', async () => {
+      closeLangMenu();
+      if (code === LANG) return;
+      els.status.textContent = t('Reiniciando no idioma escolhido…');
+      await window.overlay.setSettings({ language: code }); // o app reinicia sozinho no idioma novo
+    });
+    return b;
+  }));
+  menu.style.top = `${Math.round(r.bottom + 6)}px`;
+  menu.style.left = `${Math.round(Math.max(8, r.right - 160))}px`;
+  document.body.append(menu);
+});
+document.addEventListener('click', closeLangMenu);
+drawLangButton();
 // Idioma: salva na hora e o app reinicia já no idioma novo (telas e dados da Riot)
 $('set-lang').addEventListener('change', async () => {
   els.setMsg.textContent = t('Reiniciando no idioma escolhido…');

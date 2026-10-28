@@ -21,9 +21,16 @@ function aggregateHistory(pages) {
   const roleStats = { top: {}, jungle: {}, middle: {}, bottom: {}, utility: {} };
   const list = []; // todas as partidas (qualquer modo), para a aba Perfil
   let analyzed = 0;
+  const seen = new Set();
   for (const page of pages) {
     const games = (page && page.games && page.games.games) || [];
     for (const game of games) {
+      // o cliente às vezes ignora begIndex e devolve a mesma página de novo: cada partida conta uma vez só
+      const gid = game.gameId;
+      if (gid) {
+        if (seen.has(gid)) continue;
+        seen.add(gid);
+      }
       const p0 = game.participants && game.participants[0];
       if (p0) {
         list.push({
@@ -94,9 +101,12 @@ async function loadProfile(creds) {
         creds,
         `/lol-match-history/v1/products/lol/current-summoner/matches?begIndex=${i * PAGE_SIZE}&endIndex=${(i + 1) * PAGE_SIZE}`,
       );
+      const list = (page && page.games && page.games.games) || [];
+      const first = list[0] && list[0].gameId;
+      // página repetida (o cliente ignorou o begIndex): não adianta pedir mais
+      if (first && pages.some((pg) => ((pg.games && pg.games.games) || [])[0] && pg.games.games[0].gameId === first)) break;
       pages.push(page);
-      const count = (page && page.games && page.games.games && page.games.games.length) || 0;
-      if (count < PAGE_SIZE) break;
+      if (list.length < PAGE_SIZE) break;
     } catch {
       break;
     }

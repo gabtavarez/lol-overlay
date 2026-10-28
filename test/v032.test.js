@@ -59,3 +59,13 @@ test('builds: ARAM pede game_mode aram; Arena usa a ranqueada com aviso', async 
   assert.equal(remote.getBuild({ id: 'Ahri' }, 'arena').modeFallback, 'arena');
   assert.equal(remote.getBuild({ id: 'Ahri' }, 'arena').fromRole, 'middle');
 });
+
+test('perfil: página repetida do cliente não duplica partidas (sequência falsa)', () => {
+  const { aggregateHistory } = require('../src/profile');
+  const g = (id, win, at) => ({ gameId: id, gameCreation: at, gameDuration: 1800, mapId: 11, queueId: 420, participants: [{ championId: 245, stats: { win }, timeline: { lane: 'MIDDLE', role: 'SOLO' } }] });
+  const page = { games: { games: [g(3, true, 300), g(2, true, 200), g(1, false, 100)] } };
+  const out = aggregateHistory([page, page, page, page]);
+  assert.equal(out.games.length, 3);
+  assert.equal(out.analyzed, 3);
+  assert.deepEqual(tiltReport(out.games, { now: 400, tzOffsetMin: 180 }).streak, { type: 'win', count: 2 });
+});

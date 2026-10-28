@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.33.4",
+    "title": "Sequência e histórico sem partidas repetidas",
+    "items": [
+      "Corrigido: o cliente do LoL às vezes devolve a mesma página do histórico várias vezes, e cada partida era contada até 4 vezes. Isso criava sequências falsas (ex.: \"12 vitórias seguidas\" com 3 reais) e inflava as contas por horário e por rota. Agora cada partida conta uma vez."
+    ]
+  },
+  {
     "version": "0.33.3",
     "title": "Ordem de habilidades corrigida",
     "items": [

@@ -9,11 +9,12 @@ const { objectiveTimers, SPELL_CD } = require('./timers');
 const { curveOf } = require('./power');
 const { targetsFor } = require('./goals');
 const { isBoots } = require('./buys');
+const { t: tr, spellName } = require('./i18n');
 
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`;
 const SPELL_PT = { SummonerFlash: 'Flash', SummonerDot: 'Incendiar', SummonerHeal: 'Curar', SummonerBarrier: 'Barreira', SummonerExhaust: 'Exaustão', SummonerBoost: 'Purificar', SummonerHaste: 'Fantasma', SummonerTeleport: 'Teleporte' };
 const SIDE = { TOP: 'top', MIDDLE: 'mid', BOTTOM: 'bot', UTILITY: 'bot' };
-const SIDE_PT = { top: 'no topo', mid: 'no meio', bot: 'no bot' };
+const SIDE_PT = { top: 'no topo', mid: 'no meio', bot: 'no bot' }; // traduzido na hora (tr)
 const EVENT_SIDE = { DragonKill: 'bot', HeraldKill: 'top', BaronKill: 'top', HordeKill: 'top' };
 
 const markKey = (p, spell) => `${p.riotId || p.champion}:${spell}`;
@@ -64,7 +65,7 @@ function laneCoach(state, ctx = {}) {
   const say = (pri, tone, label, head) => heads.push({ pri, tone, label, head });
 
   if (me.isDead) {
-    return { tone: 'even', label: 'Morto', head: `Volta em ${Math.ceil(me.respawnTimer || 0)} s: compre e planeje a próxima rota.`, rows: [], vs: opp ? opp.champion : null };
+    return { tone: 'even', label: tr('Morto'), head: tr('Volta em {s} s: compre e planeje a próxima rota.', { s: Math.ceil(me.respawnTimer || 0) }), rows: [], vs: opp ? opp.champion : null };
   }
 
   // feitiços do oponente (marcados por você)
@@ -75,35 +76,35 @@ function laneCoach(state, ctx = {}) {
     });
     const flash = parts.find((p) => p.sp === 'SummonerFlash');
     if (parts.length) {
-      rows.push({ icon: 'flame', label: `Feitiços de ${oppName}`, text: parts.map((p) => `${SPELL_PT[p.sp] || p.sp} ${p.left > 0 ? `volta em ${mm(p.left)}` : 'pronto'}`).join(' · ') });
+      rows.push({ icon: 'flame', label: tr('Feitiços de {champ}', { champ: oppName }), text: parts.map((p) => `${spellName(p.sp)} ${p.left > 0 ? tr('volta em {t}', { t: mm(p.left) }) : tr('pronto')}`).join(' · ') });
     }
-    if (flash && flash.left > 20) say(60, 'go', 'Sem Flash', `${oppName} está sem Flash até ${mm(t + flash.left)}: jogue agressivo e chame o caçador.`);
+    if (flash && flash.left > 20) say(60, 'go', tr('Sem Flash'), tr('{champ} está sem Flash até {t}: jogue agressivo e chame o caçador.', { champ: oppName, t: mm(t + flash.left) }));
     // vida baixa contra Incendiar
     const ign = parts.find((p) => p.sp === 'SummonerDot');
     if (me.hp != null && me.hp < 0.35 && !opp.isDead) {
-      say(90, 'bad', 'Recue', ign && ign.left <= 0 ? `Vida baixa e ${oppName} tem Incendiar: volte para a base agora.` : `Vida baixa (${Math.round(me.hp * 100)}%): saia do alcance de ${oppName} ou volte.`);
+      say(90, 'bad', tr('Recue'), ign && ign.left <= 0 ? tr('Vida baixa e {champ} tem Incendiar: volte para a base agora.', { champ: oppName }) : tr('Vida baixa ({hp}%): saia do alcance de {champ} ou volte.', { hp: Math.round(me.hp * 100), champ: oppName }));
     }
   }
 
   // oponente morto
   if (opp && opp.isDead && opp.respawnTimer > 3) {
-    say(95, 'go', 'Pressione', `${oppName} morto por ${Math.ceil(opp.respawnTimer)} s: empurre a onda e tire placa ou vá para o objetivo.`);
+    say(95, 'go', tr('Pressione'), tr('{champ} morto por {s} s: empurre a onda e tire placa ou vá para o objetivo.', { champ: oppName, s: Math.ceil(opp.respawnTimer) }));
   }
 
   // níveis
   if (opp) {
     const a = me.level || 1;
     const b = opp.level || 1;
-    rows.push({ icon: 'arrow-up-circle', label: 'Níveis', text: `Você ${a} · ${oppName} ${b}` });
+    rows.push({ icon: 'arrow-up-circle', label: tr('Níveis'), text: tr('Você {a} · {champ} {b}', { a, b, champ: oppName }) });
     const mine = KEY_LEVELS.filter((l) => a >= l && b < l).pop();
     const theirs = KEY_LEVELS.filter((l) => b >= l && a < l).pop();
     const early = t < 14 * 60;
     if (mine && (mine >= 6 || early)) {
-      say(mine === 6 ? 80 : 70, 'go', mine === 6 ? 'All-in' : 'Janela de troca',
-        mine === 6 ? `Você tem ult e ${oppName} não: janela de all-in.` : `Você chegou no nível ${mine} primeiro: troque agora.`);
+      say(mine === 6 ? 80 : 70, 'go', mine === 6 ? tr('All-in') : tr('Janela de troca'),
+        mine === 6 ? tr('Você tem ult e {champ} não: janela de all-in.', { champ: oppName }) : tr('Você chegou no nível {lvl} primeiro: troque agora.', { lvl: mine }));
     } else if (theirs && (theirs >= 6 || early)) {
       say(theirs === 6 ? 85 : 72, 'bad', 'Recue',
-        theirs === 6 ? `${oppName} tem ult e você não: recue até o nível 6.` : `${oppName} chegou no nível ${theirs} primeiro: evite trocas até upar.`);
+        theirs === 6 ? tr('{champ} tem ult e você não: recue até o nível 6.', { champ: oppName }) : tr('{champ} chegou no nível {lvl} primeiro: evite trocas até upar.', { champ: oppName, lvl: theirs }));
     }
   }
 
@@ -112,13 +113,13 @@ function laneCoach(state, ctx = {}) {
     const mi = completedItems(me, dd);
     const oi = completedItems(opp, dd);
     if (mi.length || oi.length) {
-      rows.push({ icon: 'package', label: 'Itens fechados', text: `Você ${mi.length} · ${oppName} ${oi.length}${oi.length ? ` (${oi[oi.length - 1].name})` : ''}` });
+      rows.push({ icon: 'package', label: tr('Itens fechados'), text: `${tr('Você {a} · {champ} {b}', { a: mi.length, b: oi.length, champ: oppName })}${oi.length ? ` (${oi[oi.length - 1].name})` : ''}` });
     }
     if (oi.length > mi.length) {
       const it = oi[oi.length - 1];
-      say(65, 'bad', 'Pico do inimigo', `${oppName} fechou ${it.name} e você tem menos itens: evite trocas longas${me.gold >= 900 ? ` e volte com ${me.gold} g` : ''}.`);
+      say(65, 'bad', tr('Pico do inimigo'), me.gold >= 900 ? tr('{champ} fechou {item} e você tem menos itens: evite trocas longas e volte com {g} g.', { champ: oppName, item: it.name, g: me.gold }) : tr('{champ} fechou {item} e você tem menos itens: evite trocas longas.', { champ: oppName, item: it.name }));
     } else if (mi.length > oi.length && t < 25 * 60) {
-      say(62, 'go', 'Seu pico', `Você tem ${mi.length} item${mi.length > 1 ? 's' : ''} contra ${oi.length}: use a vantagem para trocar.`);
+      say(62, 'go', tr('Seu pico'), tr('Você tem {a} itens fechados contra {b}: use a vantagem para trocar.', { a: mi.length, b: oi.length }));
     }
   }
 
@@ -127,18 +128,18 @@ function laneCoach(state, ctx = {}) {
   const mySide = SIDE[me.position] || (role === 'top' ? 'top' : role === 'bottom' || role === 'utility' ? 'bot' : role === 'middle' ? 'mid' : null);
   if (jg && role !== 'jungle' && t < 20 * 60) {
     if (jg.isDead) {
-      rows.push({ icon: 'eye', label: 'Caçador', text: `${jg.champion} morto por ${Math.ceil(jg.respawnTimer || 0)} s: sem gank agora.` });
+      rows.push({ icon: 'eye', label: tr('Caçador'), text: tr('{champ} morto por {s} s: sem gank agora.', { champ: jg.champion, s: Math.ceil(jg.respawnTimer || 0) }) });
     } else {
       const seen = junglerSeen(state, jg);
       const ago = seen ? Math.round(t - seen.time) : null;
       if (seen && ago <= 40 && seen.side && seen.side !== mySide) {
-        rows.push({ icon: 'eye', label: 'Caçador', text: `${jg.champion} apareceu ${SIDE_PT[seen.side]} há ${ago} s: seu lado está livre.` });
+        rows.push({ icon: 'eye', label: tr('Caçador'), text: tr('{champ} apareceu {side} há {s} s: seu lado está livre.', { champ: jg.champion, side: tr(SIDE_PT[seen.side]), s: ago }) });
       } else if (seen && ago <= 25 && seen.side === mySide) {
-        say(75, 'warn', 'Atenção', `${jg.champion} está perto da sua rota (${ago} s atrás): jogue perto da torre.`);
+        say(75, 'warn', tr('Atenção'), tr('{champ} está perto da sua rota ({s} s atrás): jogue perto da torre.', { champ: jg.champion, s: ago }));
       } else if (t >= 165 && (!seen || ago > 60)) {
-        const text = seen ? `${jg.champion} sumido há ${mm(ago)} (último ${SIDE_PT[seen.side] || 'no mapa'})` : `${jg.champion} ainda não apareceu: primeiro gank costuma vir entre 2:45 e 4:00`;
-        rows.push({ icon: 'eye', label: 'Caçador', text });
-        if (t < 8 * 60) say(40, 'warn', 'Atenção', `${text}. Não avance sem visão.`);
+        const text = seen ? tr('{champ} sumido há {t} (último {side})', { champ: jg.champion, t: mm(ago), side: tr(SIDE_PT[seen.side] || 'no mapa') }) : tr('{champ} ainda não apareceu: primeiro gank costuma vir entre 2:45 e 4:00', { champ: jg.champion });
+        rows.push({ icon: 'eye', label: tr('Caçador'), text });
+        if (t < 8 * 60) say(40, 'warn', tr('Atenção'), `${text}. ${tr('Não avance sem visão.')}`);
       }
     }
   }
@@ -146,12 +147,12 @@ function laneCoach(state, ctx = {}) {
   // objetivos próximos
   for (const o of objectiveTimers(state)) {
     if (o.in > 0 && o.in <= 60) {
-      rows.push({ icon: 'flag', label: 'Objetivo', text: `${o.label} em ${mm(o.in)}` });
-      if (o.key !== 'baron' || t >= 20 * 60) say(55, 'go', 'Rotação', `${o.label} em ${mm(o.in)}: empurre a onda e chegue primeiro no rio.`);
+      rows.push({ icon: 'flag', label: tr('Objetivo'), text: tr('{obj} em {t}', { obj: tr(o.label), t: mm(o.in) }) });
+      if (o.key !== 'baron' || t >= 20 * 60) say(55, 'go', tr('Rotação'), tr('{obj} em {t}: empurre a onda e chegue primeiro no rio.', { obj: tr(o.label), t: mm(o.in) }));
       break;
     }
     if (o.in === 0 && o.key === 'dragon' && t >= 5 * 60 && opp && opp.isDead) {
-      say(96, 'go', 'Objetivo', `${oppName} morto e Dragão vivo: chame o time para o dragão.`);
+      say(96, 'go', tr('Objetivo'), tr('{champ} morto e Dragão vivo: chame o time para o dragão.', { champ: oppName }));
     }
   }
 
@@ -161,19 +162,19 @@ function laneCoach(state, ctx = {}) {
   if (target && role !== 'utility' && t >= 90) {
     const csm = me.scores.cs / min;
     const vs = opp ? me.scores.cs - opp.scores.cs : null;
-    rows.push({ icon: 'coin', label: 'Farm', text: `${me.scores.cs} CS · ${csm.toFixed(1)}/min (meta ${target})${vs != null ? ` · ${vs >= 0 ? '+' : '−'}${Math.abs(vs)} contra ${oppName}` : ''}` });
+    rows.push({ icon: 'coin', label: tr('Farm'), text: `${tr('{cs} CS · {csm}/min (meta {target})', { cs: me.scores.cs, csm: csm.toFixed(1), target })}${vs != null ? ` · ${tr('{diff} contra {champ}', { diff: `${vs >= 0 ? '+' : '−'}${Math.abs(vs)}`, champ: oppName })}` : ''}` });
   }
 
   // fase do jogo (fallback): quem é mais forte agora
   if (opp) {
     const phase = t < 14 * 60 ? 0 : t < 25 * 60 ? 1 : 2;
     const d = curveOf(me.championId, me.tags) [phase] - curveOf(opp.championId, opp.tags)[phase];
-    const phaseName = ['início', 'meio', 'fim'][phase];
-    if (d > 0) say(10, 'go', 'Vantagem', `No ${phaseName} de jogo você é mais forte que ${oppName}: pressione a rota.`);
-    else if (d < 0) say(10, 'warn', 'Cuidado', `No ${phaseName} de jogo ${oppName} é mais forte: farme seguro e espere o seu pico.`);
-    else say(5, 'even', 'Neutro', `Rota equilibrada: farme e troque quando ${oppName} errar uma habilidade.`);
+    const phaseName = tr(['No início de jogo', 'No meio de jogo', 'No fim de jogo'][phase]);
+    if (d > 0) say(10, 'go', tr('Vantagem'), tr('{phase} você é mais forte que {champ}: pressione a rota.', { phase: phaseName, champ: oppName }));
+    else if (d < 0) say(10, 'warn', tr('Cuidado'), tr('{phase} {champ} é mais forte: farme seguro e espere o seu pico.', { phase: phaseName, champ: oppName }));
+    else say(5, 'even', tr('Neutro'), tr('Rota equilibrada: farme e troque quando {champ} errar uma habilidade.', { champ: oppName }));
   } else {
-    say(5, 'even', 'Neutro', 'Oponente de rota não identificado: siga o farm e os timers.');
+    say(5, 'even', tr('Neutro'), tr('Oponente de rota não identificado: siga o farm e os timers.'));
   }
 
   heads.sort((x, y) => y.pri - x.pri);

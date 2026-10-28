@@ -1,5 +1,6 @@
 const { damageProfile } = require('./recommender');
 const defaultFlags = require('../data/champion-flags.json');
+const { t: tr } = require('./i18n');
 const reactive = require('../data/reactive-items.json');
 const { laterItems } = require('./buildPath');
 const { rankThreats, kdaText } = require('./threat');
@@ -108,20 +109,20 @@ function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, lane
   const names = (list) => list.slice(0, 3).map((x) => x.e.champion).join(', ');
 
   if (mercs && (ccWeight >= 3 || (cc.length >= 3 && apShare >= 0.45))) {
-    return { id: mercs, score: losing ? 70 : 64, reason: `Muito controle de grupo (${names(cc)}): tenacidade` };
+    return { id: mercs, score: losing ? 70 : 64, reason: tr('Muito controle de grupo ({champs}): tenacidade', { champs: names(cc) }) };
   }
   if (opp && !losing) {
-    if ((flags.autoAttackers || []).includes(opp.e.championId) && steel) return { id: steel, score: 63, reason: `${opp.e.champion} vive de ataque básico: Aço` };
-    if (opp.d.ap >= 0.6 && (flags.hardCc || []).includes(opp.e.championId) && mercs) return { id: mercs, score: 63, reason: `${opp.e.champion} (AP com controle de grupo): Mercúrio` };
+    if ((flags.autoAttackers || []).includes(opp.e.championId) && steel) return { id: steel, score: 63, reason: tr('{champ} vive de ataque básico: Aço', { champ: opp.e.champion }) };
+    if (opp.d.ap >= 0.6 && (flags.hardCc || []).includes(opp.e.championId) && mercs) return { id: mercs, score: 63, reason: tr('{champ} (AP com controle de grupo): Mercúrio', { champ: opp.e.champion }) };
   }
   if (losing && opp) {
     const vs = `${opp.e.champion} ${opp.e.scores.kills}/${opp.e.scores.deaths}/${opp.e.scores.assists}`;
-    if (opp.d.ap >= 0.6 && mercs) return { id: mercs, score: 68, reason: `Perdendo a rota para ${vs}: bota defensiva` };
-    if (opp.d.ad >= 0.6 && steel) return { id: steel, score: 68, reason: `Perdendo a rota para ${vs}: bota defensiva` };
+    if (opp.d.ap >= 0.6 && mercs) return { id: mercs, score: 68, reason: tr('Perdendo a rota para {vs}: bota defensiva', { vs }) };
+    if (opp.d.ad >= 0.6 && steel) return { id: steel, score: 68, reason: tr('Perdendo a rota para {vs}: bota defensiva', { vs }) };
   }
-  if (adShare >= 0.65 && steel) return { id: steel, score: 62, reason: 'Time inimigo quase todo AD: armadura na bota' };
-  if (apShare >= 0.65 && mercs) return { id: mercs, score: 62, reason: 'Time inimigo quase todo AP: RM na bota' };
-  if (meta) return { id: meta, score: losing ? 52 : 60, reason: losing ? 'Bota do meta' : 'Rota sob controle: bota ofensiva do meta' };
+  if (adShare >= 0.65 && steel) return { id: steel, score: 62, reason: tr('Time inimigo quase todo AD: armadura na bota') };
+  if (apShare >= 0.65 && mercs) return { id: mercs, score: 62, reason: tr('Time inimigo quase todo AP: RM na bota') };
+  if (meta) return { id: meta, score: losing ? 52 : 60, reason: losing ? tr('Bota do meta') : tr('Rota sob controle: bota ofensiva do meta') };
   return null;
 }
 
@@ -207,7 +208,7 @@ function shieldSources(e, dd, flags) {
 }
 
 function buyAdvice({ state, build, dd, flags = defaultFlags }) {
-  if (!dd || !state || !state.me) return { items: [], notes: ['Aguardando dados do jogo…'] };
+  if (!dd || !state || !state.me) return { items: [], notes: [tr('Aguardando dados do jogo…')] };
   const me = state.me;
   const enemies = state.enemies || [];
   const owned = ownedIds(me);
@@ -224,8 +225,8 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const prev = cands.get(id);
     if (!prev) { cands.set(id, { score, reason, tag, vs }); return; }
     const best = Math.max(score, prev.score);
-    if (REACTIVE_OVER(tag) && !REACTIVE_OVER(prev.tag)) cands.set(id, { score: best + 4, reason: `${reason} · também na build do meta`, tag, vs });
-    else if (REACTIVE_OVER(prev.tag) && !REACTIVE_OVER(tag)) cands.set(id, { ...prev, score: Math.max(prev.score, score + 4), reason: prev.reason.includes('build do meta') ? prev.reason : `${prev.reason} · também na build do meta` });
+    if (REACTIVE_OVER(tag) && !REACTIVE_OVER(prev.tag)) cands.set(id, { score: best + 4, reason: `${reason}${tr(' · também na build do meta')}`, tag, vs });
+    else if (REACTIVE_OVER(prev.tag) && !REACTIVE_OVER(tag)) cands.set(id, { ...prev, score: Math.max(prev.score, score + 4), reason: prev.reason.includes(tr(' · também na build do meta')) ? prev.reason : `${prev.reason}${tr(' · também na build do meta')}` });
     else if (REACTIVE_OVER(tag) && REACTIVE_OVER(prev.tag) && tag !== prev.tag) {
       // duas respostas no mesmo item (ex.: Randuin = armadura + anti-crítico): junta os motivos
       const [win, lose] = score > prev.score ? [{ score, reason, tag, vs }, prev] : [prev, { score, reason, tag, vs }];
@@ -241,7 +242,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const starter = (build && build.starter && build.starter.length ? build.starter : fallback).filter((id) => dd.item(id));
     const counts = new Map();
     for (const id of starter) counts.set(id, (counts.get(id) || 0) + 1);
-    [...counts].forEach(([id, n], i) => add(id, 97 - i * 2, `Item inicial${build && build.starter && build.starter.length ? ' do meta' : ''}${n > 1 ? ` · compre ${n}` : ''}`, 'starter'));
+    [...counts].forEach(([id, n], i) => add(id, 97 - i * 2, `${build && build.starter && build.starter.length ? tr('Item inicial do meta') : tr('Item inicial')}${n > 1 ? ` · ${tr('compre {n}', { n })}` : ''}`, 'starter'));
   }
 
   /* --- caminho do meta --- */
@@ -254,9 +255,9 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     path.push(...build.core, ...laterItems(build));
   }
   const pathLeft = path.filter((id) => !ownedSet.has(id) && dd.item(id));
-  const pickTxt = build && build.corePick ? ` · ${Math.round(build.corePick * 100)}% dos jogadores` : '';
+  const pickTxt = build && build.corePick ? ` · ${tr('{p}% dos jogadores', { p: Math.round(build.corePick * 100) })}` : '';
   pathLeft.slice(0, 3).forEach((id, i) => {
-    add(id, 72 - i * 14, `Build do meta${i === 0 ? pickTxt : ''}`, 'core');
+    add(id, 72 - i * 14, `${tr('Build do meta')}${i === 0 ? pickTxt : ''}`, 'core');
   });
 
   /* --- reativos --- */
@@ -284,7 +285,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     : laneDiff <= -1000 || sc.deaths - sc.kills >= 2 ? 'losing' : 'neutral';
   const defFactor = laneState === 'winning' ? 0.85 : 1;
   if (laneState === 'winning') {
-    for (const [id, c] of cands) if (c.tag === 'core') cands.set(id, { ...c, score: c.score + 6, reason: `${c.reason} · rota ganha: acelere o dano` });
+    for (const [id, c] of cands) if (c.tag === 'core') cands.set(id, { ...c, score: c.score + 6, reason: `${c.reason}${tr(' · rota ganha: acelere o dano')}` });
   }
   const legendaries = owned.filter((id) => ((dd.item(id) || {}).gold || {}).total >= 2200).length;
   const opp = t.find((x) => x.lane);
@@ -292,7 +293,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const kind = opp ? (opp.d.ad >= 0.6 ? 'ad' : opp.d.ap >= 0.6 ? 'ap' : 'mixed') : adShare >= apShare ? 'ad' : 'ap';
     const id = firstAvailable(reactive.defComponent[kind], dd, ownedSet);
     const diffTxt = laneDiff < 0 ? ` (${(laneDiff / 1000).toFixed(1)}k)` : '';
-    if (id) add(id, 74, `Perdendo a rota${diffTxt}${opp ? ` para ${opp.e.champion}` : ''}: componente defensivo antes de fechar o 1º item`, 'defensive', opp ? ids([opp]) : []);
+    if (id) add(id, 74, opp ? tr('Perdendo a rota{diff} para {champ}: componente defensivo antes de fechar o 1º item', { diff: diffTxt, champ: opp.e.champion }) : tr('Perdendo a rota{diff}: componente defensivo antes de fechar o 1º item', { diff: diffTxt }), 'defensive', opp ? ids([opp]) : []);
   }
 
   // Anti-cura: curandeiros nativos ou 2+ inimigos com roubo de vida. Começa pelo componente de 800 g.
@@ -305,7 +306,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const all = [...healers, ...(lifesteal.length >= 2 ? lifesteal : [])];
     const hw = all.reduce((s, x) => s + x.w, 0);
     const why = all.map((x) => (healers.includes(x) ? x.e.champion : `${x.e.champion} (${healItem(x.e).meta.name})`)).slice(0, 3).join(', ');
-    react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), `Anti-cura contra ${why} · o componente de 800 g já resolve`, ids(all));
+    react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), tr('Anti-cura contra {champs} · o componente de 800 g já resolve', { champs: why }), ids(all));
   }
 
   // Burst AP explosivo vivo (Veigar, Syndra, Fizz, LeBlanc…): Zhonya / Malmortius / Bordo da Noite.
@@ -320,9 +321,9 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const main = [...bursts].sort((a, b) => (b.lane ? 1 : 0) - (a.lane ? 1 : 0) || b.w - a.w)[0];
     const adBurst = main.d.ad >= 0.6;
     const names = who(bursts, (x) => x.w);
-    const zedTip = main.e.championId === 'Zed' && cls === 'ap' ? `Zhonya na marca do ult de Zed: anula o combo` : null;
+    const zedTip = main.e.championId === 'Zed' && cls === 'ap' ? tr('Zhonya na marca do ult de Zed: anula o combo') : null;
     react(adBurst ? 'antiburstAd' : 'antiburst', score + (adBurst ? 4 : 0),
-      zedTip || (adBurst ? `Cancela o combo de ${names}` : cls === 'ap' ? `Escudo de feitiço contra o combo de ${names}` : `Cancela o combo de ${names}`), ids(bursts));
+      zedTip || (adBurst ? tr('Cancela o combo de {champs}', { champs: names }) : cls === 'ap' ? tr('Escudo de feitiço contra o combo de {champs}', { champs: names }) : tr('Cancela o combo de {champs}', { champs: names })), ids(bursts));
   }
 
   // Um inimigo fed (ou o oponente de rota ganhando) puxa a defesa contra o dano dele, mesmo se o time for misto.
@@ -338,13 +339,13 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const foco = who(t, (x) => x.w * x.d.ap);
     // rota ganha alivia a defesa, mas não contra um inimigo fed
     react('mr', (52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp) + (monoAP ? 14 : 0)) * (carryAp && carryAp.fed ? 1 : defFactor),
-      carryAp && carryAp.fed ? `Resistência mágica: ${foco} está fed` : monoAP ? `Time inimigo com ${apCount} campeões AP: RM é prioridade` : `Resistência mágica: dano inimigo mais AP · foco: ${foco}`,
+      carryAp && carryAp.fed ? tr('Resistência mágica: {champ} está fed', { champ: foco }) : monoAP ? tr('Time inimigo com {n} campeões AP: RM é prioridade', { n: apCount }) : tr('Resistência mágica: dano inimigo mais AP · foco: {champs}', { champs: foco }),
       ids([...t].filter((x) => x.d.ap >= 0.5).sort((a, b) => b.w * b.d.ap - a.w * a.d.ap)));
   }
   if (adShare >= 0.55 || monoAD || (carryAd && carryAd.fed)) {
     const foco = who(t, (x) => x.w * x.d.ad);
     react('armor', (52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd) + (monoAD ? 14 : 0)) * (carryAd && carryAd.fed ? 1 : defFactor),
-      carryAd && carryAd.fed ? `Armadura: ${foco} está fed` : monoAD ? `Time inimigo quase todo AD (${adCount}): armadura é prioridade` : `Armadura: dano inimigo mais AD · foco: ${foco}`,
+      carryAd && carryAd.fed ? tr('Armadura: {champ} está fed', { champ: foco }) : monoAD ? tr('Time inimigo quase todo AD ({n}): armadura é prioridade', { n: adCount }) : tr('Armadura: dano inimigo mais AD · foco: {champs}', { champs: foco }),
       ids([...t].filter((x) => x.d.ad >= 0.5).sort((a, b) => b.w * b.d.ad - a.w * a.d.ad)));
   }
   if (!hasBoots && owned.length >= 1) {
@@ -355,7 +356,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
       const bonus = (due ? 18 : 0) + (hasBasicBoots ? 10 : 0);
       const bootVs = isMr(b.id) ? ids(t.filter((x) => x.d.ap >= 0.5 || (flags.hardCc || []).includes(x.e.championId)))
         : isSteel(b.id) ? ids(t.filter((x) => x.d.ad >= 0.5)) : [];
-      add(b.id, b.score + bonus, `${b.reason}${hasBasicBoots ? ' · você já tem a bota básica' : due ? ' · hora de fechar a bota' : ''}`, 'boots', bootVs);
+      add(b.id, b.score + bonus, `${b.reason}${hasBasicBoots ? tr(' · você já tem a bota básica') : due ? tr(' · hora de fechar a bota') : ''}`, 'boots', bootVs);
     }
   }
 
@@ -370,7 +371,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   if (tanks.length >= 2 && me.items.length >= 2) {
     const names = tanks.slice(0, 2).map((e) => e.champion).join(', ');
     const tv = tanks.map((e) => e.championId).filter(Boolean).slice(0, 4);
-    react('antitank', 58 + tanks.length * 5, `Dano por % de vida contra ${names}`, tv);
+    react('antitank', 58 + tanks.length * 5, tr('Dano por % de vida contra {champs}', { champs: names }), tv);
   }
 
   // Penetração pela defesa que os inimigos realmente compraram: AD olha armadura, AP olha RM.
@@ -379,8 +380,8 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const stack = resist.reduce((sum, x) => sum + x.r, 0);
   if (me.items.length >= 2 && (resist.length >= 2 || stack >= 110 || tanks.length >= 2)) {
     const list = resist.length ? resist : tanks.map((e) => ({ e, r: 0 }));
-    const names = list.slice(0, 2).map((x) => (x.r ? `${x.e.champion} (+${Math.round(x.r)} ${myAp ? 'RM' : 'armadura'})` : x.e.champion)).join(', ');
-    react('pen', 54 + Math.min(30, stack / 8) + tanks.length * 3, `Penetração ${myAp ? 'mágica' : 'de armadura'} contra ${names}`, list.map((x) => x.e.championId).filter(Boolean).slice(0, 4));
+    const names = list.slice(0, 2).map((x) => (x.r ? `${x.e.champion} (+${Math.round(x.r)} ${myAp ? tr('RM') : tr('armadura')})` : x.e.champion)).join(', ');
+    react('pen', 54 + Math.min(30, stack / 8) + tanks.length * 3, (myAp ? tr('Penetração mágica contra {champs}', { champs: names }) : tr('Penetração de armadura contra {champs}', { champs: names })), list.map((x) => x.e.championId).filter(Boolean).slice(0, 4));
   }
 
   // Escudos: 3+ fontes (kits como Lulu/Sett e itens de escudo) -> Presa da Serpente para AD.
@@ -388,7 +389,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const src = enemies.map((e) => ({ e, s: shieldSources(e, dd, flags) })).filter((x) => x.s.length);
     const n = src.reduce((sum, x) => sum + x.s.length, 0);
     if (n >= 3 && me.items.length >= 1) {
-      react('antishield', 50 + n * 6, `Muitos escudos: ${src.flatMap((x) => x.s).slice(0, 3).join(', ')}`, src.map((x) => x.e.championId).filter(Boolean).slice(0, 4));
+      react('antishield', 50 + n * 6, tr('Muitos escudos: {list}', { list: src.flatMap((x) => x.s).slice(0, 3).join(', ') }), src.map((x) => x.e.championId).filter(Boolean).slice(0, 4));
     }
   }
 
@@ -397,7 +398,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const crit = enemies.map((e) => ({ e, n: critItems(e, dd) })).filter((x) => x.n >= 2).sort((a, b) => b.n - a.n);
     if (crit.length) {
       const w = (t.find((x) => x.e === crit[0].e) || { w: 1 }).w;
-      react('anticrit', 52 + crit[0].n * 7 + Math.min(15, (w - 1) * 25), `${crit[0].e.champion} com ${crit[0].n} itens de crítico: reduz o dano de crítico`, crit.map((x) => x.e.championId).filter(Boolean).slice(0, 3));
+      react('anticrit', 52 + crit[0].n * 7 + Math.min(15, (w - 1) * 25), tr('{champ} com {n} itens de crítico: reduz o dano de crítico', { champ: crit[0].e.champion, n: crit[0].n }), crit.map((x) => x.e.championId).filter(Boolean).slice(0, 3));
     }
   }
 
@@ -413,9 +414,9 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     for (const [id, c] of [...cands]) {
       if (id === firstCore || !DEF_TAGS.includes(c.tag)) continue;
       if (((dd.item(id) || {}).gold || {}).total < 2200) continue; // componente barato pode vir antes
-      if (c.score >= top.score - 3) cands.set(id, { ...c, score: top.score - 6, reason: `${c.reason} · depois do 1º item` });
+      if (c.score >= top.score - 3) cands.set(id, { ...c, score: top.score - 6, reason: `${c.reason}${tr(' · depois do 1º item')}` });
     }
-    cands.set(firstCore, { ...top, reason: top.reason.startsWith('Build do meta') ? top.reason.replace('Build do meta', 'Build do meta · 1º item') : top.reason });
+    cands.set(firstCore, { ...top, reason: top.tag === 'core' && top.reason.startsWith(tr('Build do meta')) ? top.reason.replace(tr('Build do meta'), tr('Build do meta · 1º item')) : top.reason });
   }
 
   /* --- defesa que já cobre: se você já tem o item defensivo e a ameaça daquele tipo está atrás, priorize dano --- */
@@ -437,7 +438,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const tags = c.kind === 'ad' ? ['armor', 'antiburstAd', 'anticrit'] : ['mr', 'antiburst'];
     for (const [id, cand] of [...cands]) if (tags.includes(cand.tag)) cands.set(id, { ...cand, score: cand.score - 15 });
     for (const [id, cand] of [...cands]) {
-      if (cand.tag === 'core') cands.set(id, { ...cand, score: cand.score + 8, reason: `${cand.reason} · ${(dd.item(c.held) || {}).name || 'sua defesa'} já cobre o dano ${c.kind === 'ad' ? 'físico' : 'mágico'}: acelere o dano` });
+      if (cand.tag === 'core') cands.set(id, { ...cand, score: cand.score + 8, reason: `${cand.reason} · ${tr(c.kind === 'ad' ? '{item} já cobre o dano físico: acelere o dano' : '{item} já cobre o dano mágico: acelere o dano', { item: (dd.item(c.held) || {}).name || tr('sua defesa') })}` });
     }
   }
 
@@ -456,17 +457,17 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const buildDone = build && pathLeft.length === 0 && owned.length >= 5;
   if ((full || buildDone) && (me.level || 1) >= 9 && state.gameTime >= 1500) {
     const ex = firstAvailable((reactive.elixir || {})[cls], dd, new Set());
-    if (ex) add(ex, full ? 58 : 48, full ? 'Inventário cheio: elixir para a próxima luta (dura 3 min)' : 'Build completa: elixir antes de dragão ou barão', 'elixir');
+    if (ex) add(ex, full ? 58 : 48, full ? tr('Inventário cheio: elixir para a próxima luta (dura 3 min)') : tr('Build completa: elixir antes de dragão ou barão'), 'elixir');
   }
   const ward = firstAvailable(reactive.controlWard, dd, ownedSet);
-  if (ward && !full && state.gameTime >= 300 && me.gold >= 75) add(ward, 34, 'Sentinela de controle: leve uma a cada volta à base', 'ward');
+  if (ward && !full && state.gameTime >= 300 && me.gold >= 75) add(ward, 34, tr('Sentinela de controle: leve uma a cada volta à base'), 'ward');
   // fim de jogo, inventário cheio e a ameaça que a defesa respondia sumiu: troque a defesa por dano
   if (full && state.gameTime >= 1500) {
     const useless = covered.find((c) => c.share < 0.35 && !c.foes.some((x) => x.fed));
     const dmg = useless && firstAvailable(((reactive.swap || {})[cls]) || [], dd, ownedSet);
     if (useless && dmg) {
-      const defName = (dd.item(useless.held) || {}).name || 'o item defensivo';
-      add(dmg, 70, `Troque ${defName} por este: pouco dano ${useless.kind === 'ad' ? 'físico' : 'mágico'} inimigo agora (${Math.round(useless.share * 100)}%)`, 'swapdmg');
+      const defName = (dd.item(useless.held) || {}).name || tr('o item defensivo');
+      add(dmg, 70, tr(useless.kind === 'ad' ? 'Troque {item} por este: pouco dano físico inimigo agora ({p}%)' : 'Troque {item} por este: pouco dano mágico inimigo agora ({p}%)', { item: defName, p: Math.round(useless.share * 100) }), 'swapdmg');
       sell = { id: useless.held, name: defName, cheap: false };
     }
   }
@@ -474,7 +475,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     for (const [id, c] of [...cands]) {
       if (['elixir'].includes(c.tag)) continue;
       if (c.tag === 'swapdmg') { cands.set(id, { ...c, swap: { id: sell.id, name: sell.name } }); continue; }
-      const swap = sell.cheap ? `venda ${sell.name} para abrir espaço` : `troque ${sell.name} por este`;
+      const swap = sell.cheap ? tr('venda {item} para abrir espaço', { item: sell.name }) : tr('troque {item} por este', { item: sell.name });
       cands.set(id, { ...c, score: c.score - (sell.cheap ? 0 : 8), reason: `${c.reason} · ${swap}`, swap: { id: sell.id, name: sell.name } });
     }
   }
@@ -507,25 +508,25 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   let recall = null;
   const buyable = items.filter((i) => i.canBuy && i.cost >= 900).sort((a, b) => b.score - a.score)[0];
   if (buyable && me.gold >= 1300) {
-    recall = `Você tem ${me.gold} g: volte e feche ${buyable.name}.`;
+    recall = tr('Você tem {g} g: volte e feche {item}.', { g: me.gold, item: buyable.name });
   } else if (me.gold >= 1300 && items[0]) {
     // >= 1300 g: o componente épico mais caro que cabe no bolso, rumo ao item principal
     const comp = bestComponent(dd, items[0].id, owned, me.gold);
     recall = comp
-      ? `Você tem ${me.gold} g: volte e compre ${comp.name} (${comp.cost} g) rumo a ${items[0].name}.`
-      : `${me.gold} g parados: vale voltar à base.`;
+      ? tr('Você tem {g} g: volte e compre {item} ({cost} g) rumo a {target}.', { g: me.gold, item: comp.name, cost: comp.cost, target: items[0].name })
+      : tr('{g} g parados: vale voltar à base.', { g: me.gold });
   } else if (me.gold >= 800 && !hasBoots && state.gameTime < 900) {
-    recall = `${me.gold} g: bota básica + componentes menores se for voltar.`;
+    recall = tr('{g} g: bota básica + componentes menores se for voltar.', { g: me.gold });
   }
 
   const notes = [];
-  if (build && build.matchup) notes.push(`Matchup vs ${build.matchup.vs}${build.matchup.used.length ? ` (${build.matchup.used.join(', ')})` : ''}`);
-  if (!build) notes.push('Sem build do OP.GG para este campeão (usando só regras contra o time inimigo).');
-  if (biggest && biggest.fed) notes.push(`Maior ameaça agora: ${biggest.e.champion} ${kdaText(biggest.e)}`);
+  if (build && build.matchup) notes.push(`${tr('Matchup vs {champ}', { champ: build.matchup.vs })}${build.matchup.used.length ? ` (${build.matchup.used.join(', ')})` : ''}`);
+  if (!build) notes.push(tr('Sem build do OP.GG para este campeão (usando só regras contra o time inimigo).'));
+  if (biggest && biggest.fed) notes.push(tr('Maior ameaça agora: {champ} {kda}', { champ: biggest.e.champion, kda: kdaText(biggest.e) }));
   const off = t.filter((x) => x.d.offbuild);
-  for (const c of covered) notes.push(`Você já tem ${(dd.item(c.held) || {}).name || 'defesa'} contra dano ${c.kind === 'ad' ? 'físico' : 'mágico'} e ninguém desse tipo está fed: próximos itens de dano`);
-  if (full) notes.push(sell ? `Inventário cheio: ${sell.cheap ? 'venda' : 'troque'} ${sell.name} para o próximo item` : 'Inventário cheio');
-  if (off.length) notes.push(`Build fora do padrão: ${off.map((x) => `${x.e.champion} de ${x.d.offbuild}`).join(', ')} (contado pelos itens)`);
+  for (const c of covered) notes.push(tr(c.kind === 'ad' ? 'Você já tem {item} contra dano físico e ninguém desse tipo está fed: próximos itens de dano' : 'Você já tem {item} contra dano mágico e ninguém desse tipo está fed: próximos itens de dano', { item: (dd.item(c.held) || {}).name || tr('defesa') }));
+  if (full) notes.push(sell ? tr(sell.cheap ? 'Inventário cheio: venda {item} para o próximo item' : 'Inventário cheio: troque {item} para o próximo item', { item: sell.name }) : tr('Inventário cheio'));
+  if (off.length) notes.push(tr('Build fora do padrão: {list} (contado pelos itens)', { list: off.map((x) => `${x.e.champion} ${x.d.offbuild}`).join(', ') }));
   const threatsOut = t.slice(0, 3).map((x) => ({ champion: x.e.champion, kda: kdaText(x.e), w: Math.round(x.w * 100) / 100, fed: x.fed, lane: x.lane }));
   return { items, notes, cls, full, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
 }

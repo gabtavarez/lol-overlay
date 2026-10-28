@@ -7,6 +7,7 @@
  */
 const defaultFlags = require('../data/champion-flags.json');
 const { damageProfile } = require('./recommender');
+const { t: tr, spellName, runeName } = require('./i18n');
 
 const SPELL = { flash: 4, ignite: 14, tp: 12, heal: 7, barrier: 21, exhaust: 3, cleanse: 1, ghost: 6, smite: 11 };
 const SPELL_PT = { 4: 'Flash', 14: 'Incendiar', 12: 'Teleporte', 7: 'Curar', 21: 'Barreira', 3: 'Exaustão', 1: 'Purificar', 6: 'Fantasma', 11: 'Golpear', 13: 'Clareza', 32: 'Marca' };
@@ -41,15 +42,15 @@ function tweakForMatchup({ base, build, opp = null, enemies = [], role = '', cls
     let why = '';
     const oppBurst = opp && (flags.burst || []).includes(opp.id);
     const oppAd = opp && damageProfile({ championId: opp.id, tags: opp.tags || [] }, flags).ad >= 0.6;
-    if (hardCc.length >= 3 && (cls === 'adc' || cls === 'ap') && r !== 'utility') { want = SPELL.cleanse; why = `${names(hardCc)} têm controle forte`; }
-    else if (oppBurst && r === 'middle' && cls !== 'tank') { want = oppAd ? SPELL.exhaust : SPELL.barrier; why = oppAd ? `corta o combo de ${opp.name}` : `segura o burst de ${opp.name}`; }
-    else if (oppBurst && r === 'utility') { want = SPELL.exhaust; why = `contra o all-in de ${opp.name}`; }
+    if (hardCc.length >= 3 && (cls === 'adc' || cls === 'ap') && r !== 'utility') { want = SPELL.cleanse; why = tr('{champs} têm controle forte', { champs: names(hardCc) }); }
+    else if (oppBurst && r === 'middle' && cls !== 'tank') { want = oppAd ? SPELL.exhaust : SPELL.barrier; why = oppAd ? tr('corta o combo de {champ}', { champ: opp.name }) : tr('segura o burst de {champ}', { champ: opp.name }); }
+    else if (oppBurst && r === 'utility') { want = SPELL.exhaust; why = tr('contra o all-in de {champ}', { champ: opp.name }); }
     if (want && !out.spells.includes(want)) {
       const i = out.spells.findIndex((s) => s !== SPELL.flash && s !== SPELL.smite);
       if (i >= 0) {
         const old = out.spells[i];
         out.spells[i] = want;
-        rules.push({ kind: 'spells', text: `${SPELL_PT[want]} no lugar de ${SPELL_PT[old] || 'o 2º feitiço'}: ${why}` });
+        rules.push({ kind: 'spells', text: tr('{new} no lugar de {old}: {why}', { new: spellName(want), old: old ? spellName(old) : tr('o 2º feitiço'), why }) });
       }
     }
   }
@@ -59,7 +60,7 @@ function tweakForMatchup({ base, build, opp = null, enemies = [], role = '', cls
     const last = out.runes.perks.length - 1;
     if ([SHARD.health, SHARD.healthScaling].includes(out.runes.perks[last])) {
       out.runes.perks[last] = SHARD.tenacity;
-      rules.push({ kind: 'shards', text: `Fragmento de tenacidade e resistência a lentidão: ${names(hardCc)} prendem muito` });
+      rules.push({ kind: 'shards', text: tr('Fragmento de tenacidade e resistência a lentidão: {champs} prendem muito', { champs: names(hardCc) }) });
     }
   }
 
@@ -69,8 +70,8 @@ function tweakForMatchup({ base, build, opp = null, enemies = [], role = '', cls
     && out.runes.primaryStyleId !== RESOLVE && out.runes.subStyleId !== RESOLVE) {
     const burst = (flags.burst || []).includes(opp.id);
     const sec = burst ? [R.bonePlating, R.overgrowth] : [R.secondWind, R.overgrowth];
-    out.runes = { ...out.runes, subStyleId: RESOLVE, subStyleName: 'Resolve', perks: [...out.runes.perks.slice(0, 4), ...sec, ...out.runes.perks.slice(6)] };
-    rules.push({ kind: 'runes', text: `Determinação na 2ª árvore (${burst ? 'Osso Revestido' : 'Segundo Fôlego'} + Crescimento Excessivo): matchup difícil${oppWinRate != null ? ` (${Math.round(oppWinRate * 100)}% de vitória)` : ''}` });
+    out.runes = { ...out.runes, subStyleId: RESOLVE, subStyleName: runeName(RESOLVE), perks: [...out.runes.perks.slice(0, 4), ...sec, ...out.runes.perks.slice(6)] };
+    rules.push({ kind: 'runes', text: `${tr('{tree} na 2ª árvore ({a} + {b}): matchup difícil', { tree: runeName(RESOLVE), a: runeName(sec[0]), b: runeName(sec[1]) })}${oppWinRate != null ? ` ${tr('({p}% de vitória)', { p: Math.round(oppWinRate * 100) })}` : ''}` });
   }
   return { build: out, rules };
 }
@@ -82,23 +83,23 @@ function tweakForMatchup({ base, build, opp = null, enemies = [], role = '', cls
 function describeChanges(base, final, rules = [], names = {}) {
   const item = names.item || String;
   const rune = names.rune || String;
-  const spell = (id) => SPELL_PT[id] || (names.spell ? names.spell(id) : String(id));
+  const spell = (id) => (names.spell ? names.spell(id) : spellName(id));
   const out = rules.map((x) => ({ ...x, source: 'regra' }));
   const kinds = new Set(rules.map((x) => x.kind));
   const added = (final.core || []).filter((id) => !(base.core || []).includes(id));
   const removed = (base.core || []).filter((id) => !(final.core || []).includes(id));
-  if (added.length) out.unshift({ kind: 'items', source: 'OP.GG', text: `Itens: ${added.map(item).join(', ')}${removed.length ? ` no lugar de ${removed.map(item).join(', ')}` : ''}` });
+  if (added.length) out.unshift({ kind: 'items', source: 'OP.GG', text: removed.length ? tr('Itens: {a} no lugar de {b}', { a: added.map(item).join(', '), b: removed.map(item).join(', ') }) : tr('Itens: {a}', { a: added.map(item).join(', ') }) });
   if (!kinds.has('spells') && [...(final.spells || [])].sort().join() !== [...(base.spells || [])].sort().join()) {
-    out.push({ kind: 'spells', source: 'OP.GG', text: `Feitiços: ${(final.spells || []).map(spell).join(' + ')}` });
+    out.push({ kind: 'spells', source: 'OP.GG', text: tr('Feitiços: {list}', { list: (final.spells || []).map(spell).join(' + ') }) });
   }
   if (!kinds.has('runes') && final.runes && base.runes) {
-    if (final.runes.perks[0] !== base.runes.perks[0]) out.push({ kind: 'runes', source: 'OP.GG', text: `Runa principal: ${rune(final.runes.perks[0])} em vez de ${rune(base.runes.perks[0])}` });
-    else if (final.runes.subStyleId !== base.runes.subStyleId) out.push({ kind: 'runes', source: 'OP.GG', text: `2ª árvore: ${final.runes.subStyleName || rune(final.runes.subStyleId)}` });
+    if (final.runes.perks[0] !== base.runes.perks[0]) out.push({ kind: 'runes', source: 'OP.GG', text: tr('Runa principal: {a} em vez de {b}', { a: rune(final.runes.perks[0]), b: rune(base.runes.perks[0]) }) });
+    else if (final.runes.subStyleId !== base.runes.subStyleId) out.push({ kind: 'runes', source: 'OP.GG', text: tr('2ª árvore: {tree}', { tree: final.runes.subStyleName || rune(final.runes.subStyleId) }) });
   }
   const a = maxOrder(base.skills);
   const b = maxOrder(final.skills);
   if ((final.skills || []).length && a.join() !== b.join()) {
-    out.push({ kind: 'skills', source: 'OP.GG', text: `Habilidades: maximize ${b.join(' › ')} (em vez de ${a.join(' › ')})` });
+    out.push({ kind: 'skills', source: 'OP.GG', text: tr('Habilidades: maximize {a} (em vez de {b})', { a: b.join(' › '), b: a.join(' › ') }) });
   }
   return out;
 }

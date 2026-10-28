@@ -2,6 +2,7 @@
  * Sequência e tilt: lê o histórico do cliente (todas as filas, sem remakes) e diz se é hora de pausar,
  * qual o campeão de conforto e em que horário do dia você ganha mais.
  */
+const { t: tr } = require('./i18n');
 const SESSION_GAP_MS = 90 * 60 * 1000; // mais de 1h30 sem jogar = nova sessão
 const BLOCKS = [
   { key: 'madrugada', label: 'Madrugada', from: 0, to: 6 },
@@ -70,7 +71,7 @@ function comfortPick(games, mastery) {
  */
 function tiltReport(games = [], { now = Date.now(), mastery = null, tzOffsetMin } = {}) {
   const list = games.filter(valid).sort((a, b) => b.at - a.at);
-  if (!list.length) return { status: 'none', title: 'Sem partidas recentes', text: 'Jogue algumas partidas para ver sua sequência.', recent: [], hours: byHour([], tzOffsetMin) };
+  if (!list.length) return { status: 'none', title: tr('Sem partidas recentes'), text: tr('Jogue algumas partidas para ver sua sequência.'), recent: [], hours: byHour([], tzOffsetMin) };
   const streak = currentStreak(list);
   const sess = currentSession(list, now);
   const session = { games: sess.length, wins: sess.filter((g) => g.win).length, losses: sess.filter((g) => !g.win).length };
@@ -82,24 +83,24 @@ function tiltReport(games = [], { now = Date.now(), mastery = null, tzOffsetMin 
   const active = sess.length > 0; // jogando agora (sessão em andamento)
 
   let status = 'ok';
-  let title = 'Tudo certo';
-  let text = 'Siga jogando no seu ritmo.';
+  let title = tr('Tudo certo');
+  let text = tr('Siga jogando no seu ritmo.');
   if (active && streak.type === 'loss' && streak.count >= 3) {
-    status = 'stop'; title = `${streak.count} derrotas seguidas`;
-    text = 'Hora de parar por hoje ou fazer uma pausa longa (30 min+). Partidas jogadas no tilt costumam virar mais derrotas.';
+    status = 'stop'; title = tr('{n} derrotas seguidas', { n: streak.count });
+    text = tr('Hora de parar por hoje ou fazer uma pausa longa (30 min+). Partidas jogadas no tilt costumam virar mais derrotas.');
   } else if (active && streak.type === 'loss' && streak.count === 2) {
-    status = 'pause'; title = '2 derrotas seguidas';
-    text = 'Faça uma pausa de 10 min antes da próxima e volte com um campeão de conforto.';
+    status = 'pause'; title = tr('{n} derrotas seguidas', { n: 2 });
+    text = tr('Faça uma pausa de 10 min antes da próxima e volte com um campeão de conforto.');
   } else if (active && sess.length >= 6 && session.losses > session.wins) {
-    status = 'tired'; title = `${sess.length} partidas nesta sessão`;
-    text = `Sessão longa e no negativo (${session.wins}V ${session.losses}D): o cansaço pesa. Considere encerrar.`;
+    status = 'tired'; title = tr('{n} partidas nesta sessão', { n: sess.length });
+    text = tr('Sessão longa e no negativo ({w}V {l}D): o cansaço pesa. Considere encerrar.', { w: session.wins, l: session.losses });
   } else if (streak.type === 'win' && streak.count >= 3) {
-    status = 'hot'; title = `${streak.count} vitórias seguidas`;
-    text = 'Você está em boa fase: aproveite, mas pare se perder duas seguidas.';
+    status = 'hot'; title = tr('{n} vitórias seguidas', { n: streak.count });
+    text = tr('Você está em boa fase: aproveite, mas pare se perder duas seguidas.');
   }
   if (worst && status !== 'stop') {
     const h = new Date(now - (tzOffsetMin != null ? tzOffsetMin : new Date().getTimezoneOffset()) * 60000).getUTCHours();
-    if (h >= worst.from && h < worst.to) text += ` Obs.: ${worst.label.toLowerCase()} é o seu pior horário (${Math.round(worst.winRate * 100)}% de vitória).`;
+    if (h >= worst.from && h < worst.to) text += ` ${tr('Obs.: {when} é o seu pior horário ({wr}% de vitória).', { when: tr(worst.label).toLowerCase(), wr: Math.round(worst.winRate * 100) })}`;
   }
   return {
     status, title, text, streak, session, comfort, hours, best, worst,

@@ -1,3 +1,4 @@
+const { t: tr } = require('./i18n');
 const data = require('../data/enemy-alerts.json');
 
 const SHOW_MS = 30_000;
@@ -22,7 +23,7 @@ function createAlertTracker({ table = data.items, now = () => Date.now() } = {})
           seen.add(key);
           if (primed) {
             const name = (dd && dd.item(it.id) && dd.item(it.id).name) || it.name;
-            fresh.push({ id: key, at: now(), text: `${e.champion} fechou ${name}: ${note}` });
+            fresh.push({ id: key, at: now(), text: tr('{champ} fechou {item}: {note}', { champ: e.champion, item: name, note: tr(note) }) });
           }
         }
       }

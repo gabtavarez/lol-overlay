@@ -30,3 +30,19 @@ test('i18n: index.html carrega os dicionários antes do app', () => {
   const pos = (s) => html.indexOf(s);
   assert.ok(pos('i18n.js') > 0 && pos('i18n.js') < pos('locales/en.js') && pos('locales/es.js') < pos('renderer.js'));
 });
+
+test('i18n main: coach, compras e sequência saem no idioma escolhido (e voltam ao português)', () => {
+  const i18n = require('../src/i18n');
+  const { tiltReport } = require('../src/tilt');
+  const g = (h, win) => ({ at: Date.now() - h * 3600e3, duration: 1800, win, championId: 1, remake: false });
+  try {
+    i18n.setLang('en');
+    assert.equal(tiltReport([g(0.5, false), g(1, false)]).title, '2 losses in a row');
+    i18n.setLang('es');
+    assert.equal(tiltReport([g(0.5, false), g(1, false)]).title, '2 derrotas seguidas');
+    assert.equal(i18n.t('{champ} morto por {s} s: sem gank agora.', { champ: 'Lee Sin', s: 9 }), 'Lee Sin muerto por 9 s: sin gank ahora.');
+  } finally {
+    i18n.setLang('pt');
+  }
+  assert.equal(tiltReport([g(0.5, false), g(1, false)]).title, '2 derrotas seguidas');
+});

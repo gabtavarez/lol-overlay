@@ -1,3 +1,4 @@
+const { t: tr } = require('./i18n');
 const fs = require('fs/promises');
 const path = require('path');
 const { lcuGetJson } = require('./lcu');
@@ -107,7 +108,7 @@ const GRADE_ORDER = ['S+', 'S', 'S-', 'A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C
 function milestoneText(next) {
   const req = next && next.requireGradeCounts;
   if (!req || !Object.keys(req).length) return null;
-  return Object.entries(req).map(([g, n]) => `${n}× ${g} ou melhor`).join(' + ');
+  return Object.entries(req).map(([g, n]) => tr('{n}× {g} ou melhor', { n, g })).join(' + ');
 }
 
 function buildMastery({ mastery, dd, score, pace = {}, now = Date.now() }) {

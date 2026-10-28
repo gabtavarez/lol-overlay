@@ -4,6 +4,7 @@
  * duros e o pior matchup perto de 50% = seguro; vários counters fortes = arriscado.
  */
 
+const { t: tr } = require('./i18n');
 // WR do campeão contra cada counter (o OP.GG guarda a WR do outro lado)
 function counterWrs(build) {
   return ((build && build.weakCounters) || [])
@@ -25,9 +26,9 @@ function blindSafety(build) {
   const level = hard >= 3 || worst <= 0.44 ? 'risky' : hard <= 1 && worst >= 0.465 ? 'safe' : 'ok';
   const pct = (x) => `${(x * 100).toFixed(0)}%`;
   const w = list.slice(0, 2).map((c) => `${c.name} ${pct(c.wr)}`).join(', ');
-  const text = level === 'safe' ? `Seguro às cegas · pior matchup ${w.split(',')[0]}`
-    : level === 'risky' ? `Arriscado às cegas · ${hard} counters duros (${w})`
-      : `Às cegas: ok · cuidado com ${w}`;
+  const text = level === 'safe' ? tr('Seguro às cegas · pior matchup {champ}', { champ: w.split(',')[0] })
+    : level === 'risky' ? tr('Arriscado às cegas · {n} counters duros ({list})', { n: hard, list: w })
+      : tr('Às cegas: ok · cuidado com {list}', { list: w });
   return { level, hard, worst: list.slice(0, 3).map((c) => ({ name: c.name, wr: c.wr })), text };
 }
 

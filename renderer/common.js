@@ -53,8 +53,10 @@ function renderBuyList(container, buys, version) {
           goodTag(it.good, it.vs, version),
           h('div', { class: 'buy-reason', text: it.reason }),
           h('div', { class: 'buy-gold', text: it.canBuy
-            ? `Já dá para comprar (${it.missing} g)`
-            : `Faltam ${it.needGold ?? it.missing} g (custa ${it.missing} g${it.parts && it.parts.length ? `, já descontando ${it.parts.join(' + ')}` : ''})` }),
+            ? t('Já dá para comprar ({g} g)', { g: it.missing })
+            : it.parts && it.parts.length
+              ? t('Faltam {n} g (custa {g} g, já descontando {parts})', { n: it.needGold ?? it.missing, g: it.missing, parts: it.parts.join(' + ') })
+              : t('Faltam {n} g (custa {g} g)', { n: it.needGold ?? it.missing, g: it.missing }) }),
         ),
         h('div', { class: 'buy-score', text: String(it.score) }),
       ),
@@ -65,7 +67,7 @@ function renderBuyList(container, buys, version) {
 /** Aviso de recall, nota de matchup e alertas de itens inimigos (texto puro). */
 function renderExtras(els, advice) {
   const buys = (advice && advice.buys) || {};
-  els.recall.textContent = buys.recall || '';
+  els.recall.textContent = t(buys.recall || '');
   els.recall.hidden = !buys.recall;
   const note = buys.matchup && buys.matchup.tip ? `vs ${buys.matchup.vs}: ${buys.matchup.tip}` : (buys.notes && buys.notes[0]) || '';
   els.matchup.textContent = buys.items && buys.items.length ? note : '';

@@ -1,3 +1,4 @@
+const { t: tr } = require('../i18n');
 const fs = require('fs');
 const path = require('path');
 const { norm } = require('../util');
@@ -52,13 +53,13 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
         cache[bucket][key] = { at: Date.now(), data };
         failures.delete(id);
         save();
-        onStatus('OP.GG: dados atualizados', 'ok');
+        onStatus(tr('OP.GG: dados atualizados'), 'ok');
       } catch (err) {
         retryAfter.set(id, Date.now() + RETRY_MS);
         failures.set(id, err.message);
         // "Invalid position or champion" = o OP.GG não tem dados desse campeão nessa rota: não é erro do app.
         if (!/invalid position|champion specified/i.test(err.message)) {
-          onStatus(`OP.GG: ${err.message}${cache[bucket][key] ? ' (usando cache antigo)' : ''}`, 'warn');
+          onStatus(`OP.GG: ${err.message}${cache[bucket][key] ? tr(' (usando cache antigo)') : ''}`, 'warn');
         }
       } finally {
         inflight.delete(id);

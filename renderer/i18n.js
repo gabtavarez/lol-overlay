@@ -11,7 +11,7 @@ const LANG = (() => {
 })();
 document.documentElement.lang = { pt: 'pt-BR', en: 'en', es: 'es' }[LANG];
 
-/** t('Faltam {n} g', { n: 300 }) */
+/** t('Faltam {n} g', { n: 300 }) — alias tr() para escopos que já usam a variável t */
 function t(text, vars) {
   if (typeof text !== 'string') return text;
   const dict = LANG === 'pt' ? null : window.LOCALES[LANG];
@@ -37,3 +37,4 @@ function translateDom(root = document.body) {
     }
   }
 }
+const tr = (text, vars) => t(text, vars);

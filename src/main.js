@@ -19,6 +19,7 @@ const { spawn } = require('child_process');
 const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { laneCoach } = require('./coach');
+const i18n = require('./i18n');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit, mainRoleOf } = require('./fit');
 const { applyBlind } = require('./blind');
@@ -73,7 +74,7 @@ let lastRole = '';
 let liveState = { phase: 'waiting' };
 let lcuState = { phase: 'idle', client: 'closed' };
 let lastState = { phase: 'waiting', client: 'closed' };
-let lastStatus = { text: 'Carregando dados do jogo…', level: 'info' };
+let lastStatus = { text: 'Carregando dados do jogo…', level: 'info' }; // traduzido no renderer
 
 function send(channel, payload) {
   for (const w of [mainWin, overlayWin]) {
@@ -373,10 +374,22 @@ async function loadDataDragon() {
     dd = instance;
     setStatus(`Data Dragon ${dd.version}${USE_MOCK ? ' · MOCK' : ''}`, 'ok');
     loadRuneIndex(dd.version);
+    loadSpellNames(dd.version);
   } catch (err) {
     setStatus(`Sem dados do Data Dragon (${err.message}). Tentando de novo…`, 'warn');
     setTimeout(loadDataDragon, DD_RETRY_MS);
   }
+}
+
+/** Nomes oficiais dos feitiços no idioma do app (Data Dragon summoner.json). */
+async function loadSpellNames(version) {
+  try {
+    const res = await fetch(`https://ddragon.leagueoflegends.com/cdn/${version}/data/${DD_LANG[appLang()] || 'pt_BR'}/summoner.json`);
+    if (!res.ok) return;
+    const spells = {};
+    for (const sp of Object.values((await res.json()).data || {})) spells[Number(sp.key)] = sp.name;
+    i18n.setGameNames({ spells });
+  } catch { /* sem nomes: usa os em português */ }
 }
 
 async function loadRuneIndex(version) {
@@ -385,6 +398,9 @@ async function loadRuneIndex(version) {
     if (res.ok) {
       runeStyles = await res.json();
       runeIndex = indexRunes(runeStyles);
+      const runes = {};
+      for (const st of runeStyles) { runes[st.id] = st.name; for (const sl of st.slots || []) for (const r of sl.runes || []) runes[r.id] = r.name; }
+      i18n.setGameNames({ runes });
     }
   } catch {
     // sem ícones de runa: a UI mostra só os nomes
@@ -434,8 +450,8 @@ function buildVariants(champ, role) {
   const opp = laneEnemy();
   const mu = opp && remote.getMatchup(champ, opp, role);
   const wr = pctTxt(base.winRate);
-  if (role === 'arena') return [{ label: 'Mais jogada', sub: pctTxt(base.winRate) ? `WR ${pctTxt(base.winRate)}` : 'OP.GG', build: base, changes: [] }];
-  const out = [{ label: 'Mais jogada', sub: [pctTxt(base.corePick) && `${pctTxt(base.corePick)} dos jogadores`, wr && `WR ${wr}`].filter(Boolean).join(' · ') || 'OP.GG', build: base, changes: [] }];
+  if (role === 'arena') return [{ label: i18n.t('Mais jogada'), sub: pctTxt(base.winRate) ? `WR ${pctTxt(base.winRate)}` : 'OP.GG', build: base, changes: [] }];
+  const out = [{ label: i18n.t('Mais jogada'), sub: [pctTxt(base.corePick) && i18n.t('{p} dos jogadores', { p: pctTxt(base.corePick) }), wr && `WR ${wr}`].filter(Boolean).join(' · ') || 'OP.GG', build: base, changes: [] }];
   // Contra o oponente de rota (ou a comp inimiga): OP.GG do matchup + regras próprias (feitiço, fragmento, 2ª árvore).
   const enemies = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
   const oppFull = opp ? dd.champions[opp.id] || opp : null;
@@ -449,13 +465,13 @@ function buildVariants(champ, role) {
     rune: (id) => (runeIndex && runeIndex[id] && runeIndex[id].name) || String(id),
   }) : [];
   if (t && changes.length) {
-    const label = opp ? `Contra ${opp.name}` : 'Contra a comp';
-    out.push({ label, sub: `${changes.length} ajuste${changes.length === 1 ? '' : 's'} para o matchup`, build: t.build, changes });
+    const label = opp ? i18n.t('Contra {champ}', { champ: opp.name }) : i18n.t('Contra a comp');
+    out.push({ label, sub: i18n.t('{n} ajuste(s) para o matchup', { n: changes.length }), build: t.build, changes });
   } else {
     const later = laterItems(base);
     if (base.core.length >= 2 && later.length >= 2) {
       const alt = { ...base, core: [base.core[0], ...later.slice(0, 2)], later: [base.core.slice(1).map((id) => ({ ids: [id], pick: 1 })), ...base.later] };
-      out.push({ label: 'Itens alternativos', sub: 'mesmas runas, outro caminho de itens', build: alt, changes: [] });
+      out.push({ label: i18n.t('Itens alternativos'), sub: i18n.t('mesmas runas, outro caminho de itens'), build: alt, changes: [] });
     }
   }
   return out;
@@ -467,7 +483,7 @@ const TIER_PT_MAIN = { ALL: 'Todos os elos', GOLD: 'Ouro', PLATINUM_PLUS: 'Plati
 function runePagesFor(champ, role, build) {
   const pages = remote.getRunePages(champ, role) || (build && build.runes ? [{ ...build.runes, tier: null }] : []);
   return pages.map((r, i) => ({
-    label: i === 0 ? 'Página 1' : 'Página 2',
+    label: i18n.t(i === 0 ? 'Página 1' : 'Página 2'),
     runes: r,
     stats: { pickRate: r.pickRate || 0, winRate: r.winRate || 0, games: r.games || 0, tier: r.tier ? TIER_PT_MAIN[r.tier] || r.tier : null },
     view: {
@@ -488,8 +504,8 @@ async function importBuild(championId, what, variant = 0, runePage = 0, forRole 
   const variants = champ ? (forRole ? [{ build: remote.getBuild(champ, role) }] : buildVariants(champ, role)) : [];
   const build = (variants[variant] || variants[0] || {}).build;
   const creds = lcuEngine.getCreds();
-  if (!build) return { ok: false, error: 'Ainda não há dados do OP.GG para este campeão.' };
-  if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
+  if (!build) return { ok: false, error: i18n.t('Ainda não há dados do OP.GG para este campeão.') };
+  if (!creds) return { ok: false, error: i18n.t('Cliente do LoL não conectado.') };
   const done = [];
   try {
     if (role === 'arena' && what !== 'items') what = 'items'; // Arena: sem runas e feitiços para importar
@@ -500,16 +516,16 @@ async function importBuild(championId, what, variant = 0, runePage = 0, forRole 
       const runes = matchupRunes ? build.runes : (pages && pages[runePage]) || build.runes;
       if (!runes) throw new Error('sem runas nos dados do OP.GG');
       await importRunes(creds, runes, champ.name);
-      done.push('runas');
+      done.push(i18n.t('runas'));
     }
     if (what !== 'runes' && what !== 'items') {
       await importSpells(creds, build.spells, { flashOnF: settings.get().flashKey !== 'D' });
-      done.push('feitiços');
+      done.push(i18n.t('feitiços'));
     }
     if (what === 'items' || what === 'both') {
       const enemyChamps = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
       await importItemSet(creds, { ...build, situational: situationalItems({ champ, build, enemies: enemyChamps, dd, role }).map((x) => x.id) }, champ);
-      done.push('itens da loja');
+      done.push(i18n.t('itens da loja'));
     }
     return { ok: true, done };
   } catch (err) {
@@ -556,13 +572,14 @@ async function guideFor(championId) {
   }));
   const fromRole = remote.getBuild(champ, role) && remote.getBuild(champ, role).fromRole;
   const b0 = remote.getBuild(champ, role);
-  const roleNote = b0 && b0.modeFallback ? `O OP.GG não tem dados de ${ROLE_PT[b0.modeFallback]} para ${champ.name}: usando a build ranqueada de ${ROLE_PT[fromRole]}.`
-    : MODE_ROLES.includes(role) ? `Build de ${ROLE_PT[role]} (OP.GG)${role === 'arena' ? ': itens do modo; runas e feitiços não se aplicam.' : '.'}`
-      : fromRole ? `${role ? 'Sem dados nesta rota' : 'Sem rota definida (modo treino/personalizada)'}: usando a build de ${ROLE_PT[fromRole]}.` : null;
+  const R = (r) => i18n.t(ROLE_PT[r] || r);
+  const roleNote = b0 && b0.modeFallback ? i18n.t('O OP.GG não tem dados de {mode} para {champ}: usando a build ranqueada de {role}.', { mode: R(b0.modeFallback), champ: champ.name, role: R(fromRole) })
+    : MODE_ROLES.includes(role) ? (role === 'arena' ? i18n.t('Build de {mode} (OP.GG): itens do modo; runas e feitiços não se aplicam.', { mode: R(role) }) : i18n.t('Build de {mode} (OP.GG).', { mode: R(role) }))
+      : fromRole ? (role ? i18n.t('Sem dados nesta rota: usando a build de {role}.', { role: R(fromRole) }) : i18n.t('Sem rota definida (modo treino/personalizada): usando a build de {role}.', { role: R(fromRole) })) : null;
   const opp = laneEnemy();
   const opponents = (lcuState.enemies || []).filter((x) => x.champion).map((x) => ({ id: x.champion.id, name: x.champion.name }));
   const mode = matchupPick && matchupPick.session === lcuState.sessionId ? matchupPick.id : 'auto';
-  const pending = opp && !remote.getMatchup(champ, opp, role) ? `Buscando o matchup contra ${opp.name}…` : null;
+  const pending = opp && !remote.getMatchup(champ, opp, role) ? i18n.t('Buscando o matchup contra {champ}…', { champ: opp.name }) : null;
   const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
   const runePages = runePagesFor(champ, role, build);
   // ARAM: Desordem: augments com melhor desempenho do campeão (OP.GG)
@@ -655,7 +672,7 @@ async function patchForMine() {
     logger.log(`patch dos seus campeões: notas indisponíveis (${err.message})`);
   }
   // 2) reserva: números do Data Dragon
-  if (!dd.prevVersion) return { patch: dd.version, champs: [], error: 'sem o patch anterior para comparar' };
+  if (!dd.prevVersion) return { patch: dd.version, champs: [], error: i18n.t('sem o patch anterior para comparar') };
   const champs = [];
   for (const id of mine.slice(0, 30)) {
     const key = `${dd.version}:${id}`;
@@ -859,7 +876,7 @@ function decorateLive(state) {
   state.advice.scout = scoutTargets(state).map(({ who, p, riotId }) => {
     const prof = riotId ? remote.getScout(riotId, region) : null;
     const onChamp = prof && prof.champs.find((c) => c.name.toLowerCase() === String(p.champion).toLowerCase());
-    const error = !riotId ? (enemyIdsGame ? 'Nome oculto pela Riot nesta partida' : 'Buscando o nome no cliente…') : !prof ? remote.scoutError(riotId, region) : null;
+    const error = !riotId ? (enemyIdsGame ? i18n.t('Nome oculto pela Riot nesta partida') : i18n.t('Buscando o nome no cliente…')) : !prof ? remote.scoutError(riotId, region) : null;
     return { who, champion: p.champion, championId: p.championId, riotId: riotId || 'nome oculto', profile: prof, onChamp: onChamp || null, error };
   });
   const meC = dd && dd.champions[state.me.championId];
@@ -867,6 +884,7 @@ function decorateLive(state) {
   state.advice.phases = meC && opC ? phaseCompare(meC, opC) : null;
   state.advice.oppKit = opC ? abilityCard(opC, state.laneOpponent.level) : null;
   state.advice.goals = liveGoals(state, myTier(), state.myRole);
+  state.spellNames = i18n.spellNamesByKey();
   if (state.gameTime + 30 < spellMarks.at) spellMarks.map = {}; // nova partida
   spellMarks.at = state.gameTime;
   try {
@@ -900,7 +918,7 @@ function decorateLcu(state) {
     if (role && picks && picks.candidates && picks.candidates.length && !oppShown) {
       picks.candidates = applyBlind(picks.candidates, (c) => remote.getBuild({ id: c.id }, role));
       picks.blind = true;
-      picks.notes = ['Oponente de rota ainda não escolheu: picks seguros às cegas sobem na lista.', ...(picks.notes || [])];
+      picks.notes = [i18n.t('Oponente de rota ainda não escolheu: picks seguros às cegas sobem na lista.'), ...(picks.notes || [])];
     }
   }
   if (state.home && !state.home.loading) {
@@ -973,7 +991,7 @@ function registerIpc() {
         hasCatalog: prices.size > 0,
       } : { mine: [], recent: [], sale: [], hasCatalog: false };
       out.skins = catalog ? profileView.buildSkinList({ inv, catalog, dd, prices }) : [];
-      if (!catalog) out.collectionError = 'não consegui baixar a lista de skins (CommunityDragon)';
+      if (!catalog) out.collectionError = i18n.t('não consegui baixar a lista de skins (CommunityDragon)');
     } catch (err) {
       out.error = err.message;
     }
@@ -1064,7 +1082,7 @@ function registerIpc() {
     const creds = lcuEngine.getCreds();
     const p = champ && (remote.getOtp(champ, currentRegion()) || [])[Number(index)];
     if (!p || !p.build) return { ok: false, error: 'sem build desse jogador' };
-    if (!creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
+    if (!creds) return { ok: false, error: i18n.t('Cliente do LoL não conectado.') };
     const done = [];
     const notes = [];
     try {
@@ -1073,16 +1091,16 @@ function registerIpc() {
       const meta = buildFor(champ, lastRole || lcuState.myPosition) || { starter: [], runes: null };
       const set = { starter: meta.starter || [], boots: p.build.items.filter(isBoots), core: p.build.items.filter((id) => !isBoots(id) && big(id)), later: [], matchup: null };
       await importItemSet(creds, set, { ...champ, name: `${champ.name} (${p.riotId.split('#')[0]})` });
-      done.push('itens');
+      done.push(i18n.t('itens'));
       if (p.build.spells && p.build.spells.length === 2) {
         await importSpells(creds, p.build.spells, { flashOnF: settings.get().flashKey !== 'D' });
-        done.push('feitiços');
+        done.push(i18n.t('feitiços'));
       }
       if (meta.runes && meta.runes.perks[0] === p.build.keystone) {
         await importRunes(creds, meta.runes, champ.name);
-        done.push('runas');
+        done.push(i18n.t('runas'));
       } else {
-        notes.push('runas não importadas: o OP.GG só mostra a runa principal dele, diferente da página do meta');
+        notes.push(i18n.t('runas não importadas: o OP.GG só mostra a runa principal dele, diferente da página do meta'));
       }
       return { ok: true, done, notes };
     } catch (err) {
@@ -1094,7 +1112,7 @@ function registerIpc() {
   ipcMain.handle('champselect:hover', async (_e, { championId, kind }) => {
     const champ = champById(championId);
     const creds = lcuEngine.getCreds();
-    if (!champ || !creds) return { ok: false, error: 'Cliente do LoL não conectado.' };
+    if (!champ || !creds) return { ok: false, error: i18n.t('Cliente do LoL não conectado.') };
     try {
       await hoverChampion(creds, champ.key, kind === 'ban' ? 'ban' : 'pick');
       lcuEngine.tick();
@@ -1108,7 +1126,7 @@ function registerIpc() {
   ipcMain.handle('opgg:matches', (_e, force) => {
     const riotId = settings.get().myRiotId;
     const region = currentRegion();
-    if (!riotId) return { riotId: null, list: [], error: 'Abra o cliente do LoL uma vez (ou informe seu Riot ID em Configurações).' };
+    if (!riotId) return { riotId: null, list: [], error: i18n.t('Abra o cliente do LoL uma vez (ou informe seu Riot ID em Configurações).') };
     remote.ensureMatches(riotId, region, () => send('matches-updated', true), Boolean(force));
     const m = remote.getMatches(riotId, region);
     const ddId = (name) => { const c = dd && dd.championByRaw(null, name); return c ? c.id : null; };
@@ -1156,7 +1174,7 @@ function registerIpc() {
   ipcMain.handle('win:toggle-max', () => { if (mainWin) (mainWin.isMaximized() ? mainWin.unmaximize() : mainWin.maximize()); });
   ipcMain.handle('win:close', () => mainWin && mainWin.close());
   ipcMain.handle('update:get', () => (updater ? updater.get() : { state: 'idle' }));
-  ipcMain.handle('update:check', () => (updater ? updater.check({ manual: true }) : { state: 'error', message: 'Atualização só funciona no app instalado.' }));
+  ipcMain.handle('update:check', () => (updater ? updater.check({ manual: true }) : { state: 'error', message: i18n.t('Atualização só funciona no app instalado.') }));
   ipcMain.handle('update:install', () => { if (updater) updater.install(); return true; });
   ipcMain.handle('overlay:preview', () => { previewOverlay(5000); return true; });
 
@@ -1209,6 +1227,7 @@ app.whenReady().then(() => {
   logger = createLogger(path.join(userData, 'overlay.log'));
   logger.log(`LoL Overlay ${app.getVersion()} iniciou (${process.platform})`);
   settings = createSettingsStore(path.join(userData, 'settings.json'));
+  i18n.setLang(appLang()); // textos gerados no main (coach, compras, notas) no idioma do app
   meta = loadMeta([path.join(__dirname, '..', 'data', 'meta.json'), path.join(userData, 'meta.json')]);
 
   elo = createEloTracker({ dir: userData });

@@ -59,7 +59,7 @@ function slot(p) {
     version && p.champion ? h('img', { src: champIcon(version, p.champion.id), alt: champName }) : h('span', { class: 'ph' }),
     h('span', { class: `dp-role${guess ? ' guess' : ''}` }, (p.position || p.predicted) ? roleImg(p.position || p.predicted, 'dp-ico') : '', document.createTextNode(guess ? '?' : '')));
   const flex = p.flex && p.flex.length ? ` · flex: ${p.flex.map((r) => t(ROLE_LABEL[r])).join('/')}` : '';
-  el.title = [champName || t('Escolhendo…'), p.isMe ? t('você') : playerLabel(p), guess ? `rota prevista (${p.confidence}%)${flex}` : known].filter(Boolean).join(' · ');
+  el.title = [champName || t('Escolhendo…'), p.isMe ? t('você') : playerLabel(p), guess ? `${tr('rota prevista ({p}%)', { p: p.confidence })}${flex}` : known].filter(Boolean).join(' · ');
   return el;
 }
 
@@ -77,12 +77,12 @@ async function hoverInClient(id, name, kind) {
   if (kind === 'pick' && me && me.locked) return;
   if (kind === 'ban' && lastState && lastState.action !== 'ban') return;
   const res = await window.overlay.hoverChampion(id, kind);
-  els.impMsg.textContent = res.ok ? `${name} marcado no cliente${kind === 'ban' ? ' para banir' : ''} (falta travar).` : `Não consegui marcar ${name} no cliente: ${res.error}`;
+  els.impMsg.textContent = res.ok ? (kind === 'ban' ? tr('{name} marcado no cliente para banir (falta travar).', { name }) : tr('{name} marcado no cliente (falta travar).', { name })) : tr('Não consegui marcar {name} no cliente: {err}', { name, err: res.error });
 }
 
 function pickCard(c, selected, i = 0) {
   const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected });
-  card.title = `${c.blind ? `${c.blind.text}\n` : ''}${c.reasons.join(' · ')}\nClique para marcar no cliente`;
+  card.title = `${c.blind ? `${c.blind.text}\n` : ''}${c.reasons.join(' · ')}\n${tr('Clique para marcar no cliente')}`;
   if (c.blind && c.blind.level !== 'ok') {
     // selo de pick às cegas ao lado do nome
     const nm = card.querySelector('.nm');
@@ -310,7 +310,7 @@ function drawGuide() {
   if (root.variants && root.variants[variant] && root.variants[variant].sub) sub.push(h('span', { text: root.variants[variant].sub }));
   if (root.opponents && root.opponents.length) {
     const sel = h('select', {},
-      h('option', { value: 'auto', text: root.opponent && root.matchupMode === 'auto' ? `Automático (${root.opponent})` : 'Automático' }),
+      h('option', { value: 'auto', text: root.opponent && root.matchupMode === 'auto' ? `${tr('Automático')} (${root.opponent})` : 'Automático' }),
       ...root.opponents.map((o) => h('option', { value: o.id, text: o.name })),
       h('option', { value: 'none', text: 'Nenhum' }));
     sel.value = root.matchupMode || 'auto';
@@ -327,17 +327,17 @@ function drawGuide() {
   if (root.roleNote) parts.push(h('div', { class: 'g-tip', text: root.roleNote }));
   if (root.augments && root.augments.length) {
     parts.push(h('div', { class: 'g-aug' }, h('div', { class: 'lbl' }, h('span', { text: 'Augments que mais ganham (ARAM: Desordem)' })),
-      h('div', { class: 'g-aug-list' }, ...root.augments.map((a) => h('span', { class: `aug t${a.tier}`, title: `Desempenho ${Math.round(a.score)} · escolhido em ${Math.round((a.pick || 0) * 100)}%`, text: a.name })))));
+      h('div', { class: 'g-aug-list' }, ...root.augments.map((a) => h('span', { class: `aug t${a.tier}`, title: tr('Desempenho {s} · escolhido em {p}%', { s: Math.round(a.score), p: Math.round((a.pick || 0) * 100) }), text: a.name })))));
   }
   if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
   if ((g.changes || []).length) {
     const KIND = { items: 'Itens', spells: 'Feitiços', runes: 'Runas', shards: 'Fragmento', skills: 'Habilidades' };
     parts.push(h('div', { class: 'g-changes' },
-      h('div', { class: 'lbl' }, h('span', { text: `O que muda — ${(root.variants[variant] || {}).label || 'matchup'}` })),
+      h('div', { class: 'lbl' }, h('span', { text: tr('O que muda — {v}', { v: (root.variants[variant] || {}).label || 'matchup' }) })),
       ...g.changes.map((c) => h('div', { class: `g-ch k-${c.kind}` },
         h('span', { class: 'g-ch-k', text: KIND[c.kind] || c.kind }),
-        h('span', { class: 'g-ch-t', text: c.text.replace(/^(Itens|Feitiços|Runa principal|2ª árvore|Habilidades): /, (m) => (c.kind === 'runes' && m.startsWith('Runa') ? m : '')) }),
-        h('span', { class: `g-ch-s ${c.source === 'OP.GG' ? 'src-op' : 'src-rule'}`, text: c.source === 'OP.GG' ? 'OP.GG' : 'regra do app', title: c.source === 'OP.GG' ? 'Dados do OP.GG para este confronto' : 'Regra do app (composição inimiga / matchup difícil)' })))));
+        h('span', { class: 'g-ch-t', text: c.text.replace(new RegExp(`^(${['Itens', 'Feitiços', '2ª árvore', 'Habilidades'].map((w) => tr(w)).join('|')}): `), '') }),
+        h('span', { class: `g-ch-s ${c.source === 'OP.GG' ? 'src-op' : 'src-rule'}`, text: c.source === 'OP.GG' ? 'OP.GG' : tr('regra do app'), title: c.source === 'OP.GG' ? 'Dados do OP.GG para este confronto' : 'Regra do app (composição inimiga / matchup difícil)' })))));
   }
 
   const left = h('div', { class: 'g-sec' });
@@ -345,14 +345,14 @@ function drawGuide() {
   const page = pages[runePage] || pages[0] || null;
   if (g.runesForMatchup && g.runeTree) {
     // runas ajustadas para o matchup (OP.GG do confronto ou regra própria): mostra só essa página
-    left.append(head(`Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'),
-      h('p', { class: 'muted small rp-one', text: `Ajustadas para ${(root.variants[variant] || {}).label || 'o matchup'}` }), drawRunes(g.runeTree));
+    left.append(head(`${tr('Runas')} · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'),
+      h('p', { class: 'muted small rp-one', text: tr('Ajustadas para {v}', { v: (root.variants[variant] || {}).label || tr('o matchup') }) }), drawRunes(g.runeTree));
   } else if (page && page.runeTree) {
     const st = page.stats || {};
-    left.append(head(`Runas · ${page.view.primaryStyleName} + ${page.view.subStyleName}`, 'runes'), runePageTabs(pages) || '');
+    left.append(head(`${tr('Runas')} · ${page.view.primaryStyleName} + ${page.view.subStyleName}`, 'runes'), runePageTabs(pages) || '');
     if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
     left.append(drawRunes(page.runeTree));
-  } else if (g.runeTree) left.append(head(`Runas · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
+  } else if (g.runeTree) left.append(head(`${tr('Runas')} · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
   else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
   const right = h('div', { class: 'g-sec' });
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
@@ -365,7 +365,7 @@ function drawGuide() {
     for (const x of skillOrder18(g.skills)) if (x !== 'R' && (cnt[x] = (cnt[x] || 0) + 1) === 5) order.push(x);
     for (const x of ['Q', 'W', 'E']) if (!order.includes(x)) order.push(x);
     const skillMu = (g.changes || []).some((c) => c.kind === 'skills');
-    parts.push(h('div', { class: 'g-full' }, head(`Ordem de habilidades · ${order.slice(0, 3).join(' › ')}${skillMu ? ` · ajustada ${((root.variants[variant] || {}).label || '').toLowerCase()}` : ''}`), drawSkills(g)));
+    parts.push(h('div', { class: 'g-full' }, head(`${tr('Ordem de habilidades')} · ${order.slice(0, 3).join(' › ')}${skillMu ? ` · ${tr('ajustada {v}', { v: ((root.variants[variant] || {}).label || '').toLowerCase() })}` : ''}`), drawSkills(g)));
   }
   if (root.oppKit) parts.push(abilityBlock(root.oppKit, 'g-full'));
   parts.push(otpBlock());
@@ -376,9 +376,9 @@ function drawGuide() {
 /** Recarga das habilidades do oponente (Meraki / Data Dragon). */
 function abilityBlock(kit, cls) {
   return h('div', { class: cls },
-    head(`Habilidades de ${kit.champion} · recarga do nível 1 ao máximo`),
+    head(tr('Habilidades de {champ} · recarga do nível 1 ao máximo', { champ: kit.champion })),
     h('div', { class: 'abil' }, ...kit.abilities.map((a) => h('div', { class: 'abil-i' }, h('b', { text: a.key }), h('span', { class: 'nm', text: a.name }), h('span', { class: 'muted small', text: a.cd })))),
-    kit.ult && kit.ult.cd ? h('p', { class: 'small', style: 'margin-top:8px', text: `Ult no rank ${kit.ult.rank}: ${kit.ult.cd} s de recarga (sem aceleração)` }) : null,
+    kit.ult && kit.ult.cd ? h('p', { class: 'small', style: 'margin-top:8px', text: tr('Ult no rank {r}: {cd} s de recarga (sem aceleração)', { r: kit.ult.rank, cd: kit.ult.cd }) }) : null,
     h('p', { class: 'muted small', style: 'margin-top:6px', text: `Fonte: ${kit.source}` }));
 }
 
@@ -412,7 +412,7 @@ function fillOtp() {
             const r = await window.overlay.importOtp(otp.id, idx);
             btn.textContent = r.ok ? t('✓ Importado') : t('Importar');
             btn.classList.toggle('on', r.ok);
-            els.impMsg.textContent = r.ok ? `Build de ${p.riotId.split('#')[0]}: ${r.done.join(', ')} importados.${r.notes && r.notes.length ? ` (${r.notes[0]})` : ''}` : `Não consegui importar: ${r.error}`;
+            els.impMsg.textContent = r.ok ? `${tr('Build de {who}: {what} importados.', { who: p.riotId.split('#')[0], what: r.done.join(', ') })}${r.notes && r.notes.length ? ` (${r.notes[0]})` : ''}` : tr('Não consegui importar: {err}', { err: r.error });
           });
           return btn;
         })(),
@@ -420,7 +420,7 @@ function fillOtp() {
         ...b.spellKeys.map((k) => icon(ddVerImg(`spell/${k}.png`), 'otp-sp', k)),
         ...b.items.slice(0, 6).map((id) => icon(ddVerImg(`item/${id}.png`), 'otp-it', String(id), ''))) : h('span', { class: 'muted small', text: 'sem partida recente com ele' }));
   }) : [h('p', { class: 'muted small', text: d ? (d.error ? `Sem dados: ${d.error}` : 'Buscando os melhores jogadores…') : 'Buscando os melhores jogadores…' })];
-  box.replaceChildren(head(`One-tricks · melhores do ranking${d && d.region ? ` (${String(d.region).toUpperCase()})` : ''} · última build`), ...rows);
+  box.replaceChildren(head(`${tr('One-tricks · melhores do ranking')}${d && d.region ? ` (${String(d.region).toUpperCase()})` : ''} · ${tr('última build')}`), ...rows);
 }
 window.overlay.onOtpUpdated((p) => {
   if (otp.id && p.championId === otp.id) window.overlay.getOtp(otp.id).then((d) => { otp.data = d; fillOtp(); });
@@ -522,7 +522,7 @@ function renderGame(state) {
   const gl = adv.goals;
   $('goals-card').hidden = !gl;
   if (gl) {
-    $('goals-aim').textContent = `ritmo de ${TIER_PT[gl.aimTier] || gl.aimTier} (um elo acima do seu)`;
+    $('goals-aim').textContent = tr('ritmo de {tier} (um elo acima do seu)', { tier: tr(TIER_PT[gl.aimTier] || gl.aimTier) });
     const cell = (label, now, target, ok, extra) => h('div', { class: 'goal' }, h('b', { text: label }), h('span', { class: `goal-v ${ok ? 'up' : 'down'}`, text: String(now) }), h('span', { class: 'muted small', text: `meta ${target}${extra || ''}` }));
     $('goals-body').replaceChildren(...(gl.cs ? [cell(t('CS/min'), gl.cs.now, gl.cs.target, gl.cs.ok, ` · ${gl.cs.diff >= 0 ? '+' : ''}${gl.cs.diff} CS`)] : []), cell(t('Visão/min'), gl.vision.now, gl.vision.target, gl.vision.ok));
   }
@@ -535,16 +535,16 @@ function renderGame(state) {
   const sc = adv.scout || [];
   $('scout').replaceChildren(...(sc.length ? sc.map((x) => {
     const p = x.profile;
-    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''} · ${p.lp} PDL` : p ? 'Sem elo solo' : x.error ? `Sem dados: ${x.error}` : 'Carregando…';
+    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''} · ${p.lp} PDL` : p ? tr('Sem elo solo') : x.error ? tr('Sem dados: {err}', { err: x.error }) : tr('Carregando…');
     const wr = p && p.wins + p.losses ? `${Math.round((p.wins / (p.wins + p.losses)) * 100)}% em ${p.wins + p.losses} jogos` : '';
     const mains = p ? p.champs.slice(0, 3).map((c) => c.name).join(', ') : '';
-    const on = x.onChamp ? `${x.onChamp.games} jogos de ${x.champion} (${Math.round((x.onChamp.wins / x.onChamp.games) * 100)}%)` : p ? `primeira vez de ${x.champion} na temporada?` : '';
+    const on = x.onChamp ? `${tr('{n} jogos de {champ}', { n: x.onChamp.games, champ: x.champion })} (${Math.round((x.onChamp.wins / x.onChamp.games) * 100)}%)` : p ? tr('primeira vez de {champ} na temporada?', { champ: x.champion }) : '';
     return h('div', { class: 'scout' },
       x.championId ? h('img', { class: 'ic', src: champIcon(version, x.championId), alt: '' }) : h('span', { class: 'ic' }),
       h('div', { style: 'min-width:0' },
         h('div', { class: 'nm', text: `${x.who} · ${x.riotId}` }),
         h('div', { class: 'why', text: [rank, wr].filter(Boolean).join(' · ') }),
-        h('div', { class: 'why', text: [on, mains && `mais joga: ${mains}`].filter(Boolean).join(' · ') })),
+        h('div', { class: 'why', text: [on, mains && tr('mais joga: {list}', { list: mains })].filter(Boolean).join(' · ') })),
       h('div', { class: 'scout-r' }, p && p.tier ? rankImg(p.tier) : '', p && p.hot ? h('span', { class: 'hot', text: 'em sequência' }) : ''));
   }) : [h('p', { class: 'muted pad', text: 'Sem oponente de rota ou caçador identificado (ou Riot ID oculto).' })]));
 
@@ -572,7 +572,7 @@ function render(state) {
   shownId = null;
   els.clock.textContent = '';
   if (state.phase === 'error') {
-    els.waitingText.textContent = `Erro ao processar a partida: ${state.reason}`;
+    els.waitingText.textContent = tr('Erro ao processar a partida: {err}', { err: state.reason });
     els.dot.className = 'dot bad';
   } else {
     els.waitingText.textContent = state.client === 'open' ? t('Pronto para a próxima partida') : t('Abra o cliente do LoL');
@@ -604,19 +604,19 @@ const TILT_TONE = { stop: 'bad', pause: 'warn', tired: 'warn', hot: 'ok', ok: ''
 function renderTilt(t, v) {
   $('tilt-card').hidden = !t || t.status === 'none';
   if (!t || t.status === 'none') return;
-  const dots = h('div', { class: 'tilt-dots', title: 'Mais recente à esquerda' }, ...t.recent.map((g) => h('span', { class: `tilt-dot ${g.win ? 'w' : 'l'}`, title: `${g.name || ''} · ${g.win ? 'vitória' : 'derrota'}` },
+  const dots = h('div', { class: 'tilt-dots', title: 'Mais recente à esquerda' }, ...t.recent.map((g) => h('span', { class: `tilt-dot ${g.win ? 'w' : 'l'}`, title: `${g.name || ''} · ${tr(g.win ? 'vitória' : 'derrota')}` },
     v && g.id ? h('img', { src: champIcon(v, g.id), alt: '' }) : null)));
-  const sess = t.session && t.session.games ? h('span', { class: 'muted small', text: `Sessão de hoje: ${t.session.wins}V ${t.session.losses}D` }) : null;
+  const sess = t.session && t.session.games ? h('span', { class: 'muted small', text: tr('Sessão de hoje: {w}V {l}D', { w: t.session.wins, l: t.session.losses }) }) : null;
   const comfort = t.comfort && (t.status === 'stop' || t.status === 'pause' || t.status === 'tired')
     ? h('div', { class: 'tilt-comfort' }, v ? h('img', { src: champIcon(v, t.comfort.id), alt: '' }) : null,
-      h('span', { text: t.comfort.why === 'recent' ? `Conforto: ${t.comfort.name} (${Math.round(t.comfort.winRate * 100)}% em ${t.comfort.games} jogos recentes)` : `Conforto: ${t.comfort.name} (sua maior maestria)` }))
+      h('span', { text: t.comfort.why === 'recent' ? tr('Conforto: {champ} ({p}% em {n} jogos recentes)', { champ: t.comfort.name, p: Math.round(t.comfort.winRate * 100), n: t.comfort.games }) : tr('Conforto: {champ} (sua maior maestria)', { champ: t.comfort.name }) }))
     : null;
   const hours = h('div', { class: 'tilt-hours' }, ...t.hours.map((x) => h('div', { class: `th${t.best && t.best.key === x.key ? ' best' : ''}${t.worst && t.worst.key === x.key ? ' worst' : ''}` },
     h('div', { class: 'th-bar' }, h('div', { class: 'th-fill', style: `height:${x.winRate == null ? 0 : Math.round(8 + 92 * Math.min(1, Math.max(0, (x.winRate - 0.3) / 0.4)))}%` })),
     h('b', { text: x.winRate == null ? '—' : `${Math.round(x.winRate * 100)}%` }),
-    h('span', { class: 'muted small', text: `${x.label} · ${x.games} jogo${x.games === 1 ? '' : 's'}` }))));
-  const hourNote = t.best ? h('p', { class: 'muted small', text: `Melhor horário: ${t.best.label.toLowerCase()} (${Math.round(t.best.winRate * 100)}%)${t.worst ? ` · pior: ${t.worst.label.toLowerCase()} (${Math.round(t.worst.winRate * 100)}%)` : ''}.` })
-    : h('p', { class: 'muted small', text: `Com ${MIN_HOURS} partidas ou mais em cada horário, o app mostra o seu melhor e pior horário.` });
+    h('span', { class: 'muted small', text: tr('{when} · {n} jogos', { when: tr(x.label), n: x.games }) }))));
+  const hourNote = t.best ? h('p', { class: 'muted small', text: `${tr('Melhor horário: {when} ({p}%)', { when: tr(t.best.label).toLowerCase(), p: Math.round(t.best.winRate * 100) })}${t.worst ? ` · ${tr('pior: {when} ({p}%)', { when: tr(t.worst.label).toLowerCase(), p: Math.round(t.worst.winRate * 100) })}` : ''}.` })
+    : h('p', { class: 'muted small', text: tr('Com {n} partidas ou mais em cada horário, o app mostra o seu melhor e pior horário.', { n: MIN_HOURS }) });
   $('tilt-body').replaceChildren(
     h('div', { class: `tilt-status ${TILT_TONE[t.status] || ''}` }, h('b', { text: t.title }), h('span', { text: t.text })),
     h('div', { class: 'tilt-row' }, dots, sess), ...(comfort ? [comfort] : []), hours, hourNote);
@@ -653,7 +653,7 @@ function renderHome(state) {
   $('home-hello').textContent = s && s.gameName ? t('Olá, {name}', { name: s.gameName }) : t('Bem-vindo');
   $('side-name').textContent = s && s.gameName ? s.gameName : t('Invocador');
   const rk = s && s.rank;
-  $('side-sub').textContent = s ? (rk ? `${rk.tier[0]}${rk.tier.slice(1).toLowerCase()} ${rk.division || ''} · ${rk.lp} PDL` : `#${s.tagLine || ''}${s.level ? ` · nível ${s.level}` : ''}`) : state.client === 'open' ? t('Carregando…') : t('Cliente fechado');
+  $('side-sub').textContent = s ? (rk ? `${rk.tier[0]}${rk.tier.slice(1).toLowerCase()} ${rk.division || ''} · ${rk.lp} PDL` : `#${s.tagLine || ''}${s.level ? ` · ${tr('nível {n}', { n: s.level })}` : ''}`) : state.client === 'open' ? t('Carregando…') : t('Cliente fechado');
   const old = document.getElementById('side-rank');
   if (old) old.remove();
   if (rk) $('side-me').append(Object.assign(rankImg(rk.tier, 'rank-img side-rank'), { id: 'side-rank', title: `${rk.wins}V ${rk.losses}D` }));
@@ -696,7 +696,7 @@ function renderHome(state) {
         h('div', { class: 'muted small', text: rk2 ? `${rk2.wins}V ${rk2.losses}D · ${Math.round((rk2.wins / Math.max(1, rk2.wins + rk2.losses)) * 100)}%` : '' }))),
       cell('Hoje', lp ? sign(lp.today) : '—', lp ? (lp.today > 0 ? 'up' : lp.today < 0 ? 'down' : '') : ''),
       cell('7 dias', lp ? sign(lp.week) : '—', lp ? (lp.week > 0 ? 'up' : lp.week < 0 ? 'down' : '') : ''),
-      cell('Sequência', wk && wk.streak ? `${wk.streak.count} ${wk.streak.wins ? 'vitória' : 'derrota'}${wk.streak.count > 1 ? 's' : ''}` : '—', wk && wk.streak ? (wk.streak.wins ? 'up' : 'down') : ''),
+      cell('Sequência', wk && wk.streak ? tr(wk.streak.wins ? '{n} vitória(s)' : '{n} derrota(s)', { n: wk.streak.count }) : '—', wk && wk.streak ? (wk.streak.wins ? 'up' : 'down') : ''),
       cell('Semana', wk ? `${wk.weekWins}V ${wk.weekGames - wk.weekWins}D` : '—'),
       h('div', { class: 'elo-c elo-wide' }, h('b', { text: 'Melhores da semana' }), h('span', { class: 'up', text: wk ? champLine(wk.best) : '—' })),
       h('div', { class: 'elo-c elo-wide' }, h('b', { text: 'Piores da semana' }), h('span', { class: 'down', text: wk ? champLine(wk.worst) : '—' })));
@@ -704,7 +704,7 @@ function renderHome(state) {
 
   const fit = home.fit || [];
   const fitSub = document.querySelector('#home-fit').previousElementSibling.querySelector('.muted');
-  if (fitSub && home.mainRole) fitSub.textContent = `fortes no ${t(ROLE_LABEL[home.mainRole]) || home.mainRole} (sua rota principal) e parecidos com os que você joga lá`;
+  if (fitSub && home.mainRole) fitSub.textContent = tr('fortes no {role} (sua rota principal) e parecidos com os que você joga lá', { role: t(ROLE_LABEL[home.mainRole]) || home.mainRole });
   $('home-fit').replaceChildren(...(fit.length ? fit.map((c) => h('div', { class: 'fit' },
     v ? h('img', { class: 'ic', src: champIcon(v, c.id), alt: '' }) : h('span', { class: 'ic' }),
     h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: c.name }),
@@ -720,7 +720,7 @@ $('home-settings').addEventListener('click', () => els.gear.click());
 /* ---------- importar ---------- */
 
 window.overlay.onAutoImport((r) => {
-  els.impMsg.textContent = r.ok ? `✓ ${r.name}: ${r.done.join(', ')} importados automaticamente.` : `Importação automática de ${r.name} falhou: ${r.error}`;
+  els.impMsg.textContent = r.ok ? `✓ ${tr('{champ}: {what} importados automaticamente.', { champ: r.name, what: r.done.join(', ') })}` : tr('Importação automática de {champ} falhou: {err}', { champ: r.name, err: r.error });
   if (r.ok && r.championId === shownId) {
     imported.runes = true;
     imported.spells = true;
@@ -732,10 +732,10 @@ async function doImport(what) {
   if (!shownId) return;
   els.impMsg.textContent = t('Importando…');
   const res = await window.overlay.importBuild(shownId, what, variant, runePage);
-  els.impMsg.textContent = res.ok ? `Importado: ${res.done.join(' e ')}.` : `Não consegui importar: ${res.error}`;
+  els.impMsg.textContent = res.ok ? tr('Importado: {what}.', { what: res.done.join(', ') }) : tr('Não consegui importar: {err}', { err: res.error });
   if (res.ok) {
     if (res.done.includes('runas')) imported.runes = true;
-    if (res.done.includes('feitiços')) imported.spells = true;
+    if (res.done.includes(t('feitiços'))) imported.spells = true;
     drawGuide();
   }
 }
@@ -766,7 +766,7 @@ function fillOverlayList() {
     cb.checked = en[key] !== false;
     cb.addEventListener('change', async () => { settings = await window.overlay.setSettings({ overlay: { enabled: { [key]: cb.checked } } }); });
     const reset = h('button', { class: 'link', type: 'button', text: 'posição padrão' });
-    reset.addEventListener('click', async () => { settings = await window.overlay.setSettings({ overlay: { panels: { [key]: null } } }); els.setMsg.textContent = `${name}: posição restaurada.`; });
+    reset.addEventListener('click', async () => { settings = await window.overlay.setSettings({ overlay: { panels: { [key]: null } } }); els.setMsg.textContent = tr('{name}: posição restaurada.', { name: t(name) }); });
     const prev = h('iframe', { class: 'ov-prev', src: `overlay.html?preview=${key}&v=${encodeURIComponent(version || '')}`, tabindex: '-1', title: name });
     return h('div', { class: 'ov-item' }, h('div', { class: 'ov-prev-wrap' }, prev),
       h('label', { class: 'ov-text' }, cb, h('div', {}, h('div', { class: 'strong', text: name }), h('div', { class: 'muted small', text: desc }))), reset);
@@ -851,7 +851,7 @@ async function toggleFlashKey() {
   settings = await window.overlay.setSettings({ flashKey: settings.flashKey === 'D' ? 'F' : 'D' });
   imported.spells = false;
   showFlashKey();
-  els.impMsg.textContent = `Flash agora no ${settings.flashKey}. Clique em Importar no Invocador para aplicar.`;
+  els.impMsg.textContent = tr('Flash agora no {k}. Clique em Importar no Invocador para aplicar.', { k: settings.flashKey });
 }
 window.overlay.getSettings().then((s) => { settings = s; showFlashKey(); });
 
@@ -903,7 +903,7 @@ $('update-btn').addEventListener('click', async () => {
 $('set-update-now').addEventListener('click', async () => {
   els.setMsg.textContent = t('Verificando…');
   const u = await window.overlay.checkUpdate();
-  els.setMsg.textContent = u.message || (u.state === 'downloading' ? `Baixando ${u.version}…` : u.state === 'ready' ? t('Atualização pronta.') : t('Verificação concluída.'));
+  els.setMsg.textContent = u.message || (u.state === 'downloading' ? tr('Baixando {v}…', { v: u.version }) : u.state === 'ready' ? t('Atualização pronta.') : t('Verificação concluída.'));
 });
 window.overlay.onUpdate(showUpdate);
 window.overlay.getUpdate().then(showUpdate);
@@ -920,7 +920,7 @@ els.opggAllies.addEventListener('click', () => window.overlay.openMultisearch('a
 els.opggEnemies.addEventListener('click', () => window.overlay.openMultisearch('enemies'));
 
 window.overlay.onState(render);
-window.overlay.onStatus((s) => { els.status.textContent = s.text; });
+window.overlay.onStatus((s) => { els.status.textContent = t(s.text); });
 window.overlay.onGuideUpdated((p) => {
   if (shownId && (p.championId === shownId || p.championId === '*')) window.overlay.getGuide(shownId).then((g) => { guide = g; drawGuide(); });
 });
@@ -960,7 +960,7 @@ function tlTile(r, showRole) {
       h('div', { class: 'tl-wr', text: pc(r.winRate) }),
       h('div', { class: 'tl-sub', text: `Pick ${pc(r.pickRate)} · Ban ${pc(r.banRate)}` })),
     delta ? h('span', { class: `tl-delta ${delta > 0 ? 'up' : 'down'}`, text: `${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}` }) : null);
-  tile.title = `${r.name} · #${r.rank} na rota · ${r.games.toLocaleString('pt-BR')} partidas · KDA ${r.kda} · clique para ver build, counters e sinergias`;
+  tile.title = tr('{champ} · #{rank} na rota · {n} partidas · KDA {kda} · clique para ver build, counters e sinergias', { champ: r.name, rank: r.rank, n: r.games.toLocaleString(), kda: r.kda });
   if (r.id) tile.addEventListener('click', () => openChamp(r.id, r.role));
   return tile;
 }
@@ -968,8 +968,8 @@ function tlTile(r, showRole) {
 function drawTierList() {
   const body = $('tl-body');
   if (!tl || !tl.data) {
-    const msg = tl && tl.error ? `Não consegui carregar: ${tl.error}`
-      : tl && tl.loading ? `Montando a tier list de ${TL_ELO_PT[tlElo]} (${tl.loading} campeões, ~30 s na primeira vez)…`
+    const msg = tl && tl.error ? tr('Não consegui carregar: {err}', { err: tl.error })
+      : tl && tl.loading ? tr('Montando a tier list de {elo} ({n} campeões, ~30 s na primeira vez)…', { elo: t(TL_ELO_PT[tlElo]), n: tl.loading })
         : 'Carregando a tier list do OP.GG…';
     body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: msg })));
     return;
@@ -1076,7 +1076,7 @@ function drawChamp() {
   })) : null;
 
   if (!d || !d.guide) {
-    const msg = d && d.error ? `Sem dados do OP.GG: ${d.error}` : 'Carregando a build do OP.GG…';
+    const msg = d && d.error ? tr('Sem dados do OP.GG: {err}', { err: d.error }) : tr('Carregando a build do OP.GG…');
     box.replaceChildren(top, seg || '', h('section', { class: 'card' }, h('p', { class: 'muted pad', text: msg })));
     return;
   }
@@ -1087,7 +1087,7 @@ function drawChamp() {
   // build: runas | feitiços + itens
   const left = h('div', { class: 'g-sec' });
   if (page && page.runeTree) {
-    left.append(head(`Runas · ${page.view.primaryStyleName} + ${page.view.subStyleName}`),
+    left.append(head(`${tr('Runas')} · ${page.view.primaryStyleName} + ${page.view.subStyleName}`),
       runePageTabs(pages, cv.runePage, (i) => { cv.runePage = i; drawChamp(); }) || '');
     const st = page.stats || {};
     if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
@@ -1101,10 +1101,10 @@ function drawChamp() {
   imp.addEventListener('click', async () => {
     msg.textContent = t('Importando…');
     const res = await window.overlay.importBuild(cv.id, 'both', 0, cv.runePage, cv.role);
-    msg.textContent = res.ok ? `Importado: ${res.done.join(', ')}.` : `Não consegui importar: ${res.error}`;
+    msg.textContent = res.ok ? tr('Importado: {what}.', { what: res.done.join(', ') }) : tr('Não consegui importar: {err}', { err: res.error });
   });
   const buildCard = h('section', { class: 'card' },
-    h('div', { class: 'card-h' }, h('h2', { text: `Build · ${ROLE_NAME[cv.role] || ''}` }), h('span', { class: 'spacer' }), seg || ''),
+    h('div', { class: 'card-h' }, h('h2', { text: `Build · ${t(ROLE_NAME[cv.role] || '')}` }), h('span', { class: 'spacer' }), seg || ''),
     h('div', { class: 'g-grid' }, left, right),
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), drawSkills(g)) : null,
     d.kit ? abilityBlock(d.kit, 'g-full') : null,
@@ -1114,8 +1114,8 @@ function drawChamp() {
   const list = (title, rows, good, empty) => h('section', { class: 'card' },
     h('div', { class: 'card-h' }, h('h2', { text: title })),
     rows && rows.length ? h('div', { class: 'cd-list' }, ...rows.map((c) => champLine(c, cv.role, good))) : h('p', { class: 'muted pad', text: empty }));
-  const synTitle = `Melhores parceiros${d.partner ? ` · ${ROLE_NAME[d.partner]}` : ''}`;
-  const synEmpty = d.synergyError ? `Não consegui carregar: ${d.synergyError}` : d.synergies ? 'Sem amostra suficiente.' : 'Carregando…';
+  const synTitle = `${tr('Melhores parceiros')}${d.partner ? ` · ${t(ROLE_NAME[d.partner])}` : ''}`;
+  const synEmpty = d.synergyError ? tr('Não consegui carregar: {err}', { err: d.synergyError }) : d.synergies ? 'Sem amostra suficiente.' : 'Carregando…';
   const side = h('div', { class: 'cd-side' },
     list('Perde para', d.losesTo, false, 'Sem dados de counters.'),
     list('Ganha de', d.beats, true, 'Sem dados de counters.'),
@@ -1200,7 +1200,7 @@ window.overlay.onMatchesUpdated(() => { if (page === 'history') loadHistory(); }
 function goalsLine(g) {
   if (!g) return null;
   const part = (label, x) => (x ? h('span', { class: x.now >= x.target ? 'up' : 'down', text: `${label} ${x.now} (meta ${x.target}) ${x.now >= x.target ? '✓' : '✗'}` }) : null);
-  return h('div', { class: 'g-sub' }, h('span', { text: `Metas no ritmo de ${TIER_PT[g.aimTier] || g.aimTier}:` }), part('CS/min', g.cs), part('Visão/min', g.vision));
+  return h('div', { class: 'g-sub' }, h('span', { text: tr('Metas no ritmo de {tier}:', { tier: t(TIER_PT[g.aimTier] || g.aimTier) }) }), part('CS/min', g.cs), part('Visão/min', g.vision));
 }
 
 function scoreChart(timeline) {
@@ -1234,8 +1234,8 @@ function gradeBlock(gr) {
       h('div', { class: 'gr-ah' }, h('span', { text: a.label }), h('b', { class: `g-${GRADE_CLS(a.grade)}`, text: a.grade })),
       h('div', { class: 'gr-bar' }, h('div', { class: `g-${GRADE_CLS(a.grade)}`, style: `width:${a.score}%` })),
       h('div', { class: 'muted small', text: a.text })))),
-    gr.focus ? h('div', { class: 'gr-focus' }, h('b', { text: `Foco para a próxima: ${gr.focus.label}` }), h('span', { text: gr.focus.tip })) : null,
-    h('div', { class: 'muted small gr-note', text: `Comparado com o ritmo de ${TIER_PT[gr.aimTier] || gr.aimTier} (um elo acima do seu).` }));
+    gr.focus ? h('div', { class: 'gr-focus' }, h('b', { text: tr('Foco para a próxima: {area}', { area: t(gr.focus.label) }) }), h('span', { text: gr.focus.tip })) : null,
+    h('div', { class: 'muted small gr-note', text: tr('Comparado com o ritmo de {tier} (um elo acima do seu).', { tier: t(TIER_PT[gr.aimTier] || gr.aimTier) }) }));
 }
 
 /** Placar dos 10 jogadores, com barra de dano e itens. */
@@ -1243,7 +1243,7 @@ function scoreboard(detail) {
   const all = detail.teams.flatMap((t) => t.players);
   const maxDmg = Math.max(1, ...all.map((p) => p.stats.damage || 0));
   const team = (t) => h('div', { class: `sb-team ${t.win ? 'win' : 'lose'}` },
-    h('div', { class: 'sb-th' }, h('b', { text: t.win ? 'Vitória' : 'Derrota' }), h('span', { class: 'muted small', text: `${t.kills} abates · ${fmtK(t.gold)} de ouro` })),
+    h('div', { class: 'sb-th' }, h('b', { text: t.win ? 'Vitória' : 'Derrota' }), h('span', { class: 'muted small', text: tr('{k} abates · {g} de ouro', { k: t.kills, g: fmtK(t.gold) }) })),
     ...t.players.map((p) => h('div', { class: `sb-row${p.target ? ' me' : ''}` },
       version && p.id ? h('img', { class: 'ic', src: champIcon(version, p.id), alt: '' }) : h('span', { class: 'ic' }),
       h('div', { class: 'sb-name' }, h('b', { text: p.champion }), h('span', { class: 'muted small', text: (p.name || '').split('#')[0] })),
@@ -1260,7 +1260,7 @@ async function showHistoryItem(it) {
   box.replaceChildren(h('p', { class: 'muted pad', text: 'Carregando a partida no OP.GG…' }));
   const res = await window.overlay.opggReview(it.g.id, it.g.createdAt);
   if (histSel !== it.key) return;
-  if (!res.ok) { box.replaceChildren(h('p', { class: 'muted pad', text: `Não consegui abrir a partida: ${res.error}` })); return; }
+  if (!res.ok) { box.replaceChildren(h('p', { class: 'muted pad', text: tr('Não consegui abrir a partida: {err}', { err: res.error }) })); return; }
   const r = res.review;
   if (!r) { box.replaceChildren(h('p', { class: 'muted pad', text: 'Você não foi encontrado nesta partida.' })); return; }
   const me = r.me; const o = r.opp; const s = me.stats;
@@ -1286,7 +1286,7 @@ async function showHistoryItem(it) {
     goalsLine(r.goals),
     gradeBlock(r.grades),
     h('div', { class: 'h-cols' },
-      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { text: o ? `Você x ${o.champion}` : 'Você' })),
+      h('div', { class: 'h-col' }, h('div', { class: 'lbl' }, h('span', { text: o ? tr('Você x {champ}', { champ: o.champion }) : 'Você' })),
         h('div', { class: 'cmp-row head' }, h('span'), h('span', { class: 'muted small', text: 'você' }), h('span', { class: 'muted small', text: o ? o.champion : '' })),
         cmp('Dano', s.damage, o ? o.stats.damage : 0),
         cmp('Ouro', s.gold, o ? o.stats.gold : 0),
@@ -1299,7 +1299,7 @@ async function showHistoryItem(it) {
         ...(t.mine && t.enemy ? [['Abates', 'kills'], ['Dragões', 'dragons'], ['Barões', 'barons'], ['Torres', 'towers'], ['Vastilarvas', 'grubs'], ['Arautos', 'heralds']]
           .map(([label, key]) => cmp(label, t.mine[key], t.enemy[key], String)) : []),
         h('div', { class: 'lbl', style: 'margin-top:14px' }, h('span', { text: 'Seus itens' })), items(me.items),
-        o ? h('div', { class: 'lbl', style: 'margin-top:12px' }, h('span', { text: `Itens de ${o.champion}` })) : null, o ? items(o.items) : null)),
+        o ? h('div', { class: 'lbl', style: 'margin-top:12px' }, h('span', { text: tr('Itens de {champ}', { champ: o.champion }) })) : null, o ? items(o.items) : null)),
     h('div', { class: 'h-sb' }, h('div', { class: 'lbl' }, h('span', { text: 'Placar da partida' })), scoreboard(res.detail)),
     h('div', { class: 'h-chart' }, it.local ? goldChart(it.local.samples || []) : scoreChart(it.g.me.stats.timeline)),
     h('div', { class: 'h-cols' },
@@ -1329,7 +1329,7 @@ function goldChart(samples) {
   return h('div', {}, svg, h('div', { class: 'legend' },
     h('span', {}, h('i', { style: 'background:#f0587c' }), document.createTextNode('Ouro do time (itens)')),
     h('span', {}, h('i', { style: 'background:#8b8d98' }), document.createTextNode('Sua rota')),
-    h('span', { text: `escala ±${fmtK(maxV)}` })));
+    h('span', { text: tr('escala ±{v}', { v: fmtK(maxV) }) })));
 }
 
 async function showHistory(id) {
@@ -1382,7 +1382,7 @@ async function showWhatsNew(force = false) {
   if (!wn || (!force && !wn.unseen) || (!wn.current && !force)) return;
   const cur = wn.current || wn.history[0];
   if (!cur) return;
-  $('wn-ver').textContent = `Novidades · v${cur.version}`;
+  $('wn-ver').textContent = `${tr('Novidades')} · v${cur.version}`;
   $('wn-title').textContent = cur.title;
   $('wn-items').replaceChildren(...cur.items.map((t) => h('li', { text: t })));
   const old = wn.history.filter((e) => e.version !== cur.version);
@@ -1405,7 +1405,7 @@ async function loadPatchCard(state) {
   const res = await window.overlay.getPatchMine().catch(() => null);
   if (!res || !res.champs || !res.champs.length) { $('patch-card').hidden = true; return; }
   const short = (v) => String(v || '').split('.').slice(0, 2).join('.');
-  $('patch-title').textContent = `Patch ${short(res.patch)} nos seus campeões`;
+  $('patch-title').textContent = tr('Patch {v} nos seus campeões', { v: short(res.patch) });
   $('patch-src').textContent = res.source === 'notes'
     ? 'Notas oficiais da Riot: todas as mudanças, inclusive de dano'
     : 'Data Dragon: recarga, custo, alcance e atributos (mudança só de dano não aparece)';
@@ -1423,14 +1423,14 @@ async function loadPatchCard(state) {
         h('div', { class: 'nm' }, document.createTextNode(c.name),
           h('span', { class: `pv ${c.verdict || 'ajuste'}`, text: c.verdict ? VERD[c.verdict] : 'Alterado' })),
         c.changes.length
-          ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 4).map(line), more > 0 ? h('li', { class: 'more', text: `+${more} mudança${more === 1 ? '' : 's'} nas notas` }) : null)
+          ? h('ul', { class: 'patch-ch' }, ...c.changes.slice(0, 4).map(line), more > 0 ? h('li', { class: 'more', text: tr('+{n} mudança(s) nas notas', { n: more }) }) : null)
           : h('div', { class: 'muted small', text: 'Mexido neste patch, sem números no Data Dragon: provavelmente dano.' })));
     row.addEventListener('click', () => goPage('patches'));
     row.title = 'Abrir as notas do patch';
     return row;
   });
   if (!changed.length) rows.push(h('p', { class: 'muted small pad', text: 'Nenhum dos seus campeões mudou neste patch.' }));
-  if (quiet.length) rows.push(h('p', { class: 'muted small pad', text: `Sem mudanças: ${quiet.map((c) => c.name).join(', ')}${res.mineCount > quiet.length + changed.length ? ' e outros' : ''}.` }));
+  if (quiet.length) rows.push(h('p', { class: 'muted small pad', text: `${tr('Sem mudanças: {list}', { list: quiet.map((c) => c.name).join(', ') })}${res.mineCount > quiet.length + changed.length ? tr(' e outros') : ''}.` }));
   $('patch-body').replaceChildren(...rows);
   $('patch-card').hidden = false;
 }
@@ -1528,7 +1528,7 @@ function drawPatches() {
   if (!n) {
     $('pn-summary').replaceChildren();
     $('pn-toc').replaceChildren();
-    body.replaceChildren(h('section', { class: 'card' }, h('p', { class: 'muted pad', text: pn.loading ? 'Carregando as notas do site da Riot…' : pn.error ? `Não consegui carregar: ${pn.error}` : 'Carregando…' })));
+    body.replaceChildren(h('section', { class: 'card' }, h('p', { class: 'muted pad', text: pn.loading ? 'Carregando as notas do site da Riot…' : pn.error ? tr('Não consegui carregar: {err}', { err: pn.error }) : 'Carregando…' })));
     return;
   }
   const mine = new Set(pn.mine);
@@ -1593,14 +1593,14 @@ const PF_CLASSES = [['all', 'Todas'], ['Fighter', 'Lutadores'], ['Mage', 'Magos'
 const RARITY_CLS = { Suprema: 'ult', Mítica: 'myth', Exaltada: 'myth', Transcendente: 'myth', Lendária: 'leg', Épica: 'epic', Comum: 'com' };
 
 function ago(ts) {
-  if (!ts) return 'nunca';
+  if (!ts) return tr('nunca');
   const d = Math.floor((Date.now() - ts) / 86400000);
-  if (d <= 0) return 'hoje';
-  if (d === 1) return 'ontem';
-  if (d === 2) return 'anteontem';
-  if (d < 30) return `há ${d} dias`;
+  if (d <= 0) return tr('hoje');
+  if (d === 1) return tr('ontem');
+  if (d === 2) return tr('anteontem');
+  if (d < 30) return tr('há {n} dias', { n: d });
   const m = Math.floor(d / 30);
-  if (m < 12) return `há ${m} ${m === 1 ? 'mês' : 'meses'}`;
+  if (m < 12) return tr('há {n} mês(es)', { n: m });
   const y = Math.floor(d / 365);
   return `há ${y} ${y === 1 ? 'ano' : 'anos'}`;
 }
@@ -1634,7 +1634,7 @@ function drawProfile() {
   const d = pf.data;
   const s = d && d.summoner;
   $('pf-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : t('Seu perfil');
-  $('pf-title').textContent = { mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: t('Sua coleção') }[pf.tab];
+  $('pf-title').textContent = t({ mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: 'Sua coleção' }[pf.tab]);
   if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
   if (!d.mastery) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver o perfil.' }))); return; }
   // anima só quando troca de aba ou chegam dados novos (clicar numa bolha não repete a animação)
@@ -1671,9 +1671,9 @@ function drawMasteryTab(d) {
   const stats = h('div', { class: 'pf-stats' },
     pfStat(String(m.score), 'Pontuação de maestria'),
     pfStat(fmtPts(m.total).replace(" mi", " M"), "Pontos totais"),
-    pfStat(`${m.played}`, `Campeões jogados`, `de ${m.champions}`),
+    pfStat(`${m.played}`, 'Campeões jogados', tr('de {n}', { n: m.champions })),
     m.main ? h('div', { class: 'pf-stat main' }, h('img', { class: 'ic', src: champIcon(d.version, m.main.id), alt: '' }),
-      h('div', {}, h('b', { text: m.main.name }), h('span', { text: 'Seu main' }), h('em', { text: `${Math.round(m.main.share * 100)}% dos seus pontos` }))) : null);
+      h('div', {}, h('b', { text: m.main.name }), h('span', { text: 'Seu main' }), h('em', { text: tr('{p}% dos seus pontos', { p: Math.round(m.main.share * 100) }) }))) : null);
 
   // filtros por classe
   const filters = h('div', { class: 'seg' }, ...PF_CLASSES.map(([k, label]) => {
@@ -1686,33 +1686,33 @@ function drawMasteryTab(d) {
   const area = h('div', { class: 'pf-bubbles' });
   area.style.cssText = `height:${H}px`;
   for (const b of packBubbles(rows.slice(0, 70), W, H)) {
-    const el = h('button', { class: `pf-bub${b.row.id === pf.sel ? ' sel' : ''}`, type: 'button', title: `${b.row.name} · nível ${b.row.level} · ${b.row.points.toLocaleString('pt-BR')} pts` });
+    const el = h('button', { class: `pf-bub${b.row.id === pf.sel ? ' sel' : ''}`, type: 'button', title: `${b.row.name} · ${tr('nível {n}', { n: b.row.level })} · ${b.row.points.toLocaleString()} pts` });
     el.style.cssText = `left:${((b.x - b.r) / W) * 100}%;top:${b.y - b.r}px;width:${b.r * 2}px;height:${b.r * 2}px;background-image:url("${champIcon(d.version, b.row.id)}")`;
     if (b.r >= 22) el.append(h('span', { class: 'pf-lv', text: String(b.row.level) }));
     el.addEventListener('click', () => { pf.sel = b.row.id; drawProfile(); });
     area.append(el);
   }
   const left = pfCard(null, h('div', { class: 'pf-toolbar' }, filters), area,
-    h('p', { class: 'muted small pf-hint', text: `Clique numa bolha para ver os detalhes · ${Math.max(0, rows.length - 70)} campeões a mais na lista abaixo` }));
+    h('p', { class: 'muted small pf-hint', text: tr('Clique numa bolha para ver os detalhes · {n} campeões a mais na lista abaixo', { n: Math.max(0, rows.length - 70) }) }));
 
   // painel do campeão selecionado
   const c = m.rows.find((r) => r.id === pf.sel) || m.rows[0];
   const detail = c ? pfCard(null,
     h('div', { class: 'pf-dh' }, h('img', { class: 'pf-dico', src: champIcon(d.version, c.id), alt: '' }),
-      h('div', {}, h('h2', { text: c.name }), h('div', { class: 'muted small', text: `Maestria nível ${c.level}` })),
+      h('div', {}, h('h2', { text: c.name }), h('div', { class: 'muted small', text: tr('Maestria nível {n}', { n: c.level }) })),
       c.grades.length ? h('span', { class: 'pf-grade', text: c.grades[c.grades.length - 1] }) : null),
     h('div', { class: 'pf-kv' },
       h('div', {}, h('span', { text: 'Pontos' }), h('b', { text: c.points.toLocaleString('pt-BR') })),
       h('div', {}, h('span', { text: 'Última partida' }), h('b', { text: ago(c.lastPlayTime) }))),
     h('div', { class: 'pf-prog' },
-      h('div', { class: 'pf-prog-h' }, h('span', { text: `Rumo ao nível ${c.level + 1}` }), h('b', { text: c.untilNext > 0 ? `faltam ${c.untilNext.toLocaleString('pt-BR')}` : 'pronto' })),
+      h('div', { class: 'pf-prog-h' }, h('span', { text: tr('Rumo ao nível {n}', { n: c.level + 1 }) }), h('b', { text: c.untilNext > 0 ? tr('faltam {n}', { n: c.untilNext.toLocaleString() }) : 'pronto' })),
       h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round(c.progress * 100)}%` })),
-      c.daysToNext ? h('div', { class: 'pf-pace', text: `No seu ritmo atual, nível ${c.level + 1} em ~${c.daysToNext} dia${c.daysToNext === 1 ? '' : 's'}` }) : null),
+      c.daysToNext ? h('div', { class: 'pf-pace', text: tr('No seu ritmo atual, nível {n} em ~{d} dia(s)', { n: c.level + 1, d: c.daysToNext }) }) : null),
     c.marksNeeded ? h('div', { class: 'pf-row' }, h('span', { class: 'muted small', text: 'Marcas para subir' }),
       h('span', { class: 'pf-marks' }, ...Array.from({ length: c.marksNeeded }, (_, i) => h('i', { class: i < c.marks ? 'on' : '' })))) : null,
     c.grades.length ? h('div', { class: 'pf-row col' }, h('span', { class: 'muted small', text: 'Notas desta temporada' }),
       h('div', { class: 'pf-grades' }, ...c.grades.map((g) => h('span', { class: 'pf-grade sm', text: g })))) : null,
-    c.milestone ? h('div', { class: 'muted small', text: `Próximo marco: ${c.milestone}` }) : null,
+    c.milestone ? h('div', { class: 'muted small', text: tr('Próximo marco: {m}', { m: c.milestone }) }) : null,
     h('div', { class: 'pf-sep' }),
     h('div', { class: 'pf-ch', text: 'Campeões por nível' }),
     ...m.buckets.map((b) => h('div', { class: 'pf-brow' }, h('span', { text: b.label }), h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round((b.count / Math.max(1, ...m.buckets.map((x) => x.count))) * 100)}%` })), h('b', { text: String(b.count) }))),
@@ -1743,7 +1743,7 @@ function drawMasteryTab(d) {
 function drawStyleTab(d) {
   const st = d.style;
   const stats = h('div', { class: 'pf-stats' },
-    pfStat(String(st.unique), 'Campeões diferentes', `nas suas últimas ${st.recent} partidas`),
+    pfStat(String(st.unique), 'Campeões diferentes', tr('nas suas últimas {n} partidas', { n: st.recent })),
     st.mainIndex ? pfStat(`${Math.round(st.mainIndex.share * 100)}%`, 'Índice de main', st.mainIndex.name) : null,
     pfStat(String(st.srGames), "Partidas no Summoner's Rift", `de ${st.analyzed} lidas`),
     st.winRate != null ? pfStat(`${Math.round(st.winRate * 100)}%`, 'Vitórias', 'últimas partidas') : null);
@@ -1761,13 +1761,13 @@ function drawStyleTab(d) {
   const info = h('div', { class: 'pf-style-info' },
     h('div', { class: 'eyebrow', text: "Seu lugar no Summoner's Rift" }),
     h('h2', { class: 'pf-big', text: st.mainRole ? st.mainRole.label : '—' }),
-    h('p', { class: 'muted', text: st.mainRole ? `${Math.round(st.mainRole.share * 100)}% das suas partidas no Summoner's Rift são de ${st.mainRole.label}. ${Math.round(st.soloShare * 100)}% de tudo o que você joga é Ranqueada Solo/Duo.` : 'Sem partidas suficientes.' }),
+    h('p', { class: 'muted', text: st.mainRole ? tr('{p}% das suas partidas no Summoner\'s Rift são de {role}. {s}% de tudo o que você joga é Ranqueada Solo/Duo.', { p: Math.round(st.mainRole.share * 100), role: t(st.mainRole.label), s: Math.round(st.soloShare * 100) }) : 'Sem partidas suficientes.' }),
     h('div', { class: 'pf-ch', text: 'Classes que você domina' }),
     st.profile ? h('p', { class: 'small', text: `Seu perfil: ${st.profile}` }) : null,
     ...st.classes.map((c) => h('div', { class: 'pf-brow' }, h('span', { text: c.label }), h('div', { class: 'bar' }, h('div', { class: 'bar-fill', style: `width:${Math.round(c.share * 100)}%` })), h('b', { text: `${Math.round(c.share * 100)}%` }))),
     h('div', { class: 'pf-ch', text: 'Modos que mais joga' }),
     h('div', { class: 'chips' }, ...st.modes.slice(0, 5).map((m) => h('span', { class: 'chip', text: `${m.label} · ${m.games}` }))));
-  const pool = pfCard(`Seu leque de campeões (últimas ${st.recent})`, h('div', { class: 'pf-pool' }, ...st.pool.map((p) => h('div', { class: 'pf-pc', title: `${p.name}: ${p.games} partidas` },
+  const pool = pfCard(tr('Seu leque de campeões (últimas {n})', { n: st.recent }), h('div', { class: 'pf-pool' }, ...st.pool.map((p) => h('div', { class: 'pf-pc', title: tr('{champ}: {n} partidas', { champ: p.name, n: p.games }) },
     h('img', { src: champIcon(d.version, p.id), alt: '' }), h('span', { text: String(p.games) })))));
   return [stats, pfCard(null, h('div', { class: 'pf-style' }, map, info)), pool,
     h('p', { class: 'muted small', text: 'O cliente do LoL só guarda as últimas partidas; o app lê as mais recentes a cada abertura.' })];
@@ -1778,7 +1778,7 @@ function drawCollectionTab(d) {
   if (!c) return [pfCard(null, h('p', { class: 'muted pad', text: d.collectionError || 'Coleção indisponível.' }))];
   const pc = (a, b) => `${Math.round((a / Math.max(1, b)) * 100)}%`;
   const stats = h('div', { class: 'pf-stats' },
-    pfStat(`${c.champions.owned}`, 'Campeões', `de ${c.champions.total} · ${pc(c.champions.owned, c.champions.total)}`),
+    pfStat(`${c.champions.owned}`, 'Campeões', `${tr('de {n}', { n: c.champions.total })} · ${pc(c.champions.owned, c.champions.total)}`),
     pfStat(`${c.skins.owned}`, 'Skins', `de ${c.skins.total} · ${pc(c.skins.owned, c.skins.total)}`),
     pfStat(String(c.chromas), 'Cromas'),
     pfStat(String(c.legacy), 'Skins legado'));
@@ -1840,10 +1840,10 @@ function priceTag(p, label) {
   const KIND = { rp: ['rp', 'RP'], me: ['essence', 'Essência Mítica'], gacha: ['gacha', 'Gacha'], legacy: ['lock', 'Legado (fora da loja)'], unknown: ['rp', '—'] };
   const [ico, name] = KIND[p.kind] || KIND.unknown;
   const val = label || (p.kind === 'gacha' ? 'Gacha (Santuário)' : p.kind === 'legacy' ? 'Legado · fora da loja'
-    : p.amount ? `${p.amount.toLocaleString('pt-BR')} ${p.kind === 'rp' ? 'RP' : 'EM'}${p.estimated ? ' (aprox.)' : ''}` : p.kind === 'me' ? 'Essência Mítica' : name);
+    : p.amount ? `${p.amount.toLocaleString()} ${p.kind === 'rp' ? 'RP' : 'EM'}${p.estimated ? t(' (aprox.)') : ''}` : p.kind === 'me' ? 'Essência Mítica' : name);
   if (p.sale && p.amount) {
     // em promoção: preço cheio riscado + preço atual
-    return h('span', { class: `cur cur-${p.kind} on-sale`, title: `${name} · em promoção` },
+    return h('span', { class: `cur cur-${p.kind} on-sale`, title: `${t(name)} · ${tr('em promoção')}` },
       svgIcon(ico, 'ico'), h('s', { text: p.amount.toLocaleString('pt-BR') }), h('span', { text: `${p.sale.toLocaleString('pt-BR')} ${p.kind === 'rp' ? 'RP' : 'EM'}` }));
   }
   return h('span', { class: `cur cur-${p.kind}`, title: name }, svgIcon(ico, 'ico'), h('span', { text: val }));
@@ -1881,10 +1881,10 @@ function skinGallery(d) {
     h('img', { src: loadingUrl(x.champion, x.num), alt: '', loading: 'lazy' }),
     x.owned ? h('span', { class: 'sk-own', text: '✓ sua' }) : null,
     h('div', { class: 'sk-info' }, h('span', { class: `rar ${RARITY_CLS[x.rarity] || ''}`, text: x.rarity }), h('b', { text: x.name }), x.owned ? null : priceTag(x.price))));
-  const more = list.length > f.limit ? h('button', { class: 'btn ghost sk-more', type: 'button', text: `Mostrar mais (${list.length - f.limit} restantes)` }) : null;
+  const more = list.length > f.limit ? h('button', { class: 'btn ghost sk-more', type: 'button', text: tr('Mostrar mais ({n} restantes)', { n: list.length - f.limit }) }) : null;
   if (more) more.addEventListener('click', () => { f.limit += 60; drawProfile(); });
   return pfCard(null,
-    h('div', { class: 'pf-toolbar' }, h('div', { class: 'pf-ch', text: `Todas as skins · você tem ${owned} de ${all.length}` })),
+    h('div', { class: 'pf-toolbar' }, h('div', { class: 'pf-ch', text: tr('Todas as skins · você tem {a} de {b}', { a: owned, b: all.length }) })),
     h('div', { class: 'pf-toolbar sk-filters' }, search,
       sel('sk-own', [['all', 'Todas'], ['yes', 'Tenho'], ['no', 'Não tenho']], f.own, (v) => { f.own = v; }),
       sel('sk-rar', rarities.map((r) => [r, r === 'all' ? 'Toda raridade' : r]), f.rar, (v) => { f.rar = v; }),

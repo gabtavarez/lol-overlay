@@ -2,6 +2,7 @@
  * Curva de força (early / mid / late) por campeão: listas curtas e editáveis em data/power-curve.json,
  * com padrão pelas tags do Data Dragon. 3 = forte, 2 = médio, 1 = fraco.
  */
+const { t: tr } = require('./i18n');
 const curves = require('../data/power-curve.json');
 
 function curveOf(champId, tags = []) {
@@ -22,7 +23,7 @@ function phaseCompare(me, opp) {
   return ['Early', 'Mid', 'Late'].map((label, i) => {
     const d = a[i] - b[i];
     const verdict = d > 0 ? 'mine' : d < 0 ? 'theirs' : 'even';
-    const text = verdict === 'mine' ? `Você mais forte` : verdict === 'theirs' ? `${opp.name} mais forte` : 'Equilibrado';
+    const text = verdict === 'mine' ? tr('Você mais forte') : verdict === 'theirs' ? tr('{champ} mais forte', { champ: opp.name }) : tr('Equilibrado');
     return { phase: i, label, mine: a[i], theirs: b[i], verdict, text };
   });
 }

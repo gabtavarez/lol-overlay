@@ -1,3 +1,4 @@
+const { t: tr } = require('./i18n');
 const { norm } = require('./util');
 
 /**
@@ -69,9 +70,9 @@ function recommendBans({ champSelect, picks, getBuild, dd, meta, settings, tierR
     const banRate = row ? row.banRate || 0 : 0;
     if (!t && tierValue < 0.7 && banRate < 0.15) continue;
     const reasons = [];
-    if (t) reasons.push(`Counter do seu ${[...new Set(t.against)].slice(0, 2).join(' e ')}`);
-    if (tierValue >= 0.7) reasons.push(`Tier ${tier} na sua rota`);
-    if (banRate >= 0.15) reasons.push(`${Math.round(banRate * 100)}% de ban`);
+    if (t) reasons.push(tr('Counter do seu {champs}', { champs: [...new Set(t.against)].slice(0, 2).join(' / ') }));
+    if (tierValue >= 0.7) reasons.push(tr('Tier {tier} na sua rota', { tier }));
+    if (banRate >= 0.15) reasons.push(tr('{p}% de ban', { p: Math.round(banRate * 100) }));
     out.push({
       id: champ.id, key, name: champ.name, reasons,
       score: Math.round(100 * Math.min(1, 0.55 * Math.min(1, t ? t.value : 0) + 0.35 * tierValue + 0.25 * Math.min(1, banRate / 0.4))),

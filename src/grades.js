@@ -3,6 +3,7 @@
  * comparando com o ritmo do elo acima do seu (goals.targetsFor). Cada área traz o porquê
  * e uma dica concreta para a próxima partida quando for a pior.
  */
+const { t: tr } = require('./i18n');
 const { targetsFor } = require('./goals');
 
 const clamp = (x, a = 0, b = 100) => Math.max(a, Math.min(b, x));
@@ -31,12 +32,12 @@ function gradeMatch(stats, ctx) {
   const kda = (stats.kills + stats.assists) / Math.max(1, stats.deaths);
   const kp = ctx.teamKills ? (stats.kills + stats.assists) / ctx.teamKills : null;
   areas.push({ key: 'combat', label: 'Combate', score: clamp(42 + Math.min(kda, 6) * 9 + (kp != null ? (kp - 0.5) * 60 : 0) - Math.max(0, stats.deaths - 6) * 4),
-    text: `KDA ${kda.toFixed(2)}${kp != null ? ` · ${Math.round(kp * 100)}% de participação` : ''}` });
+    text: `KDA ${kda.toFixed(2)}${kp != null ? ` · ${tr('{p}% de participação', { p: Math.round(kp * 100) })}` : ''}` });
   if (!t.mode && (stats.vision != null || stats.wards != null)) {
     const v = stats.vision != null ? stats.vision / min : stats.wards / min;
     const target = stats.vision != null ? t.vision || 0.8 : ctx.role === 'utility' ? 1.1 : 0.45;
     areas.push({ key: 'vision', label: 'Visão', score: clamp(70 + (v / target - 1) * 80),
-      text: stats.vision != null ? `${v.toFixed(2)} de visão/min (meta ${target})` : `${stats.wards} sentinelas (${v.toFixed(2)}/min)` });
+      text: stats.vision != null ? tr('{v} de visão/min (meta {target})', { v: v.toFixed(2), target }) : tr('{n} sentinelas ({v}/min)', { n: stats.wards, v: v.toFixed(2) }) });
   }
   if (ctx.teamDamage && stats.damage != null) {
     const share = stats.damage / ctx.teamDamage;
@@ -56,7 +57,7 @@ function gradeMatch(stats, ctx) {
     overall, grade: letter(overall) + (overall >= 96 ? '+' : ''),
     aimTier: t.aimTier, areas,
     best: [...areas].sort((a, b) => b.score - a.score).filter((a) => a.score >= 64).slice(0, 2),
-    focus: worst && worst.score < 64 ? { label: worst.label, tip: TIPS[worst.key] } : null,
+    focus: worst && worst.score < 64 ? { label: worst.label, tip: tr(TIPS[worst.key]) } : null,
   };
 }
 

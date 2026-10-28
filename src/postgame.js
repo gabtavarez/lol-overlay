@@ -1,3 +1,4 @@
+const { t: tr } = require('./i18n');
 const fs = require('fs');
 const path = require('path');
 const { goldCompare } = require('./goldDiff');
@@ -18,30 +19,30 @@ function analyze(rec) {
   const { kills, deaths, assists, cs } = rec.final;
   const csm = cs / min;
   if (role !== 'utility' && role !== 'jungle') {
-    if (csm >= 7.5) good.push({ title: 'Farm forte', text: `${csm.toFixed(1)} CS/min` });
-    else if (csm < 5.5) bad.push({ title: 'Farm baixo', text: `${csm.toFixed(1)} CS/min: cada onda perdida são ~${Math.round(125)} g` });
+    if (csm >= 7.5) good.push({ title: tr('Farm forte'), text: `${csm.toFixed(1)} CS/min` });
+    else if (csm < 5.5) bad.push({ title: tr('Farm baixo'), text: tr('{csm} CS/min: cada onda perdida são ~125 g', { csm: csm.toFixed(1) }) });
   }
-  if (deaths >= 7) bad.push({ title: 'Muitas mortes', text: `${deaths} mortes: ${Math.round(deaths * 300)} g de abate entregues ao inimigo (aprox.)` });
-  else if (deaths <= 2 && rec.duration > 900) good.push({ title: 'Jogou seguro', text: `só ${deaths} morte${deaths === 1 ? '' : 's'}` });
+  if (deaths >= 7) bad.push({ title: tr('Muitas mortes'), text: tr('{n} mortes: {g} g de abate entregues ao inimigo (aprox.)', { n: deaths, g: Math.round(deaths * 300) }) });
+  else if (deaths <= 2 && rec.duration > 900) good.push({ title: tr('Jogou seguro'), text: tr('só {n} morte(s)', { n: deaths }) });
   if (rec.teamKills > 0) {
     const kp = (kills + assists) / rec.teamKills;
-    if (kp >= 0.6) good.push({ title: 'Presente nas lutas', text: `${Math.round(kp * 100)}% de participação em abates` });
-    else if (kp < 0.35 && role !== 'top') bad.push({ title: 'Pouca participação', text: `${Math.round(kp * 100)}% de participação em abates` });
+    if (kp >= 0.6) good.push({ title: tr('Presente nas lutas'), text: tr('{p}% de participação em abates', { p: Math.round(kp * 100) }) });
+    else if (kp < 0.35 && role !== 'top') bad.push({ title: tr('Pouca participação'), text: tr('{p}% de participação em abates', { p: Math.round(kp * 100) }) });
   }
   const at = (t) => rec.samples.reduce((best, s) => (Math.abs(s.t - t) < Math.abs((best || { t: 1e9 }).t - t) ? s : best), null);
   for (const t of [600, 900]) {
     const s = at(t);
     if (!s || Math.abs(s.t - t) > 60 || s.lane === null) continue;
-    if (s.lane >= 700) good.push({ title: `Rota ganha aos ${t / 60} min`, text: `${k(s.lane)} em itens contra ${rec.opponent || 'o oponente'}` });
-    else if (s.lane <= -700) bad.push({ title: `Rota perdida aos ${t / 60} min`, text: `${k(s.lane)} em itens contra ${rec.opponent || 'o oponente'}` });
+    if (s.lane >= 700) good.push({ title: tr('Rota ganha aos {m} min', { m: t / 60 }), text: tr('{g} em itens contra {champ}', { g: k(s.lane), champ: rec.opponent || tr('o oponente') }) });
+    else if (s.lane <= -700) bad.push({ title: tr('Rota perdida aos {m} min', { m: t / 60 }), text: tr('{g} em itens contra {champ}', { g: k(s.lane), champ: rec.opponent || tr('o oponente') }) });
   }
   const maxTeam = Math.max(0, ...rec.samples.map((s) => s.team));
   const minTeam = Math.min(0, ...rec.samples.map((s) => s.team));
-  if (rec.result === 'Lose' && maxTeam >= 3000) bad.push({ title: 'Throw', text: `o time chegou a ${k(maxTeam)} e perdeu` });
-  if (rec.result === 'Win' && minTeam <= -3000) good.push({ title: 'Virada', text: `o time esteve ${k(minTeam)} e venceu` });
-  if (rec.firstDeath !== null && rec.firstDeath < 300) bad.push({ title: 'Morte cedo', text: `primeira morte aos ${fmtT(rec.firstDeath)}` });
+  if (rec.result === 'Lose' && maxTeam >= 3000) bad.push({ title: tr('Throw'), text: tr('o time chegou a {g} e perdeu', { g: k(maxTeam) }) });
+  if (rec.result === 'Win' && minTeam <= -3000) good.push({ title: tr('Virada'), text: tr('o time esteve {g} e venceu', { g: k(minTeam) }) });
+  if (rec.firstDeath !== null && rec.firstDeath < 300) bad.push({ title: tr('Morte cedo'), text: tr('primeira morte aos {t}', { t: fmtT(rec.firstDeath) }) });
   const wpm = rec.final.wards / min;
-  if (role === 'utility' ? wpm < 1 : wpm < 0.35) bad.push({ title: 'Pouca visão', text: `placar de visão ${rec.final.wards.toFixed ? rec.final.wards.toFixed(0) : rec.final.wards} (${wpm.toFixed(2)}/min)` });
+  if (role === 'utility' ? wpm < 1 : wpm < 0.35) bad.push({ title: tr('Pouca visão'), text: tr('placar de visão {v} ({m}/min)', { v: rec.final.wards.toFixed ? rec.final.wards.toFixed(0) : rec.final.wards, m: wpm.toFixed(2) }) });
   return { good, bad };
 }
 

@@ -1,3 +1,4 @@
+const { t: tr } = require('./i18n');
 const defaultFlags = require('../data/champion-flags.json');
 
 const HEAL_ITEM_TAGS = ['LifeSteal', 'SpellVamp'];
@@ -51,28 +52,28 @@ function recommend(state, flags = defaultFlags) {
     hints.push({
       id: 'antiheal',
       level: 'warn',
-      text: `Corta-cura: ${healChampions.map((e) => e.champion).join(', ')} curam.`,
+      text: tr('Corta-cura: {champs} curam.', { champs: healChampions.map((e) => e.champion).join(', ') }),
     });
   } else if (healSources >= 1) {
     const who = healChampions.length
       ? healChampions[0].champion
       : 'itens de roubo de vida inimigos';
-    hints.push({ id: 'antiheal', level: 'info', text: `Considere corta-cura (${who}).` });
+    hints.push({ id: 'antiheal', level: 'info', text: tr('Considere corta-cura ({champs}).', { champs: who }) });
   }
 
   if (apShare >= 0.6) {
-    hints.push({ id: 'mr', level: 'warn', text: 'Time inimigo majoritariamente AP: priorize RM.' });
+    hints.push({ id: 'mr', level: 'warn', text: tr('Time inimigo majoritariamente AP: priorize RM.') });
   } else if (adShare >= 0.6) {
-    hints.push({ id: 'armor', level: 'warn', text: 'Time inimigo majoritariamente AD: priorize armadura.' });
+    hints.push({ id: 'armor', level: 'warn', text: tr('Time inimigo majoritariamente AD: priorize armadura.') });
   } else {
-    hints.push({ id: 'mixed', level: 'info', text: 'Dano misto: equilibre armadura e RM.' });
+    hints.push({ id: 'mixed', level: 'info', text: tr('Dano misto: equilibre armadura e RM.') });
   }
 
   if (armorItemCount >= 3) {
-    hints.push({ id: 'armorpen', level: 'info', text: 'Inimigos empilhando armadura: considere penetração de armadura.' });
+    hints.push({ id: 'armorpen', level: 'info', text: tr('Inimigos empilhando armadura: considere penetração de armadura.') });
   }
   if (mrItemCount >= 3) {
-    hints.push({ id: 'magicpen', level: 'info', text: 'Inimigos empilhando RM: considere penetração mágica.' });
+    hints.push({ id: 'magicpen', level: 'info', text: tr('Inimigos empilhando RM: considere penetração mágica.') });
   }
 
   for (const e of fed) {
@@ -80,7 +81,7 @@ function recommend(state, flags = defaultFlags) {
     hints.push({
       id: `fed-${e.championId}`,
       level: 'warn',
-      text: `${e.champion} está forte (${s.kills}/${s.deaths}/${s.assists}).`,
+      text: tr('{champ} está forte ({kda}).', { champ: e.champion, kda: `${s.kills}/${s.deaths}/${s.assists}` }),
     });
   }
 

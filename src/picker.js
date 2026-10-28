@@ -1,3 +1,4 @@
+const { t: tr } = require('./i18n');
 const { damageProfile } = require('./recommender');
 const defaultFlags = require('../data/champion-flags.json');
 const { norm, clamp } = require('./util');
@@ -55,7 +56,7 @@ function personalSignal(champ, role, profile, now) {
   const mastery = m ? Math.min(1, Math.log1p(m.points) / Math.log1p(250_000)) : 0;
   let recency = 0;
   if (m) {
-    reasons.push(`Maestria ${m.level} · ${fmtPoints(m.points)}`);
+    reasons.push(tr('Maestria {lvl} · {pts}', { lvl: m.level, pts: fmtPoints(m.points) }));
     const days = (now - m.lastPlayTime) / DAY_MS;
     recency = m.lastPlayTime && days >= 0 ? Math.exp(-days / 60) : 0;
   }
@@ -77,7 +78,7 @@ function metaSignal(champ, role, meta) {
   const raw = lookup(tiers, champ);
   const value = tierValue(raw);
   if (value === null) return { value: OFF_META, reasons: [] };
-  const label = typeof raw === 'string' ? `Tier ${raw.toUpperCase()}` : `Meta ${Math.round(value * 100)}%`;
+  const label = typeof raw === 'string' ? `Tier ${raw.toUpperCase()}` : tr('Meta {p}%', { p: Math.round(value * 100) });
   return { value, reasons: [label] };
 }
 
@@ -97,8 +98,8 @@ function counterSignal(champ, enemies, role, meta) {
     const weight = role && enemy.position === role ? 2 : 1;
     sum += v * weight;
     weightSum += weight;
-    if (v >= 0.3) reasons.push(`Bom contra ${enemy.champion.name}`);
-    else if (v <= -0.3) reasons.push(`Sofre contra ${enemy.champion.name}`);
+    if (v >= 0.3) reasons.push(tr('Bom contra {champ}', { champ: enemy.champion.name }));
+    else if (v <= -0.3) reasons.push(tr('Sofre contra {champ}', { champ: enemy.champion.name }));
   }
   if (!weightSum) return null;
   return { value: (sum / weightSum + 1) / 2, reasons };
@@ -118,7 +119,7 @@ function synergySignal(champ, allies, meta) {
     const v = typeof raw === 'number' ? raw : 0;
     sum += v;
     n += 1;
-    if (v >= 0.3) reasons.push(`Boa dupla com ${a.champion.name}`);
+    if (v >= 0.3) reasons.push(tr('Boa dupla com {champ}', { champ: a.champion.name }));
   }
   if (!n) return null;
   return { value: (sum / n + 1) / 2, reasons };
@@ -149,10 +150,10 @@ function compSignal(champ, team, flags, allies = []) {
     const adShareWith = (team.ad + c.ad) / (team.n + 1);
     value = 1 - Math.min(1, Math.abs(adShareWith - 0.5) * 2);
     // 3 fontes de dano físico: força dano mágico (o inimigo empilharia armadura)
-    if (team.ad >= 2.6 && c.ap >= 0.5) { value = 1; reasons.push('Time já tem 3 fontes AD: dano mágico'); }
+    if (team.ad >= 2.6 && c.ap >= 0.5) { value = 1; reasons.push(tr('Time já tem 3 fontes AD: dano mágico')); }
     else if (team.ad >= 2.6 && c.ad >= 0.6) value *= 0.5;
-    else if (adShareNow >= 0.65 && c.ap >= 0.5) reasons.push('Equilibra o dano (time muito AD)');
-    else if (adShareNow <= 0.35 && c.ad >= 0.5) reasons.push('Equilibra o dano (time muito AP)');
+    else if (adShareNow >= 0.65 && c.ap >= 0.5) reasons.push(tr('Equilibra o dano (time muito AD)'));
+    else if (adShareNow <= 0.35 && c.ad >= 0.5) reasons.push(tr('Equilibra o dano (time muito AP)'));
   }
   // engage no time -> campeões de follow-up / dano em área
   if (engager && (flags.followUp || []).includes(champ.id)) {
@@ -173,11 +174,11 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
   const result = { role, candidates: [], notes: [], signalsUsed: [] };
 
   if (!dd) {
-    result.notes.push('Aguardando os dados do Data Dragon…');
+    result.notes.push(tr('Aguardando os dados do Data Dragon…'));
     return result;
   }
   if (champSelect.spectating) {
-    result.notes.push('Modo espectador: sem sugestões.');
+    result.notes.push(tr('Modo espectador: sem sugestões.'));
     return result;
   }
 
@@ -197,7 +198,7 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
   } else {
     const known = new Set(profile ? [...profile.mastery.keys()] : []);
     pool = pool.filter((c) => known.has(Number(c.key)) || poolIds.has(c.id));
-    result.notes.push('Lista de campeões disponíveis indisponível: usando campeões que você já joga.');
+    result.notes.push(tr('Lista de campeões disponíveis indisponível: usando campeões que você já joga.'));
   }
 
   const taken = new Set(
@@ -221,7 +222,7 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
       );
     });
     if (allowed.length) pool = allowed;
-    else result.notes.push('Sem histórico, pool ou tier list para esta rota: mostrando tudo por maestria.');
+    else result.notes.push(tr('Sem histórico, pool ou tier list para esta rota: mostrando tudo por maestria.'));
   }
 
   // 3) pontuação
@@ -262,7 +263,7 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
     const reasons = [];
     if (poolIds.has(champ.id)) {
       total += cfg.poolBonus;
-      reasons.push('No seu pool');
+      reasons.push(tr('No seu pool'));
     }
     for (const name of ['counter', 'synergy', 'meta', 'comp', 'personal']) {
       if (signals[name]) reasons.push(...signals[name].reasons);
@@ -290,9 +291,9 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
   const hasTiers = Object.values(metaData.tiers || {}).some((o) => Object.keys(o).length);
   const hasCounters = Object.keys(metaData.counters || {}).length > 0;
   if (!hasTiers && !hasCounters) {
-    result.notes.push('Sem dados de meta/counters: usando maestria, histórico e composição.');
+    result.notes.push(tr('Sem dados de meta/counters: usando maestria, histórico e composição.'));
   }
-  if (!profile) result.notes.push('Carregando maestria e histórico…');
+  if (!profile) result.notes.push(tr('Carregando maestria e histórico…'));
   return result;
 }
 

@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+translateDom(document.body); // títulos fixos dos painéis no idioma escolhido
 
 // ?preview=<painel>&v=<patch>: mostra só aquele painel com dados de exemplo (usado nas Configurações para explicar cada overlay).
 const PARAMS = new URLSearchParams(location.search);
@@ -38,10 +39,10 @@ function sampleState(version) {
           { id: 3020, name: 'Sapatos do Feiticeiro', reason: 'Rota sob controle: bota ofensiva do meta · hora de fechar a bota', score: 76, missing: 800, needGold: 0, canBuy: true, parts: ['Botas'] },
           { id: 4645, name: 'Chama Sombria', reason: 'Build do meta · 41% dos jogadores', score: 70, missing: 2900, needGold: 1660, canBuy: false },
         ],
-        recall: 'Você tem 1240 g: volte e compre Sapatos do Feiticeiro.',
+        recall: 'Você tem 1240 g: volte e compre a bota.',
         matchup: { vs: 'Zed', tip: 'Guarde o E para quando ele usar a sombra (W).' }, notes: [],
       },
-      alerts: [{ text: 'Darius fechou Armadura de Espinhos: corta a sua cura' }],
+      alerts: [{ text: 'Darius: corta a sua cura' }],
       gold: { team: { diff: -1100 }, lanes: ['Topo', 'Selva', 'Meio', 'Atirador', 'Suporte'].map((role, i) => ({
         role, ally: { champId: allies[i], gold: golds[i][0], me: i === 2 }, enemy: { champId: enemies[i].championId, gold: golds[i][1] }, diff: golds[i][0] - golds[i][1] })) },
       timers: [{ key: 'dragon', label: 'Dragão', in: 75 }, { key: 'herald', label: 'Arauto', in: 55 }, { key: 'baron', label: 'Barão', in: 355 }],
@@ -105,7 +106,7 @@ function renderCoach(c) {
   const pill = $('coach-pill');
   pill.textContent = c.label;
   pill.className = `c-pill ${c.tone}`;
-  $('coach-head').textContent = c.head;
+  $('coach-head').textContent = t(c.head);
   $('coach-rows').replaceChildren(...(c.rows || []).map((r) => h('div', { class: 'c-row' }, h('b', { text: r.label }), h('span', { text: r.text }))));
 }
 
@@ -116,15 +117,15 @@ function renderInfo(advice, state) {
   if (ph) $('phases').replaceChildren(...ph.map((p) => h('div', { class: `ph ${p.verdict}` }, h('b', { text: p.label }), h('span', { text: p.text }))));
   $('info-vs').textContent = state && state.laneOpponent ? `vs ${state.laneOpponent.champion}` : '';
   const kit = advice.oppKit;
-  const ultLine = kit && kit.ult && kit.ult.cd ? h('div', { class: 'note', text: `Ult de ${kit.champion}: ${kit.ult.cd} s de recarga (rank ${kit.ult.rank})` }) : null;
+  const ultLine = kit && kit.ult && kit.ult.cd ? h('div', { class: 'note', text: t('Ult de {champ}: {cd} s de recarga (rank {rank})', { champ: kit.champion, cd: kit.ult.cd, rank: kit.ult.rank }) }) : null;
   const sc = advice.scout || [];
   $('scout').hidden = !sc.length && !ultLine;
   $('scout').replaceChildren(...(ultLine ? [ultLine] : []), ...sc.map((x) => {
     const p = x.profile;
-    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''}` : p ? 'Sem elo' : x.error || '…';
+    const rank = p && p.tier ? `${p.tier[0]}${p.tier.slice(1).toLowerCase()} ${p.division || ''}` : p ? t('Sem elo') : x.error || '…';
     const wr = p && p.wins + p.losses ? ` · ${Math.round((p.wins / (p.wins + p.losses)) * 100)}%` : '';
-    const on = x.onChamp ? ` · ${x.onChamp.games} jogos de ${x.champion}` : p ? ` · novo de ${x.champion}?` : '';
-    return h('div', { class: 'sc-row' }, h('b', { text: `${x.who}: ${x.champion}` }), h('span', { text: `${rank}${wr}${on}${p && p.hot ? ' · em sequência' : ''}` }));
+    const on = x.onChamp ? ` · ${t('{n} jogos de {champ}', { n: x.onChamp.games, champ: x.champion })}` : p ? ` · ${t('novo de {champ}?', { champ: x.champion })}` : '';
+    return h('div', { class: 'sc-row' }, h('b', { text: `${t(x.who)}: ${x.champion}` }), h('span', { text: `${rank}${wr}${on}${p && p.hot ? ` · ${t('em sequência')}` : ''}` }));
   }));
 }
 
@@ -157,7 +158,7 @@ function renderTimers(state) {
     e.championId && v ? h('img', { class: 't-champ', src: champIcon(v, e.championId), alt: '' }) : h('span', { class: 't-champ' }),
     ...(e.spells || []).map((sp) => {
       const left = (marks.get(`${e.riotId || e.champion}:${sp}`) || 0) - state.gameTime;
-      const b = h('button', { class: `t-spell${left > 0 ? ' down' : ''}`, type: 'button', title: SPELL_NAME[sp] || sp },
+      const b = h('button', { class: `t-spell${left > 0 ? ' down' : ''}`, type: 'button', title: ((lastState && lastState.spellNames) || {})[sp] || t(SPELL_NAME[sp] || sp) },
         v ? h('img', { src: `https://ddragon.leagueoflegends.com/cdn/${v}/img/spell/${sp}.png`, alt: '' }) : h('span'),
         left > 0 ? h('span', { class: 't-left', text: mm(left) }) : null);
       b.addEventListener('click', () => markSpell(e, sp));

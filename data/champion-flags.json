@@ -325,5 +325,26 @@
     "Soraka",
     "Yuumi",
     "Zilean"
-  ]
+  ],
+  "trueDamage": {
+    "_note": "fração aproximada do dano do campeão que é verdadeiro",
+    "Vayne": 0.35,
+    "Fiora": 0.35,
+    "Gwen": 0.3,
+    "Camille": 0.2,
+    "Darius": 0.15,
+    "Garen": 0.2,
+    "Olaf": 0.2,
+    "MasterYi": 0.2,
+    "Pyke": 0.2,
+    "Chogath": 0.1,
+    "Irelia": 0.05,
+    "Trundle": 0.05,
+    "Yorick": 0.05,
+    "KogMaw": 0.1,
+    "Briar": 0.05,
+    "Sett": 0.15,
+    "Kayle": 0.1,
+    "Ambessa": 0.05
+  }
 }

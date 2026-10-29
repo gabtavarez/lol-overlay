@@ -468,8 +468,32 @@ function renderSelect(state) {
     return row;
   }));
 
+  renderDmgComp(state.damageComp);
+  // campeão travado: sai a sugestão de picks e o guia (runas etc.) ocupa a tela; os bans continuam se a fase deles estiver aberta
+  const locked = Boolean(state.me && state.me.locked);
+  $('picks-card').hidden = locked;
+  const leftEmpty = locked && $('bans').hidden;
+  $('select-left').hidden = leftEmpty;
+  $('select-grid').classList.toggle('solo', leftEmpty);
   renderGuide(state, picks);
   showView('select');
+}
+
+/* ---------- composição de dano dos dois times ---------- */
+function renderDmgComp(dc) {
+  $('dmg-comp').hidden = !dc;
+  if (!dc) return;
+  const row = (label, c) => {
+    if (!c) return h('div', { class: 'dmg-row' }, h('b', { text: label }), h('div', { class: 'dmg-bar' }), h('span', { class: 'muted small', text: tr('Aguardando picks…') }));
+    return h('div', { class: 'dmg-row' },
+      h('b', { text: label }),
+      h('div', { class: 'dmg-bar', title: tr('Campeões escolhidos: {n}', { n: c.n }) },
+        h('span', { class: 'dmg-ad', style: `width:${c.ad}%` }), h('span', { class: 'dmg-ap', style: `width:${c.ap}%` }), h('span', { class: 'dmg-tr', style: `width:${c.true}%` })),
+      h('div', { class: 'dmg-vals' },
+        h('span', { class: 'dmg-key ad', text: `AD ${c.ad}%` }), h('span', { class: 'dmg-key ap', text: `AP ${c.ap}%` }), h('span', { class: 'dmg-key tr', text: `${tr('Verdadeiro')} ${c.true}%` })));
+  };
+  $('dmg-body').replaceChildren(row(t('Seu time'), dc.allies), row(t('Inimigos'), dc.enemies),
+    ...(dc.notes || []).map((n) => h('div', { class: 'dmg-note', text: n })));
 }
 
 /* ---------- em partida ---------- */

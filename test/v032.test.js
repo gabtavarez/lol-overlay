@@ -83,3 +83,14 @@ test('novidades: curtas (até 4 itens de até 90 caracteres, título curto)', ()
   }
   assert.equal(log[0].version, require('../package.json').version); // toda versão nova tem novidade
 });
+
+test('composição de dano: % AD/AP/verdadeiro por time e aviso de time quase só AD', () => {
+  const { damageComp } = require('../src/damageComp');
+  const c = (id, tags) => ({ champion: { id, tags } });
+  const out = damageComp({ me: c('Ahri', ['Mage']), allies: [], enemies: [c('Vayne', ['Marksman']), c('Zed', ['Assassin']), c('Darius', ['Fighter']), c('Jinx', ['Marksman'])] });
+  assert.equal(out.allies.ap, 100);
+  assert.equal(out.enemies.ad + out.enemies.ap + out.enemies.true, 100);
+  assert.ok(out.enemies.true > 0);
+  assert.ok(out.notes.some((n) => /AD/.test(n)));
+  assert.equal(damageComp({ me: { champion: null }, allies: [], enemies: [] }), null);
+});

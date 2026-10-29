@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.37.0",
+    "title": "Composição de dano e seleção limpa",
+    "items": [
+      "Champ select: % de dano AD, AP e verdadeiro dos dois times.",
+      "Ao travar o campeão, as sugestões de pick somem e o guia ocupa a tela."
+    ],
+    "en": {
+      "title": "Damage comp and cleaner select",
+      "items": [
+        "Champ select: AD, AP and true damage % for both teams.",
+        "Once you lock in, pick suggestions hide and the guide fills the screen."
+      ]
+    },
+    "es": {
+      "title": "Composición de daño y selección limpia",
+      "items": [
+        "Selección: % de daño AD, AP y verdadero de ambos equipos.",
+        "Al fijar el campeón, las sugerencias se ocultan y la guía ocupa la pantalla."
+      ]
+    }
+  },
+  {
     "version": "0.36.1",
     "title": "Idioma na barra do topo",
     "items": [

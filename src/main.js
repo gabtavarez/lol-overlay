@@ -19,6 +19,7 @@ const { spawn } = require('child_process');
 const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { laneCoach } = require('./coach');
+const { damageComp } = require('./damageComp');
 const i18n = require('./i18n');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit, mainRoleOf } = require('./fit');
@@ -909,6 +910,7 @@ function prefetchInGame(state, me, opp) {
 function decorateLcu(state) {
   const tl = remote.getTierList();
   if (state.phase === 'champselect') {
+    state.damageComp = damageComp(state);
     remote.ensureTierList(() => lcuEngine.tick());
     if (tl) state.enemies = predictRoles(state.enemies || [], roleIndex(tl.data, dd));
     // Pick às cegas: ninguém revelado na sua rota ainda -> destaca quem aguenta qualquer matchup.

@@ -148,9 +148,14 @@
         <span id="enemy-roles" class="muted small"></span>
       </div>
 
-      <div class="select-grid">
-        <div class="col">
-          <section class="card">
+      <section class="card dmg-card" id="dmg-comp" hidden>
+        <div class="card-h"><h2>Composição de dano</h2><span class="muted small">AD · AP · verdadeiro, pelos campeões escolhidos</span></div>
+        <div id="dmg-body" class="dmg-body"></div>
+      </section>
+
+      <div class="select-grid" id="select-grid">
+        <div class="col" id="select-left">
+          <section class="card" id="picks-card">
             <div class="card-h"><h2>Sugestões para você</h2></div>
             <div id="picks" class="list"></div>
             <div id="pickNotes" class="muted small pad notes"></div>

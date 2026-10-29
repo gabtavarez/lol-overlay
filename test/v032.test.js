@@ -94,3 +94,20 @@ test('composição de dano: % AD/AP/verdadeiro por time e aviso de time quase s�
   assert.ok(out.notes.some((n) => /AD/.test(n)));
   assert.equal(damageComp({ me: { champion: null }, allies: [], enemies: [] }), null);
 });
+
+test('plano: desligado libera tudo; ligado exige licença assinada e válida', () => {
+  const crypto = require('crypto');
+  const { createPlan, verifyLicense } = require('../src/plan');
+  assert.equal(createPlan({ paywall: false }).can('laneCoach'), true);
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+  const pub = publicKey.export({ type: 'spki', format: 'pem' });
+  const sign = (p) => { const body = Buffer.from(JSON.stringify(p)).toString('base64url'); return `${body}.${crypto.sign(null, Buffer.from(body), privateKey).toString('base64url')}`; };
+  const good = sign({ email: 'a@b.c', plan: 'pro', exp: Date.now() + 86400e3 });
+  assert.equal(verifyLicense(good, pub).plan, 'pro');
+  assert.equal(verifyLicense(good.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')), pub), null); // assinatura adulterada
+  assert.equal(verifyLicense(sign({ plan: 'pro', exp: Date.now() - 10 * 86400e3 }), pub), null); // vencida
+  const off = createPlan({ paywall: true, publicKey: pub, getLicense: () => '' });
+  assert.equal(off.can('laneCoach'), false);
+  assert.equal(off.can('picks'), true);
+  assert.equal(createPlan({ paywall: true, publicKey: pub, getLicense: () => good }).can('laneCoach'), true);
+});

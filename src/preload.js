@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('overlay', {
   listPatches: (force) => ipcRenderer.invoke('patches:list', force),
   getPatchNote: (version) => ipcRenderer.invoke('patches:note', version),
   openPatch: (version) => ipcRenderer.invoke('patches:open', version),
+  getPlan: () => ipcRenderer.invoke('plan:get'),
   getWhatsNew: () => ipcRenderer.invoke('whatsnew:get'),
   seenWhatsNew: () => ipcRenderer.invoke('whatsnew:seen'),
   getChampDetail: (id, role) => ipcRenderer.invoke('champ:detail', { id, role }),

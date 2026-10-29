@@ -20,6 +20,8 @@ const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { laneCoach } = require('./coach');
 const { damageComp } = require('./damageComp');
+const { createPlan } = require('./plan');
+const plan = createPlan({ getLicense: () => (settings && settings.get().license) || '' }); // assinatura: desligada (tudo liberado)
 const i18n = require('./i18n');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit, mainRoleOf } = require('./fit');
@@ -889,7 +891,7 @@ function decorateLive(state) {
   if (state.gameTime + 30 < spellMarks.at) spellMarks.map = {}; // nova partida
   spellMarks.at = state.gameTime;
   try {
-    state.advice.coach = laneCoach(state, { dd, marks: spellMarks.map, tier: myTier(), role: state.myRole });
+    state.advice.coach = plan.can('laneCoach') ? laneCoach(state, { dd, marks: spellMarks.map, tier: myTier(), role: state.myRole }) : null;
   } catch (err) {
     logger.log(`coach falhou: ${err.message}`);
   }
@@ -1022,6 +1024,7 @@ function registerIpc() {
     const loc = (e) => (e && e[L] ? { version: e.version, title: e[L].title, items: e[L].items } : e); // novidades no idioma do app
     return { version, unseen: seen !== version, current: loc(log.find((e) => e.version === version)) || null, history: log.slice(0, 6).map(loc) };
   });
+  ipcMain.handle('plan:get', () => plan.current());
   ipcMain.handle('whatsnew:seen', () => { settings.update({ lastSeenVersion: app.getVersion() }); return true; });
 
   // Mudanças do patch nos seus campeões (maestria + mais jogados no OP.GG).

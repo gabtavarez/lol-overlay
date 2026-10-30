@@ -6,7 +6,7 @@ function buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills }) {
   if (!champ || !build) return null;
   const item = (id) => {
     const it = dd && dd.item(id);
-    return it ? { id, name: it.name } : null;
+    return it ? { id, name: it.name, gold: (it.gold && it.gold.total) || 0 } : null;
   };
   const list = (ids) => ids.map(item).filter(Boolean);
   const later = list(laterItems(build));

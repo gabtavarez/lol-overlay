@@ -16,7 +16,8 @@ function fromHtml(file) {
 // Literais de interface: toda string entre aspas simples que parece texto (não classe CSS, id, URL ou chave).
 const looksLikeUi = (s) => s.length > 1 && /[A-Za-zÀ-ú]/.test(s)
   && !/^(https?:|#|\.|\/|data:)/.test(s)
-  && !/^[a-z0-9_-]+( [a-z0-9_-]+)*$/.test(s) // classes e ids
+  && !/^[a-z0-9_-]+( [a-zA-Z0-9_-]+)*$/.test(s) // classes e ids
+  && !/^\\[nt]$/.test(s) // \n sozinho
   && !/^[A-Z0-9_]+$/.test(s) // constantes
   && !/^[a-z]+[A-Z]\w*$/.test(s) && !/^[A-Z][a-z]+[A-Z]\w+$/.test(s) // camelCase / chaves do jogo
   && !/\$\{|=>|[<>=]|\(\)/.test(s.replace(/\{\w+\}/g, ''))

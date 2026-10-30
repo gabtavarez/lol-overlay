@@ -369,7 +369,7 @@ function drawGuide() {
   else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
   const right = h('div', { class: 'g-sec' });
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
-  right.append(drawBuild(g));
+  right.append(drawBuildPath(g));
   parts.push(h('div', { class: 'g-grid' }, left, right));
   if (g.skills.length) {
     // ordem em que cada habilidade chega ao nível máximo (5)
@@ -1091,11 +1091,16 @@ function drawTierList() {
   rows.sort(order);
   if (!rows.length) { body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: 'Nenhum campeão encontrado.' }))); return; }
 
+  // Seu pool (estrela na página do campeão) aparece fixo no topo
+  const mine = rows.filter((r) => r.id && inPool(r.id, r.name, r.role));
+  const pinned = mine.length && !q ? h('section', { class: 'tl-group tPool' },
+    h('div', { class: 'tl-rail' }, h('span', { class: 'tl-letter', text: '★' })),
+    h('div', { class: 'tl-grid' }, ...mine.map((r) => tlTile(r, tlRole === 'all')))) : null;
   if (sort !== 'tier') {
-    body.replaceChildren(h('section', { class: 'tl-group' }, h('div', { class: 'tl-grid' }, ...rows.map((r) => tlTile(r, tlRole === 'all')))));
+    body.replaceChildren(...[pinned, h('section', { class: 'tl-group' }, h('div', { class: 'tl-grid' }, ...rows.map((r) => tlTile(r, tlRole === 'all'))))].filter(Boolean));
     return;
   }
-  body.replaceChildren(...TL_TIERS.map(([n, letter]) => {
+  body.replaceChildren(pinned || '', ...TL_TIERS.map(([n, letter]) => {
     const list = rows.filter((r) => Math.min(5, Math.max(1, r.tier)) === n);
     if (!list.length) return null;
     return h('section', { class: `tl-group t${letter}` },
@@ -1154,6 +1159,94 @@ function champLine(c, role, good) {
   return row;
 }
 
+const normName = (x) => String(x || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function inPool(id, name, role) {
+  const list = (settings && settings.picker && settings.picker.pool[role]) || [];
+  return list.some((n) => normName(n) === normName(id) || normName(n) === normName(name));
+}
+/** Estrela: põe/tira o campeão do pool da rota (o mesmo pool das configurações, que dá bônus na sugestão de picks). */
+async function togglePool(id, name, role) {
+  const list = (settings.picker.pool[role] || []).slice();
+  const next = inPool(id, name, role) ? list.filter((n) => normName(n) !== normName(id) && normName(n) !== normName(name)) : [...list, name || id];
+  settings = await window.overlay.setSettings({ picker: { pool: { [role]: next } } });
+  drawChamp();
+}
+
+const VERDICT = { buff: ['Buffado neste patch', 'ok'], nerf: ['Nerfado neste patch', 'bad'], ajuste: ['Ajustado neste patch', 'warn'] };
+function patchLines(p) {
+  return p.changes.map((c) => `${c.what}: ${c.text || `${c.from} → ${c.to}`}`).join('\n');
+}
+function patchChip(p) {
+  const [label, cls] = VERDICT[p.verdict] || VERDICT.ajuste;
+  const el = h('span', { class: `chip ${cls}`, text: `${t(label)} · ${p.patch}` });
+  tipOn(el, t(label), patchLines(p));
+  return el;
+}
+function patchCard(p) {
+  const [label, cls] = VERDICT[p.verdict] || VERDICT.ajuste;
+  return h('section', { class: 'card' },
+    h('div', { class: 'card-h' }, h('h2', { text: `${t('Patch')} ${p.patch}` }), h('span', { class: 'spacer' }), h('span', { class: `chip ${cls}`, text: label })),
+    h('div', { class: 'cd-patch' }, ...p.changes.map((c) => h('div', { class: 'cd-pc' },
+      h('div', { class: 'small strong', text: c.what }),
+      c.text ? h('div', { class: 'muted small', text: c.text })
+        : h('div', { class: 'small' }, h('span', { class: 'muted', text: `${c.from} → ` }), h('span', { class: c.buff === true ? 'up' : c.buff === false ? 'down' : '', text: String(c.to) })))),
+    p.more ? h('div', { class: 'muted small cd-pc', text: tr('+{n} mudanças nas notas do patch', { n: p.more }) } ) : null));
+}
+
+/** Ordem de prioridade das habilidades: "Q › W › E" e o que pegar nos níveis 1–3. */
+function skillPrio(skills) {
+  const seq = skillOrder18(skills);
+  const count = (k, n) => seq.slice(0, n).filter((x) => x === k).length;
+  // a que fecha primeiro (5 pontos) vem antes
+  const done = (k) => { let n = 0; for (let i = 0; i < seq.length; i++) if (seq[i] === k && ++n === 5) return i; return 99; };
+  return { prio: ['Q', 'W', 'E'].sort((a, b) => done(a) - done(b) || count(b, 18) - count(a, 18)), start: seq.slice(0, 3) };
+}
+function skillSummary(skills) {
+  const { prio, start } = skillPrio(skills);
+  const out = h('div', { class: 'sk-sum' });
+  prio.forEach((k, i) => { if (i) out.append(h('span', { class: 'sk-arr', text: '›' })); out.append(h('span', { class: `sk-key s-${k}`, text: k })); });
+  out.append(h('span', { class: 'muted small', text: tr('níveis 1–3: {seq}', { seq: start.join(' · ') }) }));
+  return out;
+}
+
+/** Caminho de compras em linha do tempo: início → itens com custo, e os picos de força (1º e 2º lendário). */
+function drawBuildPath(g) {
+  const items = g.fullBuild;
+  const isBoot = (it) => g.boots.some((b) => b.id === it.id);
+  let legend = 0;
+  const steps = [h('div', { class: 'bp-step' },
+    h('div', { class: 'bp-icons' }, ...g.starterCounts.map((it) => h('div', { class: 'it' },
+      icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name), it.count > 1 ? h('span', { class: 'cnt', text: `x${it.count}` }) : null))),
+    h('span', { class: 'bp-cap', text: 'Início' }))];
+  items.forEach((it) => {
+    const boot = isBoot(it);
+    const spike = !boot && it.gold >= 2200 && ++legend <= 2;
+    const el = h('div', { class: `bp-step${spike ? ' spike' : ''}` },
+      h('div', { class: 'bp-icons' }, icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name)),
+      h('span', { class: 'bp-cap', text: it.gold ? `${it.gold.toLocaleString('pt-BR')} g` : '' }),
+      spike ? h('span', { class: 'bp-spike', text: legend === 1 ? '1º pico' : '2º pico' }) : null);
+    tipOn(el, it.name, spike ? tr('{n}º item lendário: pico de força — bom momento para lutar.', { n: legend }) : boot ? t('Botas') : '');
+    steps.push(h('span', { class: 'bp-arr', text: '›' }), el);
+  });
+  const sit = (g.situational || []).length ? drawBuild({ ...g, starterCounts: [], fullBuild: [] }).lastChild : null;
+  return h('div', { class: 'build' }, h('div', {}, head('Caminho de compras'), h('div', { class: 'bp' }, ...steps)), sit);
+}
+
+/** Build em texto para colar no Discord. */
+function buildText(d, page, role) {
+  const g = d.guide;
+  const lines = [`${d.champion.name} · ${t(ROLE_NAME[role] || role || '')}${d.winRate ? ` · ${(d.winRate * (d.winRate <= 1 ? 100 : 1)).toFixed(1)}% WR` : ''}`];
+  const r = g.runes;
+  if (page && page.view) lines.push(`${t('Runas')}: ${page.view.primaryStyleName} + ${page.view.subStyleName}${page.view.perks && page.view.perks.length ? ` (${page.view.perks.slice(0, 6).map((x) => x.name).join(', ')})` : ''}`);
+  else if (r) lines.push(`${t('Runas')}: ${r.primaryStyleName} + ${r.subStyleName} (${r.perks.slice(0, 6).map((x) => x.name).join(', ')})`);
+  if (g.spells.length) lines.push(`${t('Feitiços')}: ${g.spells.map((x) => x.name).join(' + ')}`);
+  if (g.starterCounts.length) lines.push(`${t('Início')}: ${g.starterCounts.map((x) => (x.count > 1 ? `${x.name} x${x.count}` : x.name)).join(', ')}`);
+  lines.push(`${t('Itens')}: ${g.fullBuild.map((x) => x.name).join(' > ')}`);
+  if (g.skills.length) lines.push(`${t('Habilidades')}: ${skillPrio(g.skills).prio.join(' > ')}`);
+  lines.push(`— LoL Overlay · OP.GG`);
+  return lines.join('\n');
+}
+
 function drawChamp() {
   const box = $('tl-champ');
   const cv = champView;
@@ -1162,14 +1255,31 @@ function drawChamp() {
   const back = h('button', { class: 'btn ghost', type: 'button', text: '← Tier list' });
   back.addEventListener('click', closeChamp);
   const name = d ? d.champion.name : '';
+  const fav = cv.role && inPool(cv.id, name, cv.role);
+  const star = h('button', { class: `cd-star${fav ? ' on' : ''}`, type: 'button', text: fav ? '★' : '☆',
+    title: fav ? 'Tirar do seu pool desta rota' : 'Adicionar ao seu pool desta rota (sobe na sugestão de picks)' });
+  star.addEventListener('click', () => togglePool(cv.id, name, cv.role));
+  if (!cv.role) star.hidden = true;
   const headL = h('div', { class: 'cd-head' },
     version ? h('img', { class: 'cd-ico', src: champIcon(version, cv.id), alt: '' }) : null,
-    h('div', {}, h('div', { class: 'eyebrow', text: d && d.champion.title ? d.champion.title : 'Campeão' }), h('h1', { text: name || cv.id })));
+    h('div', {}, h('div', { class: 'eyebrow', text: d && d.champion.title ? d.champion.title : 'Campeão' }),
+      h('div', { class: 'cd-name' }, h('h1', { text: name || cv.id }), star)));
   const chips = [];
-  if (d && d.tier) chips.push(h('span', { class: 'chip', text: `Tier ${['', 'S', 'A', 'B', 'C', 'D'][d.tier] || d.tier}` }));
-  if (d && d.winRate) chips.push(h('span', { class: 'chip', text: `${(d.winRate * (d.winRate <= 1 ? 100 : 1)).toFixed(1)}% WR` }));
+  const pct = (x) => `${(x * (x <= 1 ? 100 : 1)).toFixed(1)}%`;
+  if (d && d.tier) chips.push(h('span', { class: `chip tier-${d.tier}`, text: `Tier ${['', 'S', 'A', 'B', 'C', 'D'][d.tier] || d.tier}` }));
+  if (d && d.winRate) chips.push(h('span', { class: 'chip', text: `${pct(d.winRate)} WR` }));
+  if (d && d.pickRate) chips.push(h('span', { class: 'chip', text: `${pct(d.pickRate)} pick` }));
+  if (d && d.banRate) chips.push(h('span', { class: 'chip', text: `${pct(d.banRate)} ban` }));
+  if (d && d.rank && d.rankPrev && d.rank !== d.rankPrev) {
+    const up = d.rank < d.rankPrev;
+    chips.push(h('span', { class: `chip ${up ? 'ok' : 'bad'}`, title: tr('Posição na tier list: {now}º (era {prev}º)', { now: d.rank, prev: d.rankPrev }), text: `${up ? '▲' : '▼'} ${Math.abs(d.rank - d.rankPrev)}` }));
+  }
+  if (d && d.patch && d.patch.verdict) chips.push(patchChip(d.patch));
   chips.push(h('span', { class: 'chip', text: 'OP.GG' }));
-  const top = h('div', { class: 'page-head' }, h('div', { class: 'cd-top' }, back, headL), h('div', { class: 'chips' }, ...chips));
+  const splash = h('img', { class: 'cd-splash', src: `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${cv.id}_0.jpg`, alt: '' });
+  splash.addEventListener('error', () => splash.remove());
+  const top = h('div', { class: 'cd-hero' }, splash, h('div', { class: 'cd-hero-in' },
+    h('div', { class: 'cd-top' }, back, headL), h('div', { class: 'chips' }, ...chips)));
 
   const roles = (d && d.roles && d.roles.length ? d.roles : cv.role ? [cv.role] : []);
   const seg = roles.length > 1 ? h('div', { class: 'seg' }, ...roles.map((r) => {
@@ -1198,7 +1308,7 @@ function drawChamp() {
   }
   const right = h('div', { class: 'g-sec' });
   if (g.spells.length) right.append(head('Feitiços'), drawSpells(g), h('div', { style: 'height:22px' }));
-  right.append(drawBuild(g));
+  right.append(drawBuildPath(g));
   const msg = h('span', { class: 'muted small' });
   const imp = h('button', { class: 'btn primary', type: 'button', text: 'Importar runas e feitiços' });
   imp.addEventListener('click', async () => {
@@ -1206,12 +1316,18 @@ function drawChamp() {
     const res = await window.overlay.importBuild(cv.id, 'both', 0, cv.runePage, cv.role);
     msg.textContent = res.ok ? tr('Importado: {what}.', { what: res.done.join(', ') }) : tr('Não consegui importar: {err}', { err: res.error });
   });
+  const copyMsg = h('span', { class: 'muted small' });
+  const copy = h('button', { class: 'btn ghost', type: 'button', text: 'Copiar como texto' });
+  copy.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(buildText(d, page, cv.role)); copyMsg.textContent = t('Copiado.'); } catch { copyMsg.textContent = t('Não consegui copiar.'); }
+    setTimeout(() => { copyMsg.textContent = ''; }, 2500);
+  });
   const buildCard = h('section', { class: 'card' },
     h('div', { class: 'card-h' }, h('h2', { text: `Build · ${t(ROLE_NAME[cv.role] || '')}` }), h('span', { class: 'spacer' }), seg || ''),
     h('div', { class: 'g-grid' }, left, right),
-    g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), drawSkills(g)) : null,
+    g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : null,
     d.kit ? abilityBlock(d.kit, 'g-full') : null,
-    h('div', { class: 'card-f' }, msg, imp));
+    h('div', { class: 'card-f' }, msg, copyMsg, copy, imp));
 
   // counters e sinergias
   const list = (title, rows, good, empty) => h('section', { class: 'card' },
@@ -1220,6 +1336,7 @@ function drawChamp() {
   const synTitle = `${tr('Melhores parceiros')}${d.partner ? ` · ${t(ROLE_NAME[d.partner])}` : ''}`;
   const synEmpty = d.synergyError ? tr('Não consegui carregar: {err}', { err: d.synergyError }) : d.synergies ? 'Sem amostra suficiente.' : 'Carregando…';
   const side = h('div', { class: 'cd-side' },
+    d.patch && d.patch.verdict ? patchCard(d.patch) : null,
     list('Perde para', d.losesTo, false, 'Sem dados de counters.'),
     list('Ganha de', d.beats, true, 'Sem dados de counters.'),
     list(synTitle, d.synergies, true, synEmpty));

@@ -718,9 +718,33 @@ function rolesOf(champ) {
   const out = [];
   for (const [role, rows] of Object.entries(tl.data)) {
     const r = rows.find((x) => { const c = dd.championByRaw(null, x.champion); return c && c.id === champ.id; });
-    if (r) out.push({ role, roleRate: r.roleRate || 0, tier: r.tier });
+    if (r) out.push({ role, roleRate: r.roleRate || 0, tier: r.tier, pickRate: r.pickRate || 0, banRate: r.banRate || 0, rank: r.rank || null, rankPrev: r.rankPrev || null });
   }
   return out.sort((a, b) => b.roleRate - a.roleRate);
+}
+
+/** Mudanças do campeão no patch atual (notas oficiais), em cache por sessão. undefined = ainda buscando. */
+const champPatchCache = new Map();
+async function champPatch(id) {
+  const versions = await patchNotes.list();
+  const minor = shortVer(dd.version).split('.')[1];
+  const v = versions.find((x) => x.split('.')[1] === minor) || versions[0];
+  const note = v && await patchNotes.note(v);
+  if (!note) return null;
+  const e = note.sections.filter((x) => x.kind === 'champions').flatMap((x) => x.entities).find((x) => x.id === id);
+  if (!e) return { patch: note.version, verdict: null, changes: [] };
+  const changes = e.groups.flatMap((g) => g.changes.map((c) => ({
+    what: [g.title, c.label].filter(Boolean).join(' · '),
+    from: c.from != null ? c.from : null, to: c.to != null ? c.to : null, text: c.text || null,
+    buff: c.dir === 'buff' ? true : c.dir === 'nerf' ? false : null,
+  })));
+  return { patch: note.version, verdict: e.verdict, changes: changes.slice(0, 4), more: Math.max(0, changes.length - 4) };
+}
+function champPatchFor(id, notify) {
+  if (champPatchCache.has(id)) return champPatchCache.get(id);
+  champPatchCache.set(id, undefined);
+  champPatch(id).catch(() => null).then((r) => { champPatchCache.set(id, r || null); notify(); });
+  return undefined;
 }
 
 /** Página do campeão: tudo que o OP.GG tem dele numa rota, sem depender do champ select. */
@@ -761,6 +785,9 @@ async function champDetail(id, wanted) {
   return {
     champion: { id: champ.id, name: champ.name, title: champ.title || '' },
     role, roles: roles.map((r) => r.role), partner, tier: tlRow ? tlRow.tier : null,
+    pickRate: tlRow ? tlRow.pickRate : null, banRate: tlRow ? tlRow.banRate : null,
+    rank: tlRow ? tlRow.rank : null, rankPrev: tlRow ? tlRow.rankPrev : null,
+    patch: champPatchFor(champ.id, notify),
     winRate: build ? build.winRate : null,
     error: build ? null : remote.buildError(champ, role),
     guide: build ? { ...buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills }), situational: [] } : null,

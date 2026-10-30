@@ -805,3 +805,32 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .ic-link, .dp-link { cursor: pointer; }
 .ic-link:hover { outline: 2px solid var(--acc); outline-offset: 1px; }
 .dp-link:hover img { outline: 2px solid var(--acc); outline-offset: 1px; }
+
+/* página do campeão v0.40: hero com splash, estrela de pool, caminho de compras, patch */
+.cd-hero { position: relative; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: var(--card); min-height: 118px; }
+.cd-splash { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; opacity: .32; }
+.cd-hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14,15,18,.96) 0%, rgba(14,15,18,.7) 48%, rgba(14,15,18,.25) 100%); }
+.cd-hero-in { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; }
+.cd-name { display: flex; align-items: center; gap: 8px; }
+.cd-star { background: none; border: 0; padding: 0 2px; font-size: 20px; line-height: 1; color: var(--dim); cursor: pointer; }
+.cd-star:hover { color: var(--warn); }
+.cd-star.on { color: var(--warn); }
+.chip.bad { color: var(--bad); border-color: rgba(229,72,77,.35); }
+.chip.tier-1 { color: var(--acc); border-color: rgba(240,88,124,.45); }
+.cd-hero .chip { background: rgba(14,15,18,.55); }
+.bp { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px 4px; }
+.bp-step { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 44px; cursor: default; }
+.bp-icons { display: flex; gap: 4px; }
+.bp-step .it-icon { width: 36px; height: 36px; border-radius: 7px; }
+.bp-step.spike .it-icon { box-shadow: 0 0 0 2px var(--acc); }
+.bp-cap { font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bp-spike { font-size: 10px; color: var(--acc); font-weight: 600; white-space: nowrap; }
+.bp-arr { color: var(--dim); margin-top: 9px; }
+.sk-sum { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.sk-key { width: 26px; height: 26px; border-radius: 6px; display: grid; place-items: center; font-weight: 700; font-size: 12px; background: var(--card2); border: 1px solid var(--line2); }
+.sk-arr { color: var(--dim); }
+.sk-sum .muted { margin-left: 8px; }
+.cd-patch { padding: 4px 0 8px; }
+.cd-pc { padding: 6px 16px; }
+.sk-key.s-Q { color: #9cc7ff; border-color: #31506a; } .sk-key.s-W { color: #c6b4ff; border-color: #4b3f7a; } .sk-key.s-E { color: #8fe0b5; border-color: #2f5e47; }
+.tPool .tl-letter { color: var(--warn); }

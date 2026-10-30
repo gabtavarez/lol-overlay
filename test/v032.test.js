@@ -129,3 +129,11 @@ test('desempenho: cache do OP.GG grava em lote (assíncrono) e descarta entradas
   assert.equal(saved.builds['velho:middle'], undefined);
   assert.equal(Object.keys(saved.builds).length, 2);
 });
+
+test('build: itens do guia trazem o custo em ouro (caminho de compras)', () => {
+  const { buildGuide } = require('../src/guide');
+  const dd = { item: (id) => ({ name: `I${id}`, gold: { total: id === 3020 ? 1100 : 3000 } }) };
+  const g = buildGuide({ champ: { id: 'Ahri', name: 'Ahri' }, role: 'middle', dd, build: { starter: [1056], boots: [3020], core: [6655], later: [], spells: [], skills: [], runes: null } });
+  assert.equal(g.fullBuild.find((x) => x.id === 3020).gold, 1100);
+  assert.equal(g.fullBuild.find((x) => x.id === 6655).gold, 3000);
+});

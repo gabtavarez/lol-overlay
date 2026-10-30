@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.40.0",
+    "title": "Página de build renovada",
+    "items": [
+      "Topo com splash, pick e ban, subida na tier list e selo de buff/nerf do patch.",
+      "Caminho de compras com custo de cada item e os picos de força.",
+      "Estrela põe o campeão no seu pool: fica no topo da tier list.",
+      "Botão para copiar a build como texto e ordem Q › W › E resumida."
+    ],
+    "en": {
+      "title": "Revamped build page",
+      "items": [
+        "Header with splash art, pick and ban, tier list movement and patch buff/nerf badge.",
+        "Build path with each item's cost and power spikes.",
+        "Star adds the champion to your pool: pinned at the top of the tier list.",
+        "Copy the build as text, plus a short Q › W › E skill order."
+      ]
+    },
+    "es": {
+      "title": "Página de build renovada",
+      "items": [
+        "Cabecera con splash, pick y ban, cambio en la tier list y sello de buff/nerf.",
+        "Ruta de compras con el costo de cada objeto y los picos de poder.",
+        "La estrella añade el campeón a tu pool: queda arriba en la tier list.",
+        "Copia la build como texto y orden de habilidades Q › W › E resumido."
+      ]
+    }
+  },
+  {
     "version": "0.39.0",
     "title": "App mais leve e rápido",
     "items": [

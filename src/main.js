@@ -21,6 +21,8 @@ const { phaseCompare } = require('./power');
 const { laneCoach } = require('./coach');
 const { damageComp } = require('./damageComp');
 const { createPlan } = require('./plan');
+// Coach de rota ao vivo: desligado por enquanto (código mantido; true reativa painel, atalho e configuração)
+const COACH_ON = false;
 const plan = createPlan({ getLicense: () => (settings && settings.get().license) || '' }); // assinatura: desligada (tudo liberado)
 const i18n = require('./i18n');
 const { predictRoles, roleIndex } = require('./roles');
@@ -204,7 +206,7 @@ function updateOverlayVisibility() {
   const previewing = Boolean(previewTimer);
   const ov = settings.get().overlay;
   // coach de rota fica sempre na tela em partida; os outros painéis só com TAB (ou modo sempre)
-  const coachPinned = inGame && (ov.enabled || {}).coach !== false && ov.coachPinned !== false;
+  const coachPinned = COACH_ON && inGame && (ov.enabled || {}).coach !== false && ov.coachPinned !== false;
   const full = moveMode || previewing || (inGame && (tabDown || always));
   const show = full || coachPinned;
   if (full !== lastFull) { lastFull = full; send('overlay-full', full); }
@@ -358,7 +360,7 @@ function registerShortcuts() {
   // Ctrl+Shift+1..5: marca o Flash do inimigo n (na ordem do placar) no painel de timers.
   for (let n = 1; n <= 5; n++) globalShortcut.register(`CommandOrControl+Shift+${n}`, () => send('spell-mark', { index: n - 1, spell: 'SummonerFlash' }));
   // Ctrl+Shift+C: liga/desliga o coach de rota.
-  globalShortcut.register('CommandOrControl+Shift+C', () => {
+  if (COACH_ON) globalShortcut.register('CommandOrControl+Shift+C', () => {
     const cur = settings.get().overlay.enabled || {};
     send('settings-changed', settings.update({ overlay: { enabled: { coach: cur.coach === false } } }));
     updateOverlayVisibility();
@@ -891,7 +893,7 @@ function decorateLive(state) {
   if (state.gameTime + 30 < spellMarks.at) spellMarks.map = {}; // nova partida
   spellMarks.at = state.gameTime;
   try {
-    state.advice.coach = plan.can('laneCoach') ? laneCoach(state, { dd, marks: spellMarks.map, tier: myTier(), role: state.myRole }) : null;
+    state.advice.coach = COACH_ON && plan.can('laneCoach') ? laneCoach(state, { dd, marks: spellMarks.map, tier: myTier(), role: state.myRole }) : null;
   } catch (err) {
     logger.log(`coach falhou: ${err.message}`);
   }

@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.38.0",
+    "title": "Ícones clicáveis no champ select",
+    "items": [
+      "Clique no ícone de um campeão (picks, bans ou times) para ver a build.",
+      "Coach de rota ao vivo desligado por enquanto."
+    ],
+    "en": {
+      "title": "Clickable icons in champ select",
+      "items": [
+        "Click a champion icon (picks, bans or teams) to see its build.",
+        "Live lane coach turned off for now."
+      ]
+    },
+    "es": {
+      "title": "Íconos clicables en la selección",
+      "items": [
+        "Haz clic en el ícono de un campeón (picks, bans o equipos) para ver su build.",
+        "Coach de línea en vivo desactivado por ahora."
+      ]
+    }
+  },
+  {
     "version": "0.37.0",
     "title": "Composição de dano e seleção limpa",
     "items": [

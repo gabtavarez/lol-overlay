@@ -21,7 +21,7 @@ const looksLikeUi = (s) => s.length > 1 && /[A-Za-zÀ-ú]/.test(s)
   && !/^[a-z]+[A-Z]\w*$/.test(s) && !/^[A-Z][a-z]+[A-Z]\w+$/.test(s) // camelCase / chaves do jogo
   && !/\$\{|=>|[<>=]|\(\)/.test(s.replace(/\{\w+\}/g, ''))
   && !/^\s*,|\}\)|, h\(/.test(s) && !/^[a-z]{2}-[A-Z]{2}$/.test(s)
-  && !/^[a-z-]+:[^ ]/.test(s) && !/^ [a-z]+$/.test(s) && !/^img\//.test(s) && !/^[MLQCZ][\d .,-]+/.test(s) /* caminho SVG */ && !/#[A-Z0-9]{2,5}/.test(s);
+  && !/^[a-z-]+:[^ ]/.test(s) && !/^ [a-z-]+$/.test(s) && !/^img\//.test(s) && !/^[MLQCZ][\d .,-]+/.test(s) /* caminho SVG */ && !/#[A-Z0-9]{2,5}/.test(s);
 
 function fromJs(file) {
   const src = R(file);

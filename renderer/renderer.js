@@ -51,6 +51,13 @@ function showView(name) {
 
 /* ---------- champ select ---------- */
 
+/** Abre a página do campeão (build, counters, sinergias) a partir de qualquer tela. */
+function goChamp(id, role) {
+  if (!id) return;
+  goPage('tierlist');
+  openChamp(String(id), ['top', 'jungle', 'middle', 'bottom', 'utility'].includes(role) ? role : null);
+}
+
 function slot(p) {
   const champName = p.champion ? p.champion.name : '';
   const known = p.position ? t(ROLE_LABEL[p.position]) : '';
@@ -59,14 +66,20 @@ function slot(p) {
     version && p.champion ? h('img', { src: champIcon(version, p.champion.id), alt: champName }) : h('span', { class: 'ph' }),
     h('span', { class: `dp-role${guess ? ' guess' : ''}` }, (p.position || p.predicted) ? roleImg(p.position || p.predicted, 'dp-ico') : '', document.createTextNode(guess ? '?' : '')));
   const flex = p.flex && p.flex.length ? ` · flex: ${p.flex.map((r) => t(ROLE_LABEL[r])).join('/')}` : '';
+  if (p.champion) { el.classList.add('dp-link'); el.addEventListener('click', () => goChamp(p.champion.id, p.position || p.predicted)); }
   el.title = [champName || t('Escolhendo…'), p.isMe ? t('você') : playerLabel(p), guess ? `${tr('rota prevista ({p}%)', { p: p.confidence })}${flex}` : known].filter(Boolean).join(' · ');
   return el;
 }
 
-function listRow({ rank, id, name, why, score, selected }) {
+function listRow({ rank, id, name, why, score, selected, onIcon }) {
+  const ic = version && id ? h('img', { class: `ic${onIcon ? ' ic-link' : ''}`, src: champIcon(version, id), alt: '' }) : h('span', { class: 'ic' });
+  if (onIcon && version && id) {
+    ic.title = t('Ver build, counters e sinergias');
+    ic.addEventListener('click', (e) => { e.stopPropagation(); onIcon(); }); // o clique na linha continua marcando no cliente
+  }
   return h('div', { class: `row-item${selected ? ' sel' : ''}` },
     h('span', { class: 'rk', text: rank }),
-    version && id ? h('img', { class: 'ic', src: champIcon(version, id), alt: '' }) : h('span', { class: 'ic' }),
+    ic,
     h('div', { style: 'min-width:0' }, h('div', { class: 'nm', text: name }), h('div', { class: 'why', text: why })),
     h('span', { class: 'sc', text: score }));
 }
@@ -81,7 +94,7 @@ async function hoverInClient(id, name, kind) {
 }
 
 function pickCard(c, selected, i = 0) {
-  const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected });
+  const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected, onIcon: () => goChamp(c.id, lastState && lastState.myPosition) });
   card.title = `${c.blind ? `${c.blind.text}\n` : ''}${c.reasons.join(' · ')}\n${tr('Clique para marcar no cliente')}`;
   if (c.blind && c.blind.level !== 'ok') {
     // selo de pick às cegas ao lado do nome
@@ -462,7 +475,7 @@ function renderSelect(state) {
   $('bans').hidden = !bans.length || (state.myBanDone && state.action !== 'ban');
   $('bans').classList.toggle('my-turn', state.action === 'ban');
   $('ban-row').replaceChildren(...bans.map((b, i) => {
-    const row = listRow({ rank: String(i + 1), id: b.id, name: b.name, why: b.reasons.join(' · '), score: String(b.score) });
+    const row = listRow({ rank: String(i + 1), id: b.id, name: b.name, why: b.reasons.join(' · '), score: String(b.score), onIcon: () => goChamp(b.id, state.myPosition) });
     row.title = 'Clique para marcar o ban no cliente';
     row.addEventListener('click', () => hoverInClient(b.id, b.name, 'ban'));
     return row;
@@ -782,7 +795,8 @@ const OVERLAYS = [
   ['timers', 'Timers', 'Dragão, arauto e barão; clique nos feitiços inimigos (ou Ctrl+Shift+1…5) para cronometrar o Flash.'],
   ['kit', 'Habilidades do oponente', 'Recarga de Q/W/E/R do oponente de rota e da ult no nível atual dele.'],
   ['goals', 'Metas da partida', 'CS/min e visão/min no ritmo do elo acima do seu, com quanto falta.'],
-  ['coach', 'Coach de rota', 'O que fazer agora na rota (trocar, all-in, recuar, rotacionar) por nível, itens, vida, caçador, objetivos e o Flash marcado. Ctrl+Shift+C liga/desliga.'],
+  // ['coach', …] fica fora enquanto o coach de rota estiver desligado (COACH_ON em src/main.js)
+  // ['coach', 'Coach de rota', 'O que fazer agora na rota (trocar, all-in, recuar, rotacionar) por nível, itens, vida, caçador, objetivos e o Flash marcado. Ctrl+Shift+C liga/desliga.'],
 ];
 function fillOverlayList() {
   const en = (settings.overlay && settings.overlay.enabled) || {};

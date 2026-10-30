@@ -684,6 +684,7 @@ window.LOCALES.en = {
   "Vel. movimento": "Move speed",
   "Velocidade de ataque": "Attack speed",
   "Velocidade de movimento": "Move speed",
+  "Ver build, counters e sinergias": "See build, counters and synergies",
   "Verdadeiro": "True",
   "Verificando…": "Checking…",
   "Verificar atualização": "Check for update",

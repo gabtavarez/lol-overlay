@@ -684,6 +684,7 @@ window.LOCALES.es = {
   "Vel. movimento": "Vel. de movimiento",
   "Velocidade de ataque": "Velocidad de ataque",
   "Velocidade de movimento": "Velocidad de movimiento",
+  "Ver build, counters e sinergias": "Ver build, counters y sinergias",
   "Verdadeiro": "Verdadero",
   "Verificando…": "Verificando…",
   "Verificar atualização": "Buscar actualización",

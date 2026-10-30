@@ -1,6 +1,6 @@
 {
   "name": "lol-overlay",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "Overlay de itemização ao vivo para League of Legends",
   "author": "Gabriel",
   "main": "src/main.js",
@@ -21,11 +21,22 @@
   "build": {
     "appId": "com.gabriel.loloverlay",
     "productName": "LoL Overlay",
+    "compression": "maximum",
+    "electronLanguages": [
+      "pt-BR",
+      "en-US",
+      "es",
+      "es-419"
+    ],
     "files": [
       "src/**/*",
       "renderer/**/*",
       "data/**/*",
-      "package.json"
+      "package.json",
+      "!**/*.{md,map,ts}",
+      "!**/{test,tests,docs,example,examples}/**",
+      "!node_modules/uiohook-napi/{libuiohook,src}/**",
+      "!node_modules/uiohook-napi/prebuilds/{darwin-arm64,darwin-x64,linux-arm64,linux-loong64,linux-x64,win32-arm64}/**"
     ],
     "directories": {
       "output": "dist",

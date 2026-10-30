@@ -79,13 +79,18 @@ let lastRole = '';
 let liveState = { phase: 'waiting' };
 let lcuState = { phase: 'idle', client: 'closed' };
 let lastState = { phase: 'waiting', client: 'closed' };
+let lastStateSig = '';
 let lastStatus = { text: 'Carregando dados do jogo…', level: 'info' }; // traduzido no renderer
 
 function send(channel, payload) {
   for (const w of [mainWin, overlayWin]) {
-    if (w && !w.isDestroyed()) w.webContents.send(channel, payload);
+    if (!w || w.isDestroyed()) continue;
+    // janela principal minimizada (ex.: durante a partida) não precisa redesenhar; recebe o estado ao voltar
+    if (channel === 'state' && w === mainWin && w.isMinimized()) { mainStale = true; continue; }
+    w.webContents.send(channel, payload);
   }
 }
+let mainStale = false;
 
 function setStatus(text, level = 'info') {
   lastStatus = { text, level };
@@ -100,7 +105,14 @@ function publish() {
   }
   lastState = pickState(liveState, lcuState);
   if (lcuState.phase === 'champselect') lastRole = lcuState.mode || lcuState.myPosition || (MODE_ROLES.includes(lastRole) ? '' : lastRole);
-  send('state', lastState);
+  // Só manda para as janelas quando o estado mudou de fato: evita reconstruir a tela inteira
+  // a cada ciclo do cliente/Live API sem nada novo.
+  let sig = '';
+  try { sig = JSON.stringify(lastState); } catch { sig = String(Date.now()); }
+  if (sig !== lastStateSig) {
+    lastStateSig = sig;
+    send('state', lastState);
+  }
   updateOverlayVisibility();
   updatePresence();
 }
@@ -177,6 +189,7 @@ function createMainWindow() {
   const sendMax = () => send('win:maximized', mainWin.isMaximized());
   mainWin.on('maximize', sendMax);
   mainWin.on('unmaximize', sendMax);
+  mainWin.on('restore', () => { if (mainStale) { mainStale = false; mainWin.webContents.send('state', lastState); } });
 }
 
 function createOverlayWindow() {
@@ -1322,6 +1335,7 @@ app.on('will-quit', () => {
   quitting = true;
   globalShortcut.unregisterAll();
   if (rpc) rpc.stop();
+  if (remote && remote.flushSync) remote.flushSync();
   try { require('uiohook-napi').uIOhook.stop(); } catch { /* hook não iniciado */ }
   if (keyPoller) keyPoller.kill();
   if (liveEngine) liveEngine.stop();

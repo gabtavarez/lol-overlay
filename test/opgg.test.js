@@ -135,6 +135,7 @@ test('remote: busca, cache em disco, merge de counters e tiers, desligado = loca
   assert.equal(m.tiers.middle.yasuo, 'S');
   assert.equal(m.counters.akali.zoe, 1);
   assert.ok(m.counters.akali.irelia < 0);
+  r.flushSync(); // gravação em disco é agrupada
   assert.ok(mk().getBuild({ id: 'Akali' }, 'middle').core.length); // lido do disco
   assert.equal(mk(false).merge(local), local);
 });

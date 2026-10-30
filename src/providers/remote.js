@@ -20,6 +20,9 @@ function readJson(file) {
  * Dados do OP.GG (servidor MCP oficial): tier list por rota, e por campeão+rota
  * runas, feitiços, itens e counters. Cache em disco de 12 h; em falha usa o cache antigo.
  */
+const PRUNE_MS = 7 * 24 * 3600 * 1000;
+const SAVE_DELAY_MS = 1500;
+
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
@@ -28,14 +31,41 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
   const retryAfter = new Map();
   const failures = new Map(); // id -> mensagem do último erro (para a UI não ficar "carregando" pra sempre)
 
-  function save() {
+  // Gravação em disco agrupada e assíncrona: várias atualizações seguidas viram uma escrita só,
+  // fora da thread principal (antes era writeFileSync do cache inteiro a cada resposta).
+  // Entradas com mais de 7 dias são descartadas para o arquivo não crescer sem limite.
+  let saveTimer = null;
+  let writing = false;
+  function prune() {
+    const old = Date.now() - PRUNE_MS;
+    for (const k of Object.keys(cache)) {
+      if (k === 'details' || !cache[k] || typeof cache[k] !== 'object') continue;
+      for (const [key, e] of Object.entries(cache[k])) if (e && e.at && e.at < old) delete cache[k][key];
+    }
+  }
+  async function flush() {
+    saveTimer = null;
+    if (writing) { save(); return; }
+    writing = true;
     try {
-      fs.mkdirSync(cacheDir, { recursive: true });
-      fs.writeFileSync(`${file}.tmp`, JSON.stringify(cache));
-      fs.renameSync(`${file}.tmp`, file);
+      prune();
+      await fs.promises.mkdir(cacheDir, { recursive: true });
+      await fs.promises.writeFile(`${file}.tmp`, JSON.stringify(cache));
+      await fs.promises.rename(`${file}.tmp`, file);
     } catch {
       // sem escrita em disco: fica só em memória
+    } finally {
+      writing = false;
     }
+  }
+  /** Ao fechar o app: grava o que estiver pendente (síncrono, uma vez). */
+  function flushSync() {
+    if (!saveTimer) return;
+    clearTimeout(saveTimer); saveTimer = null;
+    try { prune(); fs.mkdirSync(cacheDir, { recursive: true }); fs.writeFileSync(`${file}.tmp`, JSON.stringify(cache)); fs.renameSync(`${file}.tmp`, file); } catch { /* ignora */ }
+  }
+  function save() {
+    if (!saveTimer) { saveTimer = setTimeout(flush, SAVE_DELAY_MS); if (saveTimer.unref) saveTimer.unref(); }
   }
 
   function refresh(bucket, key, fetcher, onDone, ttl = TTL_MS) {
@@ -122,6 +152,7 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
   const buildKey = (champ, role) => `${norm(champ.id)}:${role || 'none'}${tierArg() && !MODES.includes(role) ? `:${tierArg()}` : ''}`;
 
   return {
+    flushSync,
     /** Tier list ranqueada de todas as rotas, atualizada a cada 3 h (segue o patch atual do OP.GG). */
     ensureTierList: (onDone, force = false) => refresh('tierlist', 'all', () => client.tierList(), onDone, force ? 60 * 1000 : 3 * 3600 * 1000),
     getTierList: () => cache.tierlist.all || null,

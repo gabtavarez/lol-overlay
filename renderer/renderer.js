@@ -798,6 +798,19 @@ const OVERLAYS = [
   // ['coach', …] fica fora enquanto o coach de rota estiver desligado (COACH_ON em src/main.js)
   // ['coach', 'Coach de rota', 'O que fazer agora na rota (trocar, all-in, recuar, rotacionar) por nível, itens, vida, caçador, objetivos e o Flash marcado. Ctrl+Shift+C liga/desliga.'],
 ];
+let prevObs = null;
+function previewObserver() {
+  if (!prevObs) {
+    prevObs = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        e.target.src = e.target.dataset.src;
+        prevObs.unobserve(e.target);
+      }
+    }, { rootMargin: '200px' });
+  }
+  return prevObs;
+}
 function fillOverlayList() {
   const en = (settings.overlay && settings.overlay.enabled) || {};
   $('ov-list').replaceChildren(...OVERLAYS.map(([key, name, desc]) => {
@@ -806,7 +819,10 @@ function fillOverlayList() {
     cb.addEventListener('change', async () => { settings = await window.overlay.setSettings({ overlay: { enabled: { [key]: cb.checked } } }); });
     const reset = h('button', { class: 'link', type: 'button', text: 'posição padrão' });
     reset.addEventListener('click', async () => { settings = await window.overlay.setSettings({ overlay: { panels: { [key]: null } } }); els.setMsg.textContent = tr('{name}: posição restaurada.', { name: t(name) }); });
-    const prev = h('iframe', { class: 'ov-prev', src: `overlay.html?preview=${key}&v=${encodeURIComponent(version || '')}`, tabindex: '-1', title: name });
+    // prévia só carrega quando aparece na tela (antes eram 7 páginas carregadas ao abrir o app)
+    const prev = h('iframe', { class: 'ov-prev', tabindex: '-1', title: name });
+    prev.dataset.src = `overlay.html?preview=${key}&v=${encodeURIComponent(version || '')}`;
+    previewObserver().observe(prev);
     return h('div', { class: 'ov-item' }, h('div', { class: 'ov-prev-wrap' }, prev),
       h('label', { class: 'ov-text' }, cb, h('div', {}, h('div', { class: 'strong', text: name }), h('div', { class: 'muted small', text: desc }))), reset);
   }));

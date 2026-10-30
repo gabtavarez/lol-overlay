@@ -54,6 +54,8 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
   let lastDiscovery = 0;
   let timer = null;
   let busy = false;
+  let pickBanKey = '';
+  let pickBanCache = null;
 
   let profile = null;
   let profileAt = 0;
@@ -142,10 +144,18 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
         .catch(() => null);
     }
 
-    const [pickable, bannable] = await Promise.all([
-      lcuGetJson(creds, '/lol-champ-select/v1/pickable-champion-ids').catch(() => []),
-      lcuGetJson(creds, '/lol-champ-select/v1/bannable-champion-ids').catch(() => []),
-    ]);
+    // pickable/bannable só mudam quando alguém completa uma ação (pick/ban) ou troca a sessão:
+    // busca de novo só nesses casos (antes eram 2 requisições extras a cada ciclo).
+    const doneActions = (session.actions || []).flat().filter((a) => a && a.completed).length;
+    const pbKey = `${session.id}:${doneActions}:${session.timer && session.timer.phase}`;
+    if (pbKey !== pickBanKey || !pickBanCache) {
+      pickBanCache = await Promise.all([
+        lcuGetJson(creds, '/lol-champ-select/v1/pickable-champion-ids').catch(() => []),
+        lcuGetJson(creds, '/lol-champ-select/v1/bannable-champion-ids').catch(() => []),
+      ]);
+      pickBanKey = pbKey;
+    }
+    const [pickable, bannable] = pickBanCache;
     await resolveNames(session);
 
     const dd = getDd();

@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.39.0",
+    "title": "App mais leve e rápido",
+    "items": [
+      "Champ select com menos travadas: menos chamadas ao cliente do LoL.",
+      "Tela só redesenha quando algo muda; menos CPU em partida.",
+      "Cache de builds grava em segundo plano e limpa dados velhos.",
+      "Instalador menor e configurações abrindo mais rápido."
+    ],
+    "en": {
+      "title": "Lighter, faster app",
+      "items": [
+        "Smoother champ select: fewer calls to the League client.",
+        "Screen only redraws when something changes; less CPU in game.",
+        "Build cache saves in the background and clears old data.",
+        "Smaller installer and faster settings page."
+      ]
+    },
+    "es": {
+      "title": "App más ligera y rápida",
+      "items": [
+        "Selección más fluida: menos llamadas al cliente de LoL.",
+        "La pantalla solo se redibuja si algo cambia; menos CPU en partida.",
+        "La caché de builds se guarda en segundo plano y borra datos viejos.",
+        "Instalador más pequeño y ajustes que abren más rápido."
+      ]
+    }
+  },
+  {
     "version": "0.38.0",
     "title": "Ícones clicáveis no champ select",
     "items": [

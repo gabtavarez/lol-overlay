@@ -111,3 +111,19 @@ test('plano: desligado libera tudo; ligado exige licença assinada e válida', (
   assert.equal(off.can('picks'), true);
   assert.equal(createPlan({ paywall: true, publicKey: pub, getLicense: () => good }).can('laneCoach'), true);
 });
+
+test('desempenho: cache do OP.GG grava em lote (assíncrono) e descarta entradas velhas', async () => {
+  const client = { analysis: async () => ({ core: [1], later: [] }) };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ov-'));
+  const file = path.join(dir, 'opgg-cache.json');
+  const old = { builds: { 'velho:middle': { at: Date.now() - 30 * 86400e3, data: { core: [] } } } };
+  fs.writeFileSync(file, JSON.stringify(old));
+  const remote = createRemoteData({ cacheDir: dir, isEnabled: () => true, client });
+  await remote.ensureBuild({ id: 'Ahri', tags: ['Mage'] }, 'middle');
+  await remote.ensureBuild({ id: 'Lux', tags: ['Mage'] }, 'middle');
+  assert.ok(JSON.parse(fs.readFileSync(file, 'utf8')).builds['velho:middle']); // ainda não gravou (agrupado)
+  remote.flushSync();
+  const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+  assert.equal(saved.builds['velho:middle'], undefined);
+  assert.equal(Object.keys(saved.builds).length, 2);
+});

@@ -104,7 +104,9 @@ test('plano: desligado libera tudo; ligado exige licença assinada e válida', (
   const sign = (p) => { const body = Buffer.from(JSON.stringify(p)).toString('base64url'); return `${body}.${crypto.sign(null, Buffer.from(body), privateKey).toString('base64url')}`; };
   const good = sign({ email: 'a@b.c', plan: 'pro', exp: Date.now() + 86400e3 });
   assert.equal(verifyLicense(good, pub).plan, 'pro');
-  assert.equal(verifyLicense(good.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A')), pub), null); // assinatura adulterada
+  const [b, sg] = good.split('.');
+  const bad = Buffer.from(sg, 'base64url'); bad[10] ^= 0xff; // muda um byte de verdade (o último caractere base64 pode ser só preenchimento)
+  assert.equal(verifyLicense(`${b}.${bad.toString('base64url')}`, pub), null); // assinatura adulterada
   assert.equal(verifyLicense(sign({ plan: 'pro', exp: Date.now() - 10 * 86400e3 }), pub), null); // vencida
   const off = createPlan({ paywall: true, publicKey: pub, getLicense: () => '' });
   assert.equal(off.can('laneCoach'), false);

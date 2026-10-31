@@ -1,0 +1,3059 @@
+{
+ "version": "16.21.1",
+ "at": "2026-10-31T23:44:40.736Z",
+ "champions": [
+  {
+   "id": "Aatrox",
+   "name": "Aatrox",
+   "roles": {
+    "top": 85,
+    "jungle": 13
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6692,
+    6610,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ahri",
+   "name": "Ahri",
+   "roles": {
+    "middle": 95
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3118,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Akali",
+   "name": "Akali",
+   "roles": {
+    "middle": 70,
+    "top": 30
+   },
+   "main": "middle",
+   "table": 0.85,
+   "opgg": "AP",
+   "buildAp": 0.88,
+   "core": [
+    3146,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Akshan",
+   "name": "Akshan",
+   "roles": {
+    "middle": 86
+   },
+   "main": "middle",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6676,
+    3031,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Alistar",
+   "name": "Alistar",
+   "roles": {
+    "utility": 99
+   },
+   "main": "utility",
+   "table": 0.9,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3190,
+    3050,
+    3109
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ambessa",
+   "name": "Ambessa",
+   "roles": {
+    "top": 81,
+    "jungle": 13
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6692,
+    3161,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Amumu",
+   "name": "Amumu",
+   "roles": {
+    "jungle": 72,
+    "utility": 27
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    3068,
+    8020
+   ],
+   "issues": []
+  },
+  {
+   "id": "Anivia",
+   "name": "Anivia",
+   "roles": {
+    "middle": 65,
+    "top": 20
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6657,
+    3118,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Annie",
+   "name": "Annie",
+   "roles": {
+    "middle": 82
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3118,
+    3152,
+    4645
+   ],
+   "issues": []
+  },
+  {
+   "id": "Aphelios",
+   "name": "Aphelios",
+   "roles": {
+    "bottom": 99
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6676,
+    3031,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ashe",
+   "name": "Ashe",
+   "roles": {
+    "bottom": 86,
+    "utility": 12
+   },
+   "main": "bottom",
+   "table": 0.05,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    2523,
+    3046,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "AurelionSol",
+   "name": "Aurelion Sol",
+   "roles": {
+    "middle": 63,
+    "bottom": 25
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    3116,
+    6653
+   ],
+   "issues": []
+  },
+  {
+   "id": "Aurora",
+   "name": "Aurora",
+   "roles": {
+    "middle": 80,
+    "top": 17
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    4646,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Azir",
+   "name": "Azir",
+   "roles": {
+    "middle": 89
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 0.94,
+   "core": [
+    3115,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Bard",
+   "name": "Bard",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 0.8,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3742,
+    3190,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Belveth",
+   "name": "Bel'Veth",
+   "roles": {
+    "jungle": 98
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6672,
+    3153,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Blitzcrank",
+   "name": "Blitzcrank",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 0.8,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3190,
+    3050,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Brand",
+   "name": "Brand",
+   "roles": {
+    "utility": 59,
+    "middle": 16
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3116,
+    6653,
+    3165
+   ],
+   "issues": []
+  },
+  {
+   "id": "Braum",
+   "name": "Braum",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 0.8,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3190,
+    3109,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Briar",
+   "name": "Briar",
+   "roles": {
+    "jungle": 89
+   },
+   "main": "jungle",
+   "table": 0.05,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6676,
+    3748,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Caitlyn",
+   "name": "Caitlyn",
+   "roles": {
+    "bottom": 98
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    2523,
+    3031,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Camille",
+   "name": "Camille",
+   "roles": {
+    "top": 78,
+    "utility": 19
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3074,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Cassiopeia",
+   "name": "Cassiopeia",
+   "roles": {
+    "middle": 64
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6657,
+    3040,
+    3116
+   ],
+   "issues": []
+  },
+  {
+   "id": "Chogath",
+   "name": "Cho'Gath",
+   "roles": {
+    "jungle": 60,
+    "top": 32
+   },
+   "main": "jungle",
+   "table": 0.85,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3084,
+    3742,
+    4401
+   ],
+   "issues": []
+  },
+  {
+   "id": "Corki",
+   "name": "Corki",
+   "roles": {
+    "bottom": 75
+   },
+   "main": "bottom",
+   "table": 0.6,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3508,
+    6676,
+    3031
+   ],
+   "issues": [
+    "tabela AP x OP.GG AD",
+    "tabela AP x itens core AD"
+   ]
+  },
+  {
+   "id": "Darius",
+   "name": "Darius",
+   "roles": {
+    "top": 84,
+    "jungle": 14
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3142,
+    3742,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Diana",
+   "name": "Diana",
+   "roles": {
+    "jungle": 48,
+    "middle": 48
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 0.97,
+   "core": [
+    2510,
+    4633,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Draven",
+   "name": "Draven",
+   "roles": {
+    "bottom": 96
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3072,
+    2523,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "DrMundo",
+   "name": "Dr. Mundo",
+   "roles": {
+    "top": 86
+   },
+   "main": "top",
+   "table": 0.4,
+   "opgg": "BOTH",
+   "buildAp": 0,
+   "core": [
+    3083,
+    3084,
+    3748
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ekko",
+   "name": "Ekko",
+   "roles": {
+    "middle": 49,
+    "jungle": 47
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 0.97,
+   "core": [
+    4646,
+    2510,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Elise",
+   "name": "Elise",
+   "roles": {
+    "jungle": 78,
+    "utility": 18
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3100,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Evelynn",
+   "name": "Evelynn",
+   "roles": {
+    "jungle": 96
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    1082,
+    3100,
+    3041,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ezreal",
+   "name": "Ezreal",
+   "roles": {
+    "bottom": 95
+   },
+   "main": "bottom",
+   "table": 0.2,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3070,
+    3078,
+    3042,
+    3161
+   ],
+   "issues": []
+  },
+  {
+   "id": "Fiddlesticks",
+   "name": "Fiddlesticks",
+   "roles": {
+    "jungle": 69
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3118,
+    6653,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Fiora",
+   "name": "Fiora",
+   "roles": {
+    "top": 96
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3074,
+    3078,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Fizz",
+   "name": "Fizz",
+   "roles": {
+    "middle": 85,
+    "jungle": 11
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3100,
+    3157,
+    4645
+   ],
+   "issues": []
+  },
+  {
+   "id": "Galio",
+   "name": "Galio",
+   "roles": {
+    "middle": 77,
+    "utility": 15
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3152,
+    4005,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Gangplank",
+   "name": "Gangplank",
+   "roles": {
+    "top": 92
+   },
+   "main": "top",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3508,
+    6676,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Garen",
+   "name": "Garen",
+   "roles": {
+    "top": 91,
+    "middle": 7
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6631,
+    3046,
+    3033
+   ],
+   "issues": []
+  },
+  {
+   "id": "Gnar",
+   "name": "Gnar",
+   "roles": {
+    "top": 99
+   },
+   "main": "top",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3071,
+    3053
+   ],
+   "issues": []
+  },
+  {
+   "id": "Gragas",
+   "name": "Gragas",
+   "roles": {
+    "top": 62,
+    "jungle": 19,
+    "middle": 13
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6657,
+    3121,
+    4629
+   ],
+   "issues": []
+  },
+  {
+   "id": "Graves",
+   "name": "Graves",
+   "roles": {
+    "jungle": 98
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6697,
+    6676,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Gwen",
+   "name": "Gwen",
+   "roles": {
+    "top": 62,
+    "jungle": 24,
+    "middle": 13
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 0.97,
+   "core": [
+    2510,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Hecarim",
+   "name": "Hecarim",
+   "roles": {
+    "jungle": 100
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3161,
+    6333,
+    2517
+   ],
+   "issues": []
+  },
+  {
+   "id": "Heimerdinger",
+   "name": "Heimerdinger",
+   "roles": {
+    "top": 68
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    6653,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Hwei",
+   "name": "Hwei",
+   "roles": {
+    "middle": 68,
+    "bottom": 18,
+    "utility": 12
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Illaoi",
+   "name": "Illaoi",
+   "roles": {
+    "top": 97
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3071,
+    6662,
+    3053
+   ],
+   "issues": []
+  },
+  {
+   "id": "Irelia",
+   "name": "Irelia",
+   "roles": {
+    "top": 61,
+    "middle": 38
+   },
+   "main": "top",
+   "table": 0.05,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3153,
+    3181,
+    3091
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ivern",
+   "name": "Ivern",
+   "roles": {
+    "jungle": 80
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3107,
+    6617,
+    3504
+   ],
+   "issues": []
+  },
+  {
+   "id": "Janna",
+   "name": "Janna",
+   "roles": {
+    "utility": 99
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6617,
+    3107,
+    2065
+   ],
+   "issues": []
+  },
+  {
+   "id": "JarvanIV",
+   "name": "Jarvan IV",
+   "roles": {
+    "jungle": 93
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6698,
+    6699,
+    2520
+   ],
+   "issues": []
+  },
+  {
+   "id": "Jax",
+   "name": "Jax",
+   "roles": {
+    "top": 85,
+    "jungle": 12
+   },
+   "main": "top",
+   "table": 0.3,
+   "opgg": "BOTH",
+   "buildAp": 0.54,
+   "core": [
+    3078,
+    6610,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Jayce",
+   "name": "Jayce",
+   "roles": {
+    "top": 67,
+    "jungle": 23,
+    "middle": 9
+   },
+   "main": "top",
+   "table": 0.15,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3070,
+    3142,
+    3042,
+    6699
+   ],
+   "issues": []
+  },
+  {
+   "id": "Jhin",
+   "name": "Jhin",
+   "roles": {
+    "bottom": 98
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6697,
+    3046,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Jinx",
+   "name": "Jinx",
+   "roles": {
+    "bottom": 100
+   },
+   "main": "bottom",
+   "table": 0.05,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    2523,
+    3085,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kaisa",
+   "name": "Kai'Sa",
+   "roles": {
+    "bottom": 97
+   },
+   "main": "bottom",
+   "table": 0.35,
+   "opgg": "BOTH",
+   "buildAp": 0.17,
+   "core": [
+    6672,
+    3124,
+    3302
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kalista",
+   "name": "Kalista",
+   "roles": {
+    "bottom": 92
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0.35,
+   "core": [
+    3087,
+    3124,
+    3302
+   ],
+   "issues": []
+  },
+  {
+   "id": "Karma",
+   "name": "Karma",
+   "roles": {
+    "utility": 95
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6620,
+    6617,
+    3107
+   ],
+   "issues": []
+  },
+  {
+   "id": "Karthus",
+   "name": "Karthus",
+   "roles": {
+    "jungle": 59,
+    "bottom": 28
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kassadin",
+   "name": "Kassadin",
+   "roles": {
+    "middle": 94
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6657,
+    3040,
+    3118
+   ],
+   "issues": []
+  },
+  {
+   "id": "Katarina",
+   "name": "Katarina",
+   "roles": {
+    "middle": 85,
+    "bottom": 12
+   },
+   "main": "middle",
+   "table": 0.85,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3100,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kayle",
+   "name": "Kayle",
+   "roles": {
+    "top": 78,
+    "middle": 19
+   },
+   "main": "top",
+   "table": 0.6,
+   "opgg": "AP",
+   "buildAp": 0.91,
+   "core": [
+    3115,
+    2510,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kayn",
+   "name": "Kayn",
+   "roles": {
+    "jungle": 96
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6699,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kennen",
+   "name": "Kennen",
+   "roles": {
+    "top": 80
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3152,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Khazix",
+   "name": "Kha'Zix",
+   "roles": {
+    "jungle": 100
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3179,
+    6699,
+    2520
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kindred",
+   "name": "Kindred",
+   "roles": {
+    "jungle": 97
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6672,
+    6676,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Kled",
+   "name": "Kled",
+   "roles": {
+    "top": 91
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3748,
+    3071,
+    2501
+   ],
+   "issues": []
+  },
+  {
+   "id": "KogMaw",
+   "name": "Kog'Maw",
+   "roles": {
+    "bottom": 71,
+    "middle": 22
+   },
+   "main": "bottom",
+   "table": 0.3,
+   "opgg": "AP",
+   "buildAp": 0.21,
+   "core": [
+    3124,
+    6675,
+    3302
+   ],
+   "issues": [
+    "tabela AD x OP.GG AP"
+   ]
+  },
+  {
+   "id": "KSante",
+   "name": "K'Sante",
+   "roles": {
+    "top": 95
+   },
+   "main": "top",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": null,
+   "core": [
+    6662,
+    2502,
+    6665
+   ],
+   "issues": []
+  },
+  {
+   "id": "Leblanc",
+   "name": "LeBlanc",
+   "roles": {
+    "middle": 84,
+    "utility": 13
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "LeeSin",
+   "name": "Lee Sin",
+   "roles": {
+    "jungle": 96
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6692,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Leona",
+   "name": "Leona",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3190,
+    3109,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Lillia",
+   "name": "Lillia",
+   "roles": {
+    "jungle": 99
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    4633,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Lissandra",
+   "name": "Lissandra",
+   "roles": {
+    "middle": 87,
+    "top": 8
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3118,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Locke",
+   "name": "Locke",
+   "roles": {
+    "middle": 84,
+    "jungle": 11
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3100,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Lucian",
+   "name": "Lucian",
+   "roles": {
+    "bottom": 93
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3508,
+    6675,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Lulu",
+   "name": "Lulu",
+   "roles": {
+    "utility": 99
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3504,
+    6617,
+    2065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Lux",
+   "name": "Lux",
+   "roles": {
+    "utility": 57,
+    "middle": 35,
+    "bottom": 8
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4646,
+    4645
+   ],
+   "issues": []
+  },
+  {
+   "id": "Malphite",
+   "name": "Malphite",
+   "roles": {
+    "top": 78,
+    "jungle": 9,
+    "middle": 9
+   },
+   "main": "top",
+   "table": 0.85,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3068,
+    3075,
+    3110
+   ],
+   "issues": []
+  },
+  {
+   "id": "Malzahar",
+   "name": "Malzahar",
+   "roles": {
+    "middle": 86,
+    "top": 9
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    6653,
+    3116
+   ],
+   "issues": []
+  },
+  {
+   "id": "Maokai",
+   "name": "Maokai",
+   "roles": {
+    "utility": 65
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3190,
+    2524,
+    3075
+   ],
+   "issues": []
+  },
+  {
+   "id": "MasterYi",
+   "name": "Master Yi",
+   "roles": {
+    "jungle": 88,
+    "top": 8
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6672,
+    6676,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Mel",
+   "name": "Mel",
+   "roles": {
+    "middle": 62,
+    "bottom": 19,
+    "utility": 18
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Milio",
+   "name": "Milio",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6620,
+    6617,
+    3504
+   ],
+   "issues": []
+  },
+  {
+   "id": "MissFortune",
+   "name": "Miss Fortune",
+   "roles": {
+    "bottom": 94
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3072,
+    6676,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "MonkeyKing",
+   "name": "Wukong",
+   "roles": {
+    "jungle": 85,
+    "top": 12
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Mordekaiser",
+   "name": "Mordekaiser",
+   "roles": {
+    "top": 91
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3116,
+    4633,
+    6653
+   ],
+   "issues": []
+  },
+  {
+   "id": "Morgana",
+   "name": "Morgana",
+   "roles": {
+    "utility": 85
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    3157,
+    3116
+   ],
+   "issues": []
+  },
+  {
+   "id": "Naafiri",
+   "name": "Naafiri",
+   "roles": {
+    "jungle": 71,
+    "middle": 19
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6699,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nami",
+   "name": "Nami",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6620,
+    6617,
+    3504
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nasus",
+   "name": "Nasus",
+   "roles": {
+    "top": 82,
+    "middle": 14
+   },
+   "main": "top",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3110,
+    3065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nautilus",
+   "name": "Nautilus",
+   "roles": {
+    "utility": 98
+   },
+   "main": "utility",
+   "table": 0.85,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3190,
+    3109,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Neeko",
+   "name": "Neeko",
+   "roles": {
+    "utility": 78
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3152,
+    3157,
+    4646
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nidalee",
+   "name": "Nidalee",
+   "roles": {
+    "jungle": 90
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3100,
+    3152,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nilah",
+   "name": "Nilah",
+   "roles": {
+    "bottom": 99
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6676,
+    3031,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nocturne",
+   "name": "Nocturne",
+   "roles": {
+    "jungle": 97
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6698,
+    6696,
+    6699
+   ],
+   "issues": []
+  },
+  {
+   "id": "Nunu",
+   "name": "Nunu & Willump",
+   "roles": {
+    "jungle": 81
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    3742,
+    3065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Olaf",
+   "name": "Olaf",
+   "roles": {
+    "top": 86
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6631,
+    3073,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Orianna",
+   "name": "Orianna",
+   "roles": {
+    "middle": 96
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ornn",
+   "name": "Ornn",
+   "roles": {
+    "top": 96
+   },
+   "main": "top",
+   "table": 0.6,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3068,
+    3075,
+    6665
+   ],
+   "issues": []
+  },
+  {
+   "id": "Pantheon",
+   "name": "Pantheon",
+   "roles": {
+    "top": 43,
+    "utility": 36,
+    "middle": 11,
+    "jungle": 10
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3134,
+    2520,
+    6699,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Poppy",
+   "name": "Poppy",
+   "roles": {
+    "utility": 56,
+    "top": 30
+   },
+   "main": "utility",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": null,
+   "core": [
+    3742,
+    3190,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Pyke",
+   "name": "Pyke",
+   "roles": {
+    "utility": 99
+   },
+   "main": "utility",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3179,
+    3142,
+    3814
+   ],
+   "issues": []
+  },
+  {
+   "id": "Qiyana",
+   "name": "Qiyana",
+   "roles": {
+    "jungle": 70,
+    "middle": 25
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6699,
+    2520,
+    3814
+   ],
+   "issues": []
+  },
+  {
+   "id": "Quinn",
+   "name": "Quinn",
+   "roles": {
+    "jungle": 49,
+    "top": 37
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6697,
+    6676,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Rakan",
+   "name": "Rakan",
+   "roles": {
+    "utility": 99
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3050,
+    3190,
+    3109
+   ],
+   "issues": []
+  },
+  {
+   "id": "Rammus",
+   "name": "Rammus",
+   "roles": {
+    "jungle": 91
+   },
+   "main": "jungle",
+   "table": 0.8,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3075,
+    3068,
+    6665
+   ],
+   "issues": []
+  },
+  {
+   "id": "RekSai",
+   "name": "Rek'Sai",
+   "roles": {
+    "jungle": 90
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6631,
+    3161,
+    3053
+   ],
+   "issues": []
+  },
+  {
+   "id": "Rell",
+   "name": "Rell",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3050,
+    3190,
+    3109
+   ],
+   "issues": []
+  },
+  {
+   "id": "Renata",
+   "name": "Renata Glasc",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3190,
+    2065,
+    3107
+   ],
+   "issues": []
+  },
+  {
+   "id": "Renekton",
+   "name": "Renekton",
+   "roles": {
+    "top": 95
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6692,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Rengar",
+   "name": "Rengar",
+   "roles": {
+    "jungle": 91
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3179,
+    6698,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Riven",
+   "name": "Riven",
+   "roles": {
+    "top": 78
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6696,
+    2517,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Rumble",
+   "name": "Rumble",
+   "roles": {
+    "top": 85
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    8010,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ryze",
+   "name": "Ryze",
+   "roles": {
+    "middle": 79,
+    "top": 20
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6657,
+    3040,
+    2522
+   ],
+   "issues": []
+  },
+  {
+   "id": "Samira",
+   "name": "Samira",
+   "roles": {
+    "bottom": 99
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6676,
+    3031,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Sejuani",
+   "name": "Sejuani",
+   "roles": {
+    "jungle": 85
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3084,
+    2502,
+    3075
+   ],
+   "issues": []
+  },
+  {
+   "id": "Senna",
+   "name": "Senna",
+   "roles": {
+    "utility": 92
+   },
+   "main": "utility",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0.26,
+   "core": [
+    3071,
+    3087,
+    3094
+   ],
+   "issues": []
+  },
+  {
+   "id": "Seraphine",
+   "name": "Seraphine",
+   "roles": {
+    "utility": 90,
+    "bottom": 8
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6620,
+    2530,
+    6617
+   ],
+   "issues": []
+  },
+  {
+   "id": "Sett",
+   "name": "Sett",
+   "roles": {
+    "top": 93
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6631,
+    3071,
+    2501
+   ],
+   "issues": []
+  },
+  {
+   "id": "Shaco",
+   "name": "Shaco",
+   "roles": {
+    "jungle": 77,
+    "utility": 21
+   },
+   "main": "jungle",
+   "table": 0.3,
+   "opgg": "BOTH",
+   "buildAp": 1,
+   "core": [
+    2503,
+    6653,
+    4005
+   ],
+   "issues": [
+    "tabela AD x itens core AP"
+   ]
+  },
+  {
+   "id": "Shen",
+   "name": "Shen",
+   "roles": {
+    "top": 76,
+    "utility": 16
+   },
+   "main": "top",
+   "table": 0.6,
+   "opgg": "BOTH",
+   "buildAp": 0.56,
+   "core": [
+    3748,
+    2510,
+    3075
+   ],
+   "issues": []
+  },
+  {
+   "id": "Shyvana",
+   "name": "Shyvana",
+   "roles": {
+    "jungle": 93
+   },
+   "main": "jungle",
+   "table": 0.6,
+   "opgg": "BOTH",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3161,
+    6333
+   ],
+   "issues": [
+    "tabela AP x itens core AD"
+   ]
+  },
+  {
+   "id": "Singed",
+   "name": "Singed",
+   "roles": {
+    "top": 83
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    3116,
+    2525
+   ],
+   "issues": []
+  },
+  {
+   "id": "Sion",
+   "name": "Sion",
+   "roles": {
+    "top": 73,
+    "middle": 12
+   },
+   "main": "top",
+   "table": 0.2,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    6664,
+    2502,
+    6665
+   ],
+   "issues": []
+  },
+  {
+   "id": "Sivir",
+   "name": "Sivir",
+   "roles": {
+    "bottom": 99
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3032,
+    6675,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Skarner",
+   "name": "Skarner",
+   "roles": {
+    "jungle": 72
+   },
+   "main": "jungle",
+   "table": 0.5,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3084,
+    2502,
+    3065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Smolder",
+   "name": "Smolder",
+   "roles": {
+    "bottom": 84,
+    "middle": 10
+   },
+   "main": "bottom",
+   "table": 0.05,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3508,
+    3071,
+    3161
+   ],
+   "issues": []
+  },
+  {
+   "id": "Sona",
+   "name": "Sona",
+   "roles": {
+    "utility": 99
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6620,
+    2530,
+    6617
+   ],
+   "issues": []
+  },
+  {
+   "id": "Soraka",
+   "name": "Soraka",
+   "roles": {
+    "utility": 98
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6617,
+    3107,
+    6621
+   ],
+   "issues": []
+  },
+  {
+   "id": "Swain",
+   "name": "Swain",
+   "roles": {
+    "utility": 54,
+    "bottom": 20,
+    "middle": 16,
+    "top": 10
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3116,
+    6653,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Sylas",
+   "name": "Sylas",
+   "roles": {
+    "middle": 43,
+    "jungle": 41,
+    "utility": 8,
+    "top": 7
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3152,
+    4633,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Syndra",
+   "name": "Syndra",
+   "roles": {
+    "middle": 87,
+    "bottom": 9
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "TahmKench",
+   "name": "Tahm Kench",
+   "roles": {
+    "utility": 53,
+    "top": 41
+   },
+   "main": "utility",
+   "table": 0.8,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3084,
+    3075,
+    3065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Taliyah",
+   "name": "Taliyah",
+   "roles": {
+    "middle": 46,
+    "jungle": 45
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    3116,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Talon",
+   "name": "Talon",
+   "roles": {
+    "jungle": 75,
+    "middle": 24
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3179,
+    2520,
+    6699
+   ],
+   "issues": []
+  },
+  {
+   "id": "Taric",
+   "name": "Taric",
+   "roles": {
+    "utility": 95
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "BOTH",
+   "buildAp": null,
+   "core": [
+    3070,
+    3190,
+    3121,
+    3109
+   ],
+   "issues": []
+  },
+  {
+   "id": "Teemo",
+   "name": "Teemo",
+   "roles": {
+    "top": 75,
+    "jungle": 11
+   },
+   "main": "top",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 0.77,
+   "core": [
+    3087,
+    6653,
+    3118
+   ],
+   "issues": []
+  },
+  {
+   "id": "Thresh",
+   "name": "Thresh",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 0.9,
+   "opgg": "AP",
+   "buildAp": null,
+   "core": [
+    3190,
+    3109,
+    3050
+   ],
+   "issues": []
+  },
+  {
+   "id": "Tristana",
+   "name": "Tristana",
+   "roles": {
+    "bottom": 90,
+    "middle": 8
+   },
+   "main": "bottom",
+   "table": 0.05,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3032,
+    3031,
+    6675
+   ],
+   "issues": []
+  },
+  {
+   "id": "Trundle",
+   "name": "Trundle",
+   "roles": {
+    "top": 66,
+    "jungle": 29
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3074,
+    3078,
+    3181
+   ],
+   "issues": []
+  },
+  {
+   "id": "Tryndamere",
+   "name": "Tryndamere",
+   "roles": {
+    "top": 83
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3074,
+    3046,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "TwistedFate",
+   "name": "Twisted Fate",
+   "roles": {
+    "middle": 88
+   },
+   "main": "middle",
+   "table": 0.9,
+   "opgg": "AP",
+   "buildAp": 0.85,
+   "core": [
+    6657,
+    3100,
+    3094
+   ],
+   "issues": []
+  },
+  {
+   "id": "Twitch",
+   "name": "Twitch",
+   "roles": {
+    "bottom": 89
+   },
+   "main": "bottom",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6676,
+    2512,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Udyr",
+   "name": "Udyr",
+   "roles": {
+    "jungle": 74,
+    "top": 23
+   },
+   "main": "jungle",
+   "table": 0.5,
+   "opgg": "BOTH",
+   "buildAp": 0,
+   "core": [
+    3161,
+    3073,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Urgot",
+   "name": "Urgot",
+   "roles": {
+    "top": 96
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3071,
+    3053,
+    6665
+   ],
+   "issues": []
+  },
+  {
+   "id": "Varus",
+   "name": "Varus",
+   "roles": {
+    "bottom": 81,
+    "top": 13
+   },
+   "main": "bottom",
+   "table": 0.2,
+   "opgg": "BOTH",
+   "buildAp": 0.35,
+   "core": [
+    3087,
+    3124,
+    3302
+   ],
+   "issues": []
+  },
+  {
+   "id": "Vayne",
+   "name": "Vayne",
+   "roles": {
+    "bottom": 72,
+    "top": 25
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0.18,
+   "core": [
+    3153,
+    3124,
+    3302
+   ],
+   "issues": []
+  },
+  {
+   "id": "Veigar",
+   "name": "Veigar",
+   "roles": {
+    "middle": 66,
+    "bottom": 23
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3070,
+    6657,
+    3040,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Velkoz",
+   "name": "Vel'Koz",
+   "roles": {
+    "utility": 61,
+    "middle": 21,
+    "bottom": 15
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Vex",
+   "name": "Vex",
+   "roles": {
+    "middle": 94
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Vi",
+   "name": "Vi",
+   "roles": {
+    "jungle": 95
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Viego",
+   "name": "Viego",
+   "roles": {
+    "jungle": 96
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6672,
+    6676,
+    6673
+   ],
+   "issues": []
+  },
+  {
+   "id": "Viktor",
+   "name": "Viktor",
+   "roles": {
+    "middle": 76,
+    "bottom": 20
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2503,
+    3100,
+    3157
+   ],
+   "issues": []
+  },
+  {
+   "id": "Vladimir",
+   "name": "Vladimir",
+   "roles": {
+    "middle": 70,
+    "top": 22
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    4646,
+    3089,
+    4633
+   ],
+   "issues": []
+  },
+  {
+   "id": "Volibear",
+   "name": "Volibear",
+   "roles": {
+    "top": 75,
+    "jungle": 20
+   },
+   "main": "top",
+   "table": 0.6,
+   "opgg": "BOTH",
+   "buildAp": 0.62,
+   "core": [
+    2510,
+    6675,
+    3065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Warwick",
+   "name": "Warwick",
+   "roles": {
+    "jungle": 66,
+    "top": 32
+   },
+   "main": "jungle",
+   "table": 0.3,
+   "opgg": "BOTH",
+   "buildAp": 0,
+   "core": [
+    6631,
+    3153,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Xayah",
+   "name": "Xayah",
+   "roles": {
+    "bottom": 100
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3032,
+    6675,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Xerath",
+   "name": "Xerath",
+   "roles": {
+    "middle": 54,
+    "utility": 37,
+    "bottom": 9
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "XinZhao",
+   "name": "Xin Zhao",
+   "roles": {
+    "jungle": 90
+   },
+   "main": "jungle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3748,
+    3071,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Yasuo",
+   "name": "Yasuo",
+   "roles": {
+    "middle": 60,
+    "top": 24,
+    "bottom": 16
+   },
+   "main": "middle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6673,
+    3031,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Yone",
+   "name": "Yone",
+   "roles": {
+    "top": 49,
+    "middle": 49
+   },
+   "main": "top",
+   "table": 0.3,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3153,
+    6673,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Yorick",
+   "name": "Yorick",
+   "roles": {
+    "top": 93
+   },
+   "main": "top",
+   "table": 0.05,
+   "opgg": "BOTH",
+   "buildAp": 0,
+   "core": [
+    3078,
+    3161,
+    6694
+   ],
+   "issues": []
+  },
+  {
+   "id": "Yunara",
+   "name": "Yunara",
+   "roles": {
+    "bottom": 100
+   },
+   "main": "bottom",
+   "table": 0,
+   "opgg": "BOTH",
+   "buildAp": 0,
+   "core": [
+    3032,
+    3085,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Yuumi",
+   "name": "Yuumi",
+   "roles": {
+    "utility": 100
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3222,
+    3504,
+    6617
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zaahen",
+   "name": "Zaahen",
+   "roles": {
+    "top": 85
+   },
+   "main": "top",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3078,
+    6631,
+    6333
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zac",
+   "name": "Zac",
+   "roles": {
+    "jungle": 73,
+    "top": 14
+   },
+   "main": "jungle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    3152,
+    3068,
+    3065
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zed",
+   "name": "Zed",
+   "roles": {
+    "middle": 69,
+    "jungle": 22
+   },
+   "main": "middle",
+   "table": 0,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    6699,
+    2520,
+    3036
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zeri",
+   "name": "Zeri",
+   "roles": {
+    "bottom": 97
+   },
+   "main": "bottom",
+   "table": 0.1,
+   "opgg": "AD",
+   "buildAp": 0,
+   "core": [
+    3032,
+    3085,
+    3031
+   ],
+   "issues": []
+  },
+  {
+   "id": "Ziggs",
+   "name": "Ziggs",
+   "roles": {
+    "bottom": 69,
+    "middle": 26
+   },
+   "main": "bottom",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    4645,
+    3089
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zilean",
+   "name": "Zilean",
+   "roles": {
+    "utility": 85
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    2065,
+    4005,
+    2524
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zoe",
+   "name": "Zoe",
+   "roles": {
+    "middle": 73,
+    "utility": 22
+   },
+   "main": "middle",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6655,
+    3100,
+    4645
+   ],
+   "issues": []
+  },
+  {
+   "id": "Zyra",
+   "name": "Zyra",
+   "roles": {
+    "utility": 53,
+    "jungle": 42
+   },
+   "main": "utility",
+   "table": 1,
+   "opgg": "AP",
+   "buildAp": 1,
+   "core": [
+    6653,
+    3116,
+    3157
+   ],
+   "issues": []
+  }
+ ]
+}

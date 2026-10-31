@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.41.1",
+    "title": "Tipo de dano revisado",
+    "items": [
+      "Tabela de dano físico/mágico de todos os 173 campeões (antes só pelas tags).",
+      "Burst mágico não cita mais assassino AD (ex.: Qiyana); vale o grupo mais perigoso.",
+      "Tanques e suportes de engage agora contam como dano mágico."
+    ],
+    "en": {
+      "title": "Damage type reviewed",
+      "items": [
+        "Physical/magic damage table for all 173 champions (was tag-based).",
+        "Magic burst no longer lists AD assassins (e.g. Qiyana); the deadliest group decides.",
+        "Tanks and engage supports now count as magic damage."
+      ]
+    },
+    "es": {
+      "title": "Tipo de daño revisado",
+      "items": [
+        "Tabla de daño físico/mágico de los 173 campeones (antes solo por etiquetas).",
+        "Burst mágico ya no cita asesinos AD (ej.: Qiyana); decide el grupo más peligroso.",
+        "Tanques y soportes de engage ahora cuentan como daño mágico."
+      ]
+    }
+  },
+  {
     "version": "0.41.0",
     "title": "Build completa durante a partida",
     "items": [

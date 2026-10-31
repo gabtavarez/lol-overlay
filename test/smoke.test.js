@@ -84,7 +84,8 @@ test('pipeline completo: mock -> estado -> recomendador', async () => {
 
     const advice = recommend(state);
     assert.ok(advice.hints.some((h) => h.id === 'antiheal' && h.level === 'warn'), 'Soraka + Warwick => corta-cura');
-    assert.ok(advice.hints.some((h) => h.id === 'armor'), 'maioria AD => armadura');
+    // Aatrox, Warwick (Q mágico), Ahri, Caitlyn, Soraka: ~54% AD, time misto -> nem armadura nem RM forçados
+    assert.ok(!advice.hints.some((h) => h.id === 'armor' || h.id === 'mr'), 'time misto');
     assert.deepEqual(advice.buildSuggestions, []);
   } finally {
     server.close();

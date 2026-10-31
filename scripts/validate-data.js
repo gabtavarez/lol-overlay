@@ -31,6 +31,9 @@ const collectIds = (v, out = new Set()) => {
   const champIds = new Set();
   for (const [k, list] of Object.entries(flags)) if (Array.isArray(list)) list.forEach((c) => champIds.add(c));
   Object.keys(curves.champions).forEach((c) => champIds.add(c));
+  Object.keys(flags.apShare || {}).filter((c) => !c.startsWith('_')).forEach((c) => champIds.add(c));
+  const noShare = Object.keys(champs).filter((c) => !(flags.apShare || {})[c] && (flags.apShare || {})[c] !== 0);
+  if (noShare.length) console.log(`aviso: sem tipo de dano na tabela (usa as tags): ${noShare.join(', ')}`);
   const lower = new Map(Object.keys(champs).map((c) => [c.toLowerCase(), c]));
   for (const c of champIds) {
     if (champs[c] || ALIASES.has(c)) continue;

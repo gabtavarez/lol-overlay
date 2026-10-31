@@ -6,6 +6,9 @@ const HEAL_ITEM_TAGS = ['LifeSteal', 'SpellVamp'];
 /** Estimativa de tipo de dano de um campeão: { ad, ap } somando 1. */
 function damageProfile(enemy, flags) {
   const id = enemy.championId;
+  // tabela por campeão (todos os 173 do patch 16.21): fração mágica do dano na build mais comum
+  const share = flags.apShare && flags.apShare[id];
+  if (typeof share === 'number') return { ad: 1 - share, ap: share };
   if (flags.apOverrides.includes(id)) return { ad: 0, ap: 1 };
   if (flags.adOverrides.includes(id)) return { ad: 1, ap: 0 };
   const ap = enemy.tags.includes('Mage') ? 1 : 0;

@@ -17,8 +17,10 @@ function classOf(me, build, flags = defaultFlags, role = '') {
   const id = me.championId || me.id;
   if (String(role).toLowerCase() === 'utility' && (flags.enchanters || []).includes(id)) return 'support';
   if (build && build.damageType === 'AP') return 'ap';
-  const apChamp = (flags.apOverrides || []).includes(id) || tags[0] === 'Mage' || (tags.includes('Mage') && !tags.includes('Fighter') && !tags.includes('Marksman'));
-  if (tags.includes('Marksman') && !(flags.apOverrides || []).includes(id)) return 'adc';
+  const share = flags.apShare && flags.apShare[id];
+  const apChamp = typeof share === 'number' ? share >= 0.6
+    : (flags.apOverrides || []).includes(id) || tags[0] === 'Mage' || (tags.includes('Mage') && !tags.includes('Fighter') && !tags.includes('Marksman'));
+  if (tags.includes('Marksman') && !apChamp) return 'adc';
   if (tags[0] === 'Tank') return 'tank';
   if ((!build || !build.damageType || build.damageType === 'BOTH') && apChamp) return 'ap';
   // assassino AD (Zed, Talon, Qiyana, Kha'Zix…) defende diferente de lutador (Darius, Sett…)
@@ -340,12 +342,18 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const early = legendaries === 0;
     const score = (60 + Math.min(25, bursts.reduce((s, x) => s + x.w, 0) * 10) + (lane ? 8 : 0)) * (early ? 0.8 : 1);
     // o assassino mais perigoso define a resposta: AD (Zed, Talon…) -> Zhonya / Bordo; AP (Fizz, LeBlanc…) -> Banshee / Malmortius
-    const main = [...bursts].sort((a, b) => (b.lane ? 1 : 0) - (a.lane ? 1 : 0) || b.w - a.w)[0];
-    const adBurst = main.d.ad >= 0.6;
-    const names = who(bursts, (x) => x.w);
+    // grupo de dano mais perigoso (peso + fed + rota) decide a resposta: AD -> Zhonya/Bordo, AP -> Banshee/Malmortius
+    const weight = (list) => list.reduce((sum, x) => sum + x.w + (x.fed ? 0.6 : 0) + (x.lane ? 0.3 : 0), 0);
+    const adW = weight(bursts.filter((x) => x.d.ad >= 0.6));
+    const apW = weight(bursts.filter((x) => x.d.ap >= 0.6));
+    const adBurst = adW > 0 || apW > 0 ? adW >= apW : [...bursts].sort((a, b) => b.w - a.w)[0].d.ad >= 0.6;
+    const main = [...bursts].filter((x) => (adBurst ? x.d.ad >= 0.6 : x.d.ap >= 0.6)).sort((a, b) => (b.lane ? 1 : 0) - (a.lane ? 1 : 0) || b.w - a.w)[0] || bursts[0];
+    // cita só quem tem o mesmo tipo de dano da resposta (antes Qiyana AD aparecia em "Burst mágico")
+    const same = bursts.filter((x) => (adBurst ? x.d.ad >= 0.6 : x.d.ap >= 0.6));
+    const names = who(same.length ? same : [main], (x) => x.w);
     const zedTip = main.e.championId === 'Zed' && cls === 'ap' ? tr('Zhonya na marca do ult de Zed: anula o combo') : null;
     react(adBurst ? 'antiburstAd' : 'antiburst', score + (adBurst ? 4 : 0),
-      zedTip || (adBurst ? tr('Cancela o combo de {champs}', { champs: names }) : cls === 'ap' ? tr('Escudo de feitiço contra o combo de {champs}', { champs: names }) : tr('Cancela o combo de {champs}', { champs: names })), ids(bursts));
+      zedTip || (adBurst ? tr('Cancela o combo de {champs}', { champs: names }) : cls === 'ap' ? tr('Escudo de feitiço contra o combo de {champs}', { champs: names }) : tr('Cancela o combo de {champs}', { champs: names })), ids(same.length ? same : [main]));
   }
 
   // Um inimigo fed (ou o oponente de rota ganhando) puxa a defesa contra o dano dele, mesmo se o time for misto.
@@ -358,14 +366,16 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   const monoAD = adCount >= 4 || (t.length >= 4 && apCount === 0);
   const monoAP = apCount >= 4;
   if (apShare >= 0.55 || monoAP || (carryAp && carryAp.fed)) {
-    const foco = who(t, (x) => x.w * x.d.ap);
+    const apT = t.filter((x) => x.d.ap >= 0.5);
+    const foco = who(apT.length ? apT : t, (x) => x.w * x.d.ap);
     // rota ganha alivia a defesa, mas não contra um inimigo fed
     react('mr', (52 + Math.max(0, apShare - 0.55) * 90 + carryBoost(carryAp) + (monoAP ? 14 : 0)) * (carryAp && carryAp.fed ? 1 : defFactor),
       carryAp && carryAp.fed ? tr('Resistência mágica: {champ} está fed', { champ: foco }) : monoAP ? tr('Time inimigo com {n} campeões AP: RM é prioridade', { n: apCount }) : tr('Resistência mágica: dano inimigo mais AP · foco: {champs}', { champs: foco }),
       ids([...t].filter((x) => x.d.ap >= 0.5).sort((a, b) => b.w * b.d.ap - a.w * a.d.ap)));
   }
   if (adShare >= 0.55 || monoAD || (carryAd && carryAd.fed)) {
-    const foco = who(t, (x) => x.w * x.d.ad);
+    const adT = t.filter((x) => x.d.ad >= 0.5);
+    const foco = who(adT.length ? adT : t, (x) => x.w * x.d.ad);
     react('armor', (52 + Math.max(0, adShare - 0.55) * 90 + carryBoost(carryAd) + (monoAD ? 14 : 0)) * (carryAd && carryAd.fed ? 1 : defFactor),
       carryAd && carryAd.fed ? tr('Armadura: {champ} está fed', { champ: foco }) : monoAD ? tr('Time inimigo quase todo AD ({n}): armadura é prioridade', { n: adCount }) : tr('Armadura: dano inimigo mais AD · foco: {champs}', { champs: foco }),
       ids([...t].filter((x) => x.d.ad >= 0.5).sort((a, b) => b.w * b.d.ad - a.w * a.d.ad)));

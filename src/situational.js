@@ -13,7 +13,8 @@ function classFor(champ, build, role = '', flags = defaultFlags) {
   if (String(role).toLowerCase() === 'utility' && champ && (flags.enchanters || []).includes(champ.id)) return 'support';
   if (build && build.damageType === 'AP') return 'ap';
   if (build && build.damageType === 'AD') return tags.includes('Marksman') ? 'adc' : tags[0] === 'Tank' ? 'tank' : tags[0] === 'Assassin' ? 'assassin' : 'ad';
-  if (tags.includes('Mage')) return 'ap';
+  const share = champ && flags.apShare && flags.apShare[champ.id];
+  if (typeof share === 'number' ? share >= 0.6 : tags.includes('Mage')) return 'ap';
   if (tags.includes('Marksman')) return 'adc';
   if (tags[0] === 'Tank') return 'tank';
   if (tags[0] === 'Assassin') return 'assassin';

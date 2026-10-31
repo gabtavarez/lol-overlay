@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.40.2",
+    "title": "Missão de rota do suporte",
+    "items": [
+      "Suporte: sentinela de controle sugerida mesmo com inventário cheio (espaço próprio)."
+    ],
+    "en": {
+      "title": "Support role quest",
+      "items": [
+        "Support: control ward suggested even with a full inventory (own slot)."
+      ]
+    },
+    "es": {
+      "title": "Misión de rol del soporte",
+      "items": [
+        "Soporte: centinela de control sugerido aun con inventario lleno (espacio propio)."
+      ]
+    }
+  },
+  {
     "version": "0.40.1",
     "title": "Missão de rota do atirador",
     "items": [

@@ -482,7 +482,9 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     if (ex) add(ex, full ? 58 : 48, full ? tr('Inventário cheio: elixir para a próxima luta (dura 3 min)') : tr('Build completa: elixir antes de dragão ou barão'), 'elixir');
   }
   const ward = firstAvailable(reactive.controlWard, dd, ownedSet);
-  if (ward && !full && state.gameTime >= 300 && me.gold >= 75) add(ward, 34, tr('Sentinela de controle: leve uma a cada volta à base'), 'ward');
+  // missão do suporte (2026): sentinela de controle tem espaço próprio, então vale mesmo com inventário cheio
+  const wardSlot = state.myRole === 'utility';
+  if (ward && (!full || wardSlot) && state.gameTime >= 300 && me.gold >= 75) add(ward, 34, tr('Sentinela de controle: leve uma a cada volta à base'), 'ward');
   // fim de jogo, inventário cheio e a ameaça que a defesa respondia sumiu: troque a defesa por dano
   if (full && state.gameTime >= 1500) {
     const useless = covered.find((c) => c.share < 0.35 && !c.foes.some((x) => x.fed));

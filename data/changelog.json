@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.41.2",
+    "title": "Locke é dano mágico",
+    "items": [
+      "Locke corrigido: conta como dano mágico (AP)."
+    ],
+    "en": {
+      "title": "Locke deals magic damage",
+      "items": [
+        "Locke fixed: counts as magic damage (AP)."
+      ]
+    },
+    "es": {
+      "title": "Locke hace daño mágico",
+      "items": [
+        "Locke corregido: cuenta como daño mágico (AP)."
+      ]
+    }
+  },
+  {
     "version": "0.41.1",
     "title": "Tipo de dano revisado",
     "items": [

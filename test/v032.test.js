@@ -160,7 +160,7 @@ test('missão do atirador: bota no 7º espaço (fora da Live API) não gera suge
   assert.ok(me2.items[0].boots);
 });
 
-test('tipo de dano: tabela cobre os 173 campeões; Qiyana e Locke físicos, Corki misto, Kai\'Sa físico', () => {
+test('tipo de dano: tabela cobre os 173 campeões; Qiyana física, Locke mágico, Corki misto, Kai\'Sa físico', () => {
   const flags = require('../data/champion-flags.json');
   const { damageProfile } = require('../src/recommender');
   const { classOf } = require('../src/buys');
@@ -168,10 +168,10 @@ test('tipo de dano: tabela cobre os 173 campeões; Qiyana e Locke físicos, Cork
   assert.equal(ids.length, 173);
   for (const k of ids) assert.ok(flags.apShare[k] >= 0 && flags.apShare[k] <= 1, k);
   assert.equal(damageProfile({ championId: 'Qiyana', tags: ['Assassin'] }, flags).ad, 1);
-  assert.ok(damageProfile({ championId: 'Locke', tags: ['Assassin', 'Mage'] }, flags).ad >= 0.7);
+  assert.equal(damageProfile({ championId: 'Locke', tags: ['Assassin', 'Mage'] }, flags).ap, 1);
   const corki = damageProfile({ championId: 'Corki', tags: ['Marksman'] }, flags);
   assert.ok(corki.ap > 0.5 && corki.ad > 0.3);
-  assert.equal(classOf({ championId: 'Locke', tags: ['Assassin', 'Mage'] }, null, flags, 'middle'), 'assassin');
+  assert.equal(classOf({ championId: 'Locke', tags: ['Assassin', 'Mage'] }, null, flags, 'middle'), 'ap');
   assert.equal(classOf({ championId: 'Akali', tags: ['Assassin'] }, null, flags, 'middle'), 'ap');
 });
 

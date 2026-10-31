@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.41.0",
+    "title": "Build completa durante a partida",
+    "items": [
+      "Aba Partida mostra a build completa: runas, feitiços, itens e habilidades.",
+      "Itens que você já tem aparecem marcados com ✓ no caminho de compras."
+    ],
+    "en": {
+      "title": "Full build during the game",
+      "items": [
+        "Game tab shows the full build: runes, spells, items and skills.",
+        "Items you already own are marked with ✓ in the build path."
+      ]
+    },
+    "es": {
+      "title": "Build completa durante la partida",
+      "items": [
+        "La pestaña Partida muestra la build completa: runas, hechizos, objetos y habilidades.",
+        "Los objetos que ya tienes aparecen marcados con ✓ en la ruta de compras."
+      ]
+    }
+  },
+  {
     "version": "0.40.2",
     "title": "Missão de rota do suporte",
     "items": [

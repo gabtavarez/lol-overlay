@@ -108,6 +108,7 @@ window.LOCALES.en = {
   "Buff": "Buff",
   "Buffado neste patch": "Buffed this patch",
   "Build": "Build",
+  "Build completa": "Full build",
   "Build completa: elixir antes de dragão ou barão": "Full build: elixir before Dragon or Baron",
   "Build de {mode} (OP.GG).": "{mode} build (OP.GG).",
   "Build de {mode} (OP.GG): itens do modo; runas e feitiços não se aplicam.": "{mode} build (OP.GG): mode items; runes and spells don't apply.",

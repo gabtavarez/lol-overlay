@@ -517,6 +517,56 @@ const fmtK = (g) => (Math.abs(g) >= 1000 ? `${(g / 1000).toFixed(1)}k` : String(
 const signedK = (d) => `${d > 0 ? '+' : d < 0 ? '−' : '±'}${fmtK(Math.abs(d))}`;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
+/* ---------- build completa na janela durante a partida ---------- */
+let gb = null; // { key, id, role, data, page, owned }
+function gameBuild(state) {
+  const id = state.me && state.me.championId;
+  if (!id) { $('gbuild-card').hidden = true; return; }
+  const role = state.myRole || '';
+  const key = `${id}:${role}`;
+  const owned = new Set((state.me.items || []).map((it) => it.id));
+  const ownedSig = [...owned].sort().join(',');
+  if (!gb || gb.key !== key) {
+    gb = { key, id, role, data: null, page: 0, owned, ownedSig };
+    loadGameBuild();
+  } else if (gb.ownedSig !== ownedSig) {
+    gb.owned = owned; gb.ownedSig = ownedSig; drawGameBuild();
+  }
+  $('gbuild-card').hidden = false;
+}
+async function loadGameBuild() {
+  const cur = gb;
+  if (!cur) return;
+  const d = await window.overlay.getChampDetail(cur.id, cur.role || null);
+  if (gb !== cur) return;
+  cur.data = d;
+  drawGameBuild();
+}
+window.overlay.onChampDetailUpdated((p) => { if (gb && p.id === gb.id) loadGameBuild(); });
+function drawGameBuild() {
+  const box = $('gbuild');
+  const d = gb && gb.data;
+  $('gbuild-title').textContent = d && d.champion ? `${t('Build completa')} · ${d.champion.name}${d.role && ROLE_NAME[d.role] ? ` · ${t(ROLE_NAME[d.role])}` : ''}` : t('Build completa');
+  $('gbuild-src').textContent = d && d.winRate ? `${(d.winRate * (d.winRate <= 1 ? 100 : 1)).toFixed(1)}% WR · OP.GG` : 'OP.GG';
+  if (!d || !d.guide) {
+    box.replaceChildren(h('p', { class: 'muted pad', text: d && d.error ? tr('Sem dados do OP.GG: {err}', { err: d.error }) : tr('Carregando a build do OP.GG…') }));
+    return;
+  }
+  const g = d.guide;
+  const pages = d.runePages || [];
+  const page = pages[gb.page] || pages[0] || null;
+  const left = h('div', { class: 'g-sec' });
+  if (page && page.runeTree) {
+    left.append(head(`${tr('Runas')} · ${page.view.primaryStyleName} + ${page.view.subStyleName}`),
+      runePageTabs(pages, gb.page, (i) => { gb.page = i; drawGameBuild(); }) || '', drawRunes(page.runeTree));
+  }
+  const right = h('div', { class: 'g-sec' });
+  if (g.spells.length) right.append(head('Feitiços'), drawSpells(g), h('div', { style: 'height:18px' }));
+  right.append(drawBuildPath(g, gb.owned));
+  box.replaceChildren(h('div', { class: 'g-grid' }, left, right),
+    g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : '');
+}
+
 function renderGame(state) {
   version = state.assets.version;
   els.dot.className = 'dot ok';
@@ -525,6 +575,7 @@ function renderGame(state) {
   $('gold').textContent = `· ${state.me.gold} g`;
   const adv = state.advice || {};
   renderBuyList($('buys'), adv.buys, version);
+  gameBuild(state);
   renderExtras({ recall: $('recall'), matchup: $('matchup'), alerts: $('alerts') }, adv);
 
   // ouro cara a cara
@@ -608,6 +659,7 @@ function render(state) {
   if (state.phase === 'champselect') return renderSelect(state);
   chosenId = null;
   shownId = null;
+  gb = null;
   els.clock.textContent = '';
   if (state.phase === 'error') {
     els.waitingText.textContent = tr('Erro ao processar a partida: {err}', { err: state.reason });
@@ -1210,7 +1262,7 @@ function skillSummary(skills) {
 }
 
 /** Caminho de compras em linha do tempo: início → itens com custo, e os picos de força (1º e 2º lendário). */
-function drawBuildPath(g) {
+function drawBuildPath(g, owned = null) {
   const items = g.fullBuild;
   const isBoot = (it) => g.boots.some((b) => b.id === it.id);
   let legend = 0;
@@ -1221,9 +1273,11 @@ function drawBuildPath(g) {
   items.forEach((it) => {
     const boot = isBoot(it);
     const spike = !boot && it.gold >= 2200 && ++legend <= 2;
-    const el = h('div', { class: `bp-step${spike ? ' spike' : ''}` },
+    const have = owned && owned.has(it.id);
+    const el = h('div', { class: `bp-step${spike ? ' spike' : ''}${have ? ' own' : ''}` },
       h('div', { class: 'bp-icons' }, icon(ddVerImg(`item/${it.id}.png`), 'it-icon', it.name)),
       h('span', { class: 'bp-cap', text: it.gold ? `${it.gold.toLocaleString('pt-BR')} g` : '' }),
+      have ? h('span', { class: 'bp-own', text: '✓' }) : null,
       spike ? h('span', { class: 'bp-spike', text: legend === 1 ? '1º pico' : '2º pico' }) : null);
     tipOn(el, it.name, spike ? tr('{n}º item lendário: pico de força — bom momento para lutar.', { n: legend }) : boot ? t('Botas') : '');
     steps.push(h('span', { class: 'bp-arr', text: '›' }), el);

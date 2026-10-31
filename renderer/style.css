@@ -834,3 +834,7 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .cd-pc { padding: 6px 16px; }
 .sk-key.s-Q { color: #9cc7ff; border-color: #31506a; } .sk-key.s-W { color: #c6b4ff; border-color: #4b3f7a; } .sk-key.s-E { color: #8fe0b5; border-color: #2f5e47; }
 .tPool .tl-letter { color: var(--warn); }
+
+.bp-step { position: relative; }
+.bp-step.own .it-icon { opacity: .45; }
+.bp-own { position: absolute; top: -4px; right: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--good); color: #0e0f12; font-size: 10px; font-weight: 700; display: grid; place-items: center; }

@@ -336,3 +336,16 @@ test('engine LCU: sem champ select, cliente fechado e token inválido', async ()
   await none.tick();
   assert.deepEqual(states.at(-1), { phase: 'idle', client: 'closed' });
 });
+
+test('picks: tier list da rota não traz pick raro (ex.: Lux atirador com 1% dos jogos dela)', async () => {
+  const dd = await makeDd();
+  await withLcu({}, async (creds) => {
+    const profile = await loadProfile(creds);
+    const meta = { tiers: { bottom: { lux: 'A', ashe: 'A' } }, counters: {}, roleRates: { bottom: { lux: 0.01, ashe: 0.9 } } };
+    const r = recommendPicks({ champSelect: state(dd), profile, dd, settings: settingsWith({}), meta });
+    const luxGames = profile.roleStats.bottom && profile.roleStats.bottom[99];
+    if (!luxGames) assert.ok(!ids(r).includes('Lux'), ids(r).join());
+    const noRates = recommendPicks({ champSelect: state(dd), profile, dd, settings: settingsWith({}), meta: { ...meta, roleRates: undefined } });
+    assert.ok(ids(noRates).includes('Lux')); // sem a % por rota, comportamento antigo
+  });
+});

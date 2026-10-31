@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.41.3",
+    "title": "Picks só da sua rota",
+    "items": [
+      "Sugestão de pick ignora picks raros da rota (ex.: Katarina atirador).",
+      "Nome das árvores de runas no idioma do app (antes vinha em inglês)."
+    ],
+    "en": {
+      "title": "Picks from your role only",
+      "items": [
+        "Pick suggestions skip off-role picks (e.g. Katarina ADC).",
+        "Rune tree names in the app's language (were in English)."
+      ]
+    },
+    "es": {
+      "title": "Picks solo de tu línea",
+      "items": [
+        "Las sugerencias de pick ignoran picks raros de la línea (ej.: Katarina tirador).",
+        "Nombres de las ramas de runas en el idioma de la app (antes en inglés)."
+      ]
+    }
+  },
+  {
     "version": "0.41.2",
     "title": "Locke é dano mágico",
     "items": [

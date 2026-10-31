@@ -498,6 +498,7 @@ function buildVariants(champ, role) {
 const TIER_PT_MAIN = { ALL: 'Todos os elos', GOLD: 'Ouro', PLATINUM_PLUS: 'Platina+', EMERALD_PLUS: 'Esmeralda+', DIAMOND_PLUS: 'Diamante+', MASTER_PLUS: 'Mestre+', CHALLENGER: 'Desafiante' };
 
 /** Até 2 páginas de runas (OP.GG, com jogos/pick %/win %); sem elas, a da build. */
+const styleName = (id, fallback) => { const st = (runeStyles || []).find((x) => x.id === id); return (st && st.name) || fallback; };
 function runePagesFor(champ, role, build) {
   const pages = remote.getRunePages(champ, role) || (build && build.runes ? [{ ...build.runes, tier: null }] : []);
   return pages.map((r, i) => ({
@@ -505,7 +506,8 @@ function runePagesFor(champ, role, build) {
     runes: r,
     stats: { pickRate: r.pickRate || 0, winRate: r.winRate || 0, games: r.games || 0, tier: r.tier ? TIER_PT_MAIN[r.tier] || r.tier : null },
     view: {
-      primaryStyleName: r.primaryStyleName, subStyleName: r.subStyleName,
+      // nome da árvore no idioma do app (o OP.GG manda em inglês)
+      primaryStyleName: styleName(r.primaryStyleId, r.primaryStyleName), subStyleName: styleName(r.subStyleId, r.subStyleName),
       perks: r.perks.map((id) => ({ id, name: (runeIndex && runeIndex[id] && runeIndex[id].name) || String(id), icon: (runeIndex && runeIndex[id] && runeIndex[id].icon) || null })),
     },
     runeTree: runeStyles ? runeTree(runeStyles, r) : null,

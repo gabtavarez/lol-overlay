@@ -17,6 +17,8 @@ function tierValue(raw) {
 }
 
 /** Procura um campeão num mapa com chaves normalizadas, por ID e por nome. */
+const MIN_ROLE_RATE = 0.05;
+
 function lookup(map, champ) {
   if (!map) return undefined;
   const byId = map[norm(champ.id)];
@@ -213,12 +215,21 @@ function recommendPicks({ champSelect, profile, dd, settings, meta, flags = defa
   // 2) filtro de rota: pool do usuário, histórico na rota ou tier list da rota
   if (role) {
     const roleTiers = (metaData.tiers && metaData.tiers[role]) || {};
+    const rates = metaData.roleRates && metaData.roleRates[role];
+    // tier list da rota só vale para quem é da rota de verdade (>= 5% dos jogos do campeão nela):
+    // a lista do OP.GG traz picks raros (Katarina atirador, Lux atirador…) com amostra minúscula
+    const ofRole = (c) => {
+      if (lookup(roleTiers, c) === undefined) return false;
+      if (!rates) return true;
+      const r = lookup(rates, c);
+      return r !== undefined && r >= MIN_ROLE_RATE;
+    };
     const allowed = pool.filter((c) => {
       const games = profile && profile.roleStats[role] && profile.roleStats[role][Number(c.key)];
       return (
         poolIds.has(c.id) ||
         (games && games.games >= Math.max(1, cfg.minGamesForRole)) ||
-        lookup(roleTiers, c) !== undefined
+        ofRole(c)
       );
     });
     if (allowed.length) pool = allowed;

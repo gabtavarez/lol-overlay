@@ -292,6 +292,15 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
       }
       for (const [role, entries] of Object.entries(local.tiers)) out.tiers[role] = { ...(out.tiers[role] || {}), ...entries };
       for (const [enemy, row] of Object.entries(local.counters)) out.counters[enemy] = { ...(out.counters[enemy] || {}), ...row };
+      // % de jogos de cada campeão em cada rota (tier list): separa quem é da rota de quem só aparece nela às vezes
+      const tl = cache.tierlist.all && cache.tierlist.all.data;
+      if (tl) {
+        out.roleRates = {};
+        for (const [role, rows] of Object.entries(tl)) {
+          const m = out.roleRates[role] = {};
+          for (const r of rows || []) m[norm(r.champion)] = r.roleRate || 0;
+        }
+      }
       return out;
     },
   };

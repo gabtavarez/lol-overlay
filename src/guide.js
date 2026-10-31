@@ -27,8 +27,8 @@ function buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills }) {
     fullBuild: list(fullBuild(build)),
     runeTree: build.runes ? runeTree(runeStyles, build.runes) : null,
     runes: r && {
-      primaryStyleName: r.primaryStyleName,
-      subStyleName: r.subStyleName,
+      primaryStyleName: ((runeStyles || []).find((x) => x.id === r.primaryStyleId) || {}).name || r.primaryStyleName,
+      subStyleName: ((runeStyles || []).find((x) => x.id === r.subStyleId) || {}).name || r.subStyleName,
       perks: r.perks.map((id) => ({ id, name: (runeIndex && runeIndex[id] && runeIndex[id].name) || String(id), icon: (runeIndex && runeIndex[id] && runeIndex[id].icon) || null })),
       pickRate: r.pickRate,
     },

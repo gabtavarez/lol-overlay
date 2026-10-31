@@ -37,6 +37,28 @@ function isBoots(dd, id, depth = 0) {
   return depth < 2 && (it.from || []).some((p) => isBoots(dd, Number(p), depth + 1));
 }
 
+/**
+ * Missão de rota (2026): ao completar a do atirador, a bota vai para um 7º espaço que a Live API
+ * pode não listar (ou listar com outro ID). Lembra da bota vista na partida e a mantém no inventário,
+ * para não sugerir comprar outra bota.
+ */
+const BOOT_NAME = /\b(bota|botas|boots|greaves|grevas|sapatos|calçados|grebas|botines|zapatos)\b/i;
+function createBootMemory() {
+  let kept = null;
+  return {
+    reset() { kept = null; },
+    apply(me, dd) {
+      for (const it of me.items) {
+        const known = dd && dd.item(it.id);
+        if ((known && it.id !== 1001 && isBoots(dd, it.id)) || (!known && BOOT_NAME.test(it.name || ''))) it.boots = true;
+      }
+      const now = me.items.find((it) => it.boots);
+      if (now) { kept = now; return; }
+      if (kept) me.items.push({ ...kept, slot: 'quest', questSlot: true, boots: true });
+    },
+  };
+}
+
 function ownedIds(me) {
   const ids = [];
   for (const it of me.items) for (let i = 0; i < (it.count || 1); i++) ids.push(it.id);
@@ -248,7 +270,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   /* --- caminho do meta --- */
   // Bota básica (1001) não conta: ela precisa virar a bota final, e o ouro que falta já desconta a básica.
   const BASIC_BOOTS = 1001;
-  const hasBoots = owned.some((id) => id !== BASIC_BOOTS && isBoots(dd, id));
+  const hasBoots = owned.some((id) => id !== BASIC_BOOTS && isBoots(dd, id)) || (me.items || []).some((it) => it.boots);
   const hasBasicBoots = owned.includes(BASIC_BOOTS);
   const path = [];
   if (build) {
@@ -444,7 +466,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 
   /* --- inventário cheio, elixir e sentinela de controle --- */
   // slot 6 = amuleto (trinket). Seis slots ocupados: cada sugestão diz o que vender/trocar.
-  const bag = (me.items || []).filter((it) => it.slot !== 6);
+  const bag = (me.items || []).filter((it) => it.slot !== 6 && !it.questSlot && !(typeof it.slot === 'number' && it.slot > 6)); // bota no espaço da missão não ocupa espaço
   const full = bag.length >= 6;
   const isConsumable = (it) => ((dd.item(it.id) || {}).tags || []).includes('Consumable');
   const valueOf = (it) => goldOf(dd, it.id);
@@ -532,4 +554,4 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 }
 
 module.exports = {
-  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots };
+  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory };

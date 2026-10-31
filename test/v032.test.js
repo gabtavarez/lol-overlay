@@ -137,3 +137,25 @@ test('build: itens do guia trazem o custo em ouro (caminho de compras)', () => {
   assert.equal(g.fullBuild.find((x) => x.id === 3020).gold, 1100);
   assert.equal(g.fullBuild.find((x) => x.id === 6655).gold, 3000);
 });
+
+test('missão do atirador: bota no 7º espaço (fora da Live API) não gera sugestão de outra bota', () => {
+  const { buyAdvice, createBootMemory } = require('../src/buys');
+  const flags = require('../data/champion-flags.json');
+  const I = { 3006: { name: 'Grevas do Berserker', tags: ['Boots'], gold: { total: 1100 } }, 3047: { name: 'Botas Galvanizadas de Aço', tags: ['Boots', 'Armor'], gold: { total: 1200 } },
+    6672: { name: 'Matador de Krakens', tags: [], gold: { total: 3000 } }, 3031: { name: 'Gume do Infinito', tags: [], gold: { total: 3450 } }, 1001: { name: 'Botas', tags: ['Boots'], gold: { total: 300 } } };
+  const dd = { item: (id) => I[id] || null };
+  const E = (c) => ({ champion: c, championId: c, tags: ['Marksman'], level: 10, position: 'BOTTOM', scores: { kills: 3, deaths: 1, assists: 0 }, items: [] });
+  const me = { champion: 'Jhin', championId: 'Jhin', tags: ['Marksman'], level: 10, gold: 1500, position: 'BOTTOM', scores: { kills: 3, deaths: 1, assists: 2 },
+    items: [{ id: 6672, slot: 0 }, { id: 3006, slot: 1 }, { id: 3340, slot: 6 }] };
+  const mem = createBootMemory();
+  mem.apply(me, dd); // viu a bota
+  me.items = [{ id: 6672, slot: 0 }, { id: 3340, slot: 6 }]; // missão completa: a bota some da Live API
+  mem.apply(me, dd);
+  assert.ok(me.items.some((i) => i.id === 3006 && i.questSlot));
+  const adv = buyAdvice({ dd, flags, build: { damageType: 'AD', core: [6672, 3031], boots: [3006] }, state: { gameTime: 900, myRole: 'bottom', me, enemies: [E('Jhin'), E('Kaisa')] } });
+  assert.ok(!adv.items.some((i) => I[i.id] && I[i.id].tags.includes('Boots')), adv.items.map((i) => i.name).join());
+  // ID novo/desconhecido com nome de bota também conta
+  const me2 = { items: [{ id: 999006, name: 'Grevas do Berserker', slot: 7 }] };
+  createBootMemory().apply(me2, dd);
+  assert.ok(me2.items[0].boots);
+});

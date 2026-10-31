@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.40.1",
+    "title": "Missão de rota do atirador",
+    "items": [
+      "Bota no 7º espaço (missão do atirador) não gera mais sugestão de outra bota.",
+      "Inventário cheio conta 6 itens + a bota da missão."
+    ],
+    "en": {
+      "title": "ADC role quest",
+      "items": [
+        "Boots in the 7th slot (ADC quest) no longer trigger another boots suggestion.",
+        "Full inventory counts 6 items plus the quest boots."
+      ]
+    },
+    "es": {
+      "title": "Misión de rol del tirador",
+      "items": [
+        "Las botas en el 7.º espacio (misión del tirador) ya no sugieren otras botas.",
+        "Inventario lleno cuenta 6 objetos más las botas de la misión."
+      ]
+    }
+  },
+  {
     "version": "0.40.0",
     "title": "Página de build renovada",
     "items": [

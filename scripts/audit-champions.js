@@ -1,6 +1,6 @@
 /**
  * Auditoria de rotas e tipo de dano (roda no GitHub Actions, onde o OP.GG e o Data Dragon respondem):
- *  1) rotas válidas = tier list do OP.GG por rota, com >= 5% dos jogos do campeão na rota;
+ *  1) rotas válidas = tier list do OP.GG por rota, com >= 15% dos jogos do campeão na rota;
  *  2) tipo de dano = damage_type do OP.GG + atributos dos itens core da build mais jogada na rota principal;
  *  3) compara com data/champion-flags.json (apShare) e lista as divergências.
  * Saída: audit/report.json e audit/report.md
@@ -10,7 +10,7 @@ const path = require('path');
 const { createMcpClient } = require('../src/providers/opggMcp');
 const flags = require('../data/champion-flags.json');
 
-const MIN_ROLE = 0.05;
+const MIN_ROLE = 0.15; // mesmo corte do picker
 const DD = 'https://ddragon.leagueoflegends.com';
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const label = (ap) => (ap >= 0.6 ? 'AP' : ap <= 0.4 ? 'AD' : 'Misto');
@@ -55,7 +55,7 @@ const label = (ap) => (ap >= 0.6 ? 'AP' : ap <= 0.4 ? 'AD' : 'Misto');
     }
     const table = flags.apShare[id];
     const issues = [];
-    if (!valid.length) issues.push('sem rota com >= 5% dos jogos');
+    if (!valid.length) issues.push('sem rota com >= 15% dos jogos');
     if (table === undefined) issues.push('fora da tabela apShare');
     const opggLabel = /^AP$/i.test(opgg) ? 'AP' : /^AD$/i.test(opgg) ? 'AD' : opgg ? 'Misto' : null;
     if (table !== undefined && opggLabel && opggLabel !== 'Misto' && label(table) !== opggLabel) issues.push(`tabela ${label(table)} x OP.GG ${opggLabel}`);

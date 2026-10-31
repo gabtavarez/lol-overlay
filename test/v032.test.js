@@ -170,7 +170,7 @@ test('tipo de dano: tabela cobre os 173 campeões; Qiyana física, Locke mágico
   assert.equal(damageProfile({ championId: 'Qiyana', tags: ['Assassin'] }, flags).ad, 1);
   assert.equal(damageProfile({ championId: 'Locke', tags: ['Assassin', 'Mage'] }, flags).ap, 1);
   const corki = damageProfile({ championId: 'Corki', tags: ['Marksman'] }, flags);
-  assert.ok(corki.ap > 0.5 && corki.ad > 0.3);
+  assert.ok(corki.ap >= 0.5 && corki.ad > 0.3);
   assert.equal(classOf({ championId: 'Locke', tags: ['Assassin', 'Mage'] }, null, flags, 'middle'), 'ap');
   assert.equal(classOf({ championId: 'Akali', tags: ['Assassin'] }, null, flags, 'middle'), 'ap');
 });

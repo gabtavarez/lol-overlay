@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.41.4",
+    "title": "Rotas e dano conferidos no OP.GG",
+    "items": [
+      "Pick só aparece se 15%+ dos jogos do campeão forem na sua rota (sai Katarina atirador).",
+      "Tipo de dano conferido com as builds do OP.GG: Shaco AP, Shyvana AD, Corki e Jax mistos."
+    ],
+    "en": {
+      "title": "Roles and damage checked on OP.GG",
+      "items": [
+        "Picks only show if 15%+ of the champion's games are in your role (no Katarina ADC).",
+        "Damage type checked against OP.GG builds: AP Shaco, AD Shyvana, mixed Corki and Jax."
+      ]
+    },
+    "es": {
+      "title": "Líneas y daño revisados en OP.GG",
+      "items": [
+        "Solo aparece el pick si 15%+ de sus partidas son en tu línea (sin Katarina tirador).",
+        "Tipo de daño revisado con las builds de OP.GG: Shaco AP, Shyvana AD, Corki y Jax mixtos."
+      ]
+    }
+  },
+  {
     "version": "0.41.3",
     "title": "Picks só da sua rota",
     "items": [

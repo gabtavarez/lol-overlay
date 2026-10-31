@@ -1,0 +1,23 @@
+name: Auditoria de campeões
+# Manual: confere rotas (tier list do OP.GG) e tipo de dano de todos os campeões e grava o relatório na branch audit-report.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node scripts/audit-champions.js
+      - name: Publica o relatório
+        run: |
+          git config user.name "audit-bot"
+          git config user.email "audit-bot@users.noreply.github.com"
+          git checkout --orphan audit-report
+          git rm -rf --cached . >/dev/null
+          git add -f audit/report.json audit/report.md
+          git commit -m "Relatório de auditoria"
+          git push -f origin audit-report

@@ -37,13 +37,13 @@ function playerLabel(p) {
 
 let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' | 'history' = abas fixas
 let lastView = 'waiting';
-const VIEWS = ['waiting', 'select', 'game', 'profile', 'tierlist', 'history', 'patches', 'settings'];
+const VIEWS = ['waiting', 'select', 'game', 'profile', 'skins', 'tierlist', 'history', 'patches', 'settings'];
 function showView(name) {
   if (name && name !== lastView && page === 'home') page = 'auto'; // mudou de fase (ex.: champ select -> partida): volta a seguir a fase
   if (name) lastView = name;
   const v = settingsOpen ? 'settings' : page === 'home' ? 'waiting' : page !== 'auto' ? page : lastView;
   for (const id of VIEWS) $(id).hidden = v !== id;
-  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
+  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', skins: 'nav-skins', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
   for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
   $('nav-select').querySelector('.live').hidden = lastView !== 'select';
   $('nav-game').querySelector('.live').hidden = lastView !== 'game';
@@ -1404,12 +1404,13 @@ function goPage(p) {
   if (p === 'tierlist') { closeChamp(); tlRoleButtons(); loadTierList(); }
   if (p === 'history') loadHistory();
   if (p === 'patches') loadPatches();
-  if (p === 'profile') loadProfile();
+  if (p === 'profile' || p === 'skins') loadProfile();
 }
 $('nav-tier').addEventListener('click', () => goPage('tierlist'));
 $('nav-history').addEventListener('click', () => goPage('history'));
 $('nav-patches').addEventListener('click', () => goPage('patches'));
 $('nav-profile').addEventListener('click', () => goPage('profile'));
+$('nav-skins').addEventListener('click', () => goPage('skins'));
 // Início também abre durante o champ select/partida (a aba AO VIVO continua a um clique)
 $('nav-home').addEventListener('click', () => goPage(lastView === 'waiting' ? 'auto' : 'home'));
 for (const id of ['nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
@@ -1862,7 +1863,7 @@ $('pn-open').addEventListener('click', () => { if (pn.version) window.overlay.op
 /* ---------- perfil (maestria, estilo, coleção) ---------- */
 
 const pf = { tab: 'mastery', data: null, sel: null, cls: 'all', q: '', loading: false, sugMode: 'mine', cur: new Set(), sk: { q: '', own: 'all', rar: 'all', legacy: true, sort: 'rarity', limit: 60 } };
-const PF_TABS = [['mastery', 'Maestria'], ['style', 'Estilo de jogo'], ['collection', 'Coleção']];
+const PF_TABS = [['mastery', 'Maestria'], ['style', 'Estilo de jogo']]; // coleção/skins ganhou aba própria (Skins)
 const PF_CLASSES = [['all', 'Todas'], ['Fighter', 'Lutadores'], ['Mage', 'Magos'], ['Assassin', 'Assassinos'], ['Marksman', 'Atiradores'], ['Tank', 'Tanques'], ['Support', 'Suportes']];
 const RARITY_CLS = { Suprema: 'ult', Mítica: 'myth', Exaltada: 'myth', Transcendente: 'myth', Lendária: 'leg', Épica: 'epic', Comum: 'com' };
 
@@ -1903,7 +1904,22 @@ function drawPfTabs() {
 const pfStat = (big, label, sub) => h('div', { class: 'pf-stat' }, h('b', { text: big }), h('span', { text: label }), sub ? h('em', { text: sub }) : null);
 const pfCard = (title, ...kids) => h('section', { class: 'card pf-card' }, title ? h('div', { class: 'pf-ch', text: title }) : null, ...kids);
 
+/** Aba Skins: coleção, sugestões e galeria (mesmos dados do Perfil, lidos uma vez). */
+function drawSkins() {
+  const body = $('sk-body');
+  const d = pf.data;
+  const s = d && d.summoner;
+  $('sk-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : t('Sua coleção');
+  if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo sua coleção no cliente…' }))); return; }
+  if (!d.mastery && !d.collection) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver suas skins.' }))); return; }
+  const animKey = `skins:${d.version}`;
+  body.classList.toggle('pf-anim', animKey !== pf.skAnimKey);
+  pf.skAnimKey = animKey;
+  body.replaceChildren(...drawCollectionTab(d));
+}
+
 function drawProfile() {
+  if (page === 'skins') { drawSkins(); return; }
   const body = $('pf-body');
   const d = pf.data;
   const s = d && d.summoner;
@@ -1915,9 +1931,8 @@ function drawProfile() {
   const animKey = `${pf.tab}:${pf.cls}:${d.version}:${d.mastery.total}`;
   body.classList.toggle('pf-anim', animKey !== pf.animKey);
   pf.animKey = animKey;
-  if (pf.tab === 'mastery') body.replaceChildren(...drawMasteryTab(d));
-  else if (pf.tab === 'style') body.replaceChildren(...drawStyleTab(d));
-  else body.replaceChildren(...drawCollectionTab(d));
+  if (pf.tab === 'style') body.replaceChildren(...drawStyleTab(d));
+  else body.replaceChildren(...drawMasteryTab(d));
 }
 
 /** Bolhas: raio pela maestria, posição por espiral (a maior no centro, sem sobrepor). */
@@ -2094,6 +2109,7 @@ function drawCollectionTab(d) {
 }
 
 $('pf-refresh').addEventListener('click', () => loadProfile(true));
+$('sk-refresh').addEventListener('click', () => loadProfile(true));
 
 
 /** "Como funciona": marca o passo em que você está agora. */

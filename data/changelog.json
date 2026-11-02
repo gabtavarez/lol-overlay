@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.42.0",
+    "title": "Aba Skins separada",
+    "items": [
+      "Skins ganhou aba própria no menu: coleção, sugestões e galeria.",
+      "Perfil fica só com Maestria e Estilo de jogo."
+    ],
+    "en": {
+      "title": "Separate Skins tab",
+      "items": [
+        "Skins now has its own menu tab: collection, suggestions and gallery.",
+        "Profile keeps only Mastery and Play style."
+      ]
+    },
+    "es": {
+      "title": "Pestaña de aspectos aparte",
+      "items": [
+        "Aspectos tiene su propia pestaña: colección, sugerencias y galería.",
+        "Perfil queda solo con Maestría y Estilo de juego."
+      ]
+    }
+  },
+  {
     "version": "0.41.4",
     "title": "Rotas e dano conferidos no OP.GG",
     "items": [

@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
-      - run: node scripts/probe-opgg.js
+      - run: node scripts/probe-sites.js
       - run: |
           git config user.name "audit-bot"
           git config user.email "audit-bot@users.noreply.github.com"

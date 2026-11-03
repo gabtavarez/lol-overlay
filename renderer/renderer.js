@@ -154,6 +154,7 @@ function renderGuide(state, picks) {
   drawGuide();
 }
 let guideEnemyKey = '';
+let guideRuneKey = '';
 let lastBans = { session: null, list: [] };
 
 function setImportEnabled(on) {
@@ -356,6 +357,8 @@ function drawGuide() {
   const left = h('div', { class: 'g-sec' });
   const pages = root.runePages || [];
   const page = pages[runePage] || pages[0] || null;
+  guideRuneKey = `g:${shownId}:${variant}:${g.runesForMatchup ? 'mu' : runePage}`;
+  const drawRunes = (tree) => editableRunes(tree, guideRuneKey, () => { imported.runes = false; drawGuide(); });
   if (g.runesForMatchup && g.runeTree) {
     // runas ajustadas para o matchup (OP.GG do confronto ou regra própria): mostra só essa página
     left.append(head(`${tr('Runas')} · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'),
@@ -371,6 +374,16 @@ function drawGuide() {
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
   right.append(drawBuildPath(g));
   parts.push(h('div', { class: 'g-grid' }, left, right));
+  const myRole = lastState && lastState.myPosition;
+  if (myRole && !['aram', 'arena'].includes(myRole) && !(lastState && lastState.mode)) {
+    const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
+    const lane = foes.find((e) => e.position === myRole) || foes.find((e) => !e.position && e.predicted === myRole && e.confidence >= 50);
+    parts.push(buildLab({
+      id: shownId, role: myRole, defaultVs: lane ? lane.champion.id : null,
+      vsOptions: foes.map((e) => ({ id: e.champion.id, name: e.champion.name })),
+      onRunes: (pg) => { runeEdits.set(guideRuneKey, pg); imported.runes = false; drawGuide(); },
+    }));
+  }
   if (g.skills.length) {
     // ordem em que cada habilidade chega ao nível máximo (5)
     const cnt = {};
@@ -563,7 +576,12 @@ function drawGameBuild() {
   const right = h('div', { class: 'g-sec' });
   if (g.spells.length) right.append(head('Feitiços'), drawSpells(g), h('div', { style: 'height:18px' }));
   right.append(drawBuildPath(g, gb.owned));
-  box.replaceChildren(h('div', { class: 'g-grid' }, left, right),
+  const st = lastState || {};
+  const foes = (st.enemies || []).filter((e) => e.championId);
+  const lane = st.laneOpponent && st.laneOpponent.championId;
+  const lab = gb.role && !['aram', 'arena'].includes(gb.role) ? buildLab({ id: gb.id, role: gb.role, defaultVs: lane || null, owned: gb.owned,
+    vsOptions: foes.map((e) => ({ id: e.championId, name: e.champion })) }) : '';
+  box.replaceChildren(h('div', { class: 'g-grid' }, left, right), lab,
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : '');
 }
 
@@ -821,13 +839,27 @@ window.overlay.onAutoImport((r) => {
 async function doImport(what) {
   if (!shownId) return;
   els.impMsg.textContent = t('Importando…');
-  const res = await window.overlay.importBuild(shownId, what, variant, runePage);
+  const edited = what !== 'items' && runeEdits.get(guideRuneKey);
+  const res = edited ? await importWithEditedRunes(shownId, edited, what, (w) => window.overlay.importBuild(shownId, w, variant, runePage))
+    : await window.overlay.importBuild(shownId, what, variant, runePage);
   els.impMsg.textContent = res.ok ? tr('Importado: {what}.', { what: res.done.join(', ') }) : tr('Não consegui importar: {err}', { err: res.error });
   if (res.ok) {
     if (res.done.includes('runas')) imported.runes = true;
     if (res.done.includes(t('feitiços'))) imported.spells = true;
     drawGuide();
   }
+}
+/** Runas editadas pelo usuário + o resto (feitiços/itens) do OP.GG. */
+async function importWithEditedRunes(champId, page, what, importRest) {
+  const r = await window.overlay.importRunes(champId, page);
+  if (!r.ok || what === 'runes') return r;
+  const done = [...r.done];
+  for (const w of ['spells', 'items']) {
+    const x = await importRest(w);
+    if (!x.ok) return { ok: false, error: x.error, done };
+    done.push(...x.done);
+  }
+  return { ok: true, done };
 }
 $('imp-all').addEventListener('click', () => doImport('both'));
 $('imp-items').addEventListener('click', () => doImport('items'));
@@ -1358,7 +1390,7 @@ function drawChamp() {
       runePageTabs(pages, cv.runePage, (i) => { cv.runePage = i; drawChamp(); }) || '');
     const st = page.stats || {};
     if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
-    left.append(drawRunes(page.runeTree));
+    left.append(editableRunes(page.runeTree, `c:${cv.id}:${cv.role}:${cv.runePage}`, drawChamp));
   }
   const right = h('div', { class: 'g-sec' });
   if (g.spells.length) right.append(head('Feitiços'), drawSpells(g), h('div', { style: 'height:22px' }));
@@ -1367,7 +1399,9 @@ function drawChamp() {
   const imp = h('button', { class: 'btn primary', type: 'button', text: 'Importar runas e feitiços' });
   imp.addEventListener('click', async () => {
     msg.textContent = t('Importando…');
-    const res = await window.overlay.importBuild(cv.id, 'both', 0, cv.runePage, cv.role);
+    const edited = runeEdits.get(`c:${cv.id}:${cv.role}:${cv.runePage}`);
+    const res = edited ? await importWithEditedRunes(cv.id, edited, 'both', (w) => window.overlay.importBuild(cv.id, w, 0, cv.runePage, cv.role))
+      : await window.overlay.importBuild(cv.id, 'both', 0, cv.runePage, cv.role);
     msg.textContent = res.ok ? tr('Importado: {what}.', { what: res.done.join(', ') }) : tr('Não consegui importar: {err}', { err: res.error });
   });
   const copyMsg = h('span', { class: 'muted small' });
@@ -1379,6 +1413,8 @@ function drawChamp() {
   const buildCard = h('section', { class: 'card' },
     h('div', { class: 'card-h' }, h('h2', { text: `Build · ${t(ROLE_NAME[cv.role] || '')}` }), h('span', { class: 'spacer' }), seg || ''),
     h('div', { class: 'g-grid' }, left, right),
+    cv.role ? buildLab({ id: cv.id, role: cv.role, vsOptions: [...(d.losesTo || []), ...(d.beats || [])].filter((c) => c.id).slice(0, 8).map((c) => ({ id: c.id, name: c.name })),
+      onRunes: (pg) => { runeEdits.set(`c:${cv.id}:${cv.role}:${cv.runePage}`, pg); drawChamp(); } }) : null,
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : null,
     d.kit ? abilityBlock(d.kit, 'g-full') : null,
     h('div', { class: 'card-f' }, msg, copyMsg, copy, imp));
@@ -2200,4 +2236,203 @@ function curFilters(list) {
   const clear = pf.cur.size ? h('button', { type: 'button', class: 'link', text: 'limpar filtro' }) : null;
   if (clear) clear.addEventListener('click', () => { pf.cur.clear(); drawProfile(); });
   return h('div', { class: 'pf-legend' }, ...btns, clear);
+}
+
+/* ---------- editor de runas (clicável) ---------- */
+let runeCat = null;
+let runeCatAsk = null;
+function loadRuneCat() {
+  if (runeCat || runeCatAsk) return;
+  runeCatAsk = window.overlay.runeCatalog().then((c) => { runeCat = c && c.styles && c.styles.length ? c : null; runeCatAsk = null; });
+}
+loadRuneCat();
+const runeEdits = new Map(); // chave da tela -> página { primaryStyleId, subStyleId, perks[9] }
+
+function pageFromTree(t) {
+  const sel = (row) => (row.find((r) => r.selected) || row[0] || {}).id;
+  const sec = t.secondary.flat().filter((r) => r.selected).map((r) => r.id).slice(0, 2);
+  return {
+    primaryStyleId: (t.primaryStyles.find((s) => s.selected) || {}).id,
+    subStyleId: (t.secondaryStyles.find((s) => s.selected) || {}).id,
+    perks: [...t.primary.map(sel), ...sec, ...t.shards.map(sel)],
+  };
+}
+function treeFromPage(page) {
+  const st = runeCat.styles;
+  const chosen = new Set(page.perks);
+  const prim = st.find((s) => s.id === page.primaryStyleId) || st[0];
+  const sub = st.find((s) => s.id === page.subStyleId && s.id !== prim.id) || st.find((s) => s.id !== prim.id);
+  const rows = (style, from) => style.slots.slice(from).map((row) => row.map((r) => ({ ...r, selected: chosen.has(r.id) })));
+  return {
+    primaryStyles: st.map((s) => ({ ...s, selected: s.id === prim.id })),
+    primary: rows(prim, 0),
+    secondaryStyles: st.filter((s) => s.id !== prim.id).map((s) => ({ ...s, selected: s.id === sub.id })),
+    secondary: rows(sub, 1),
+    shards: runeCat.shards.map((row, i) => row.map((x) => ({ ...x, selected: page.perks[6 + i] === x.id }))),
+  };
+}
+/** Aplica um clique numa runa e devolve a página nova (regras do cliente: 1 por linha, 2 da árvore secundária). */
+function editPage(page, kind, r, rowIdx) {
+  const st = runeCat.styles;
+  const p = { ...page, perks: [...page.perks] };
+  const style = (id) => st.find((s) => s.id === id);
+  const firstSec = (s) => [s.slots[1][0].id, s.slots[2][0].id];
+  if (kind === 'pstyle') {
+    if (r.id === p.primaryStyleId) return p;
+    const old = p.primaryStyleId;
+    p.primaryStyleId = r.id;
+    const ps = style(r.id);
+    p.perks.splice(0, 4, ...ps.slots.slice(0, 4).map((row) => row[0].id));
+    if (p.subStyleId === r.id) { p.subStyleId = old; p.perks.splice(4, 2, ...firstSec(style(old))); }
+  } else if (kind === 'prune') {
+    p.perks[rowIdx] = r.id;
+  } else if (kind === 'sstyle') {
+    if (r.id === p.subStyleId) return p;
+    p.subStyleId = r.id;
+    p.perks.splice(4, 2, ...firstSec(style(r.id)));
+  } else if (kind === 'srune') {
+    const ss = style(p.subStyleId);
+    const rowOf = (id) => ss.slots.findIndex((row) => row.some((x) => x.id === id));
+    const cur = [p.perks[4], p.perks[5]];
+    const same = cur.findIndex((id) => rowOf(id) === rowOf(r.id));
+    if (same >= 0) cur[same] = r.id; else { cur.shift(); cur.push(r.id); }
+    p.perks.splice(4, 2, ...cur);
+  } else if (kind === 'shard') {
+    p.perks[6 + rowIdx] = r.id;
+  }
+  return p;
+}
+/** Árvores de runas clicáveis: guarda a edição por tela (key) e redesenha com onChange. */
+function editableRunes(tree, key, onChange) {
+  loadRuneCat();
+  if (!runeCat || !tree) return tree ? drawRunes(tree) : h('div');
+  const edited = runeEdits.get(key);
+  const page = edited || pageFromTree(tree);
+  const t = edited ? treeFromPage(edited) : tree;
+  const set = (kind, r, i) => { runeEdits.set(key, editPage(page, kind, r, i)); onChange(); };
+  const row = (list, cls, kind, i) => h('div', { class: 'r-row' }, ...list.map((r) => {
+    const el = icon(ddImg(r.icon), `${cls}${r.selected ? ' sel' : ''} pick`, '');
+    tipOn(el, r.name, r.desc);
+    el.addEventListener('click', () => set(kind, r, i));
+    return el;
+  }));
+  const left = h('div', { class: 'tree' }, row(t.primaryStyles, 'r-style', 'pstyle'), ...t.primary.map((rw, i) => row(rw, i === 0 ? 'r-key' : 'r-rune', 'prune', i)));
+  const right = h('div', { class: 'tree' }, row(t.secondaryStyles, 'r-style', 'sstyle'), ...t.secondary.map((rw) => row(rw, 'r-rune', 'srune')),
+    h('div', { class: 'shards' }, ...t.shards.map((rw, i) => row(rw, 'r-shard', 'shard', i))));
+  const out = h('div', {}, h('div', { class: 'trees' }, left, right));
+  if (edited) {
+    const back = h('button', { class: 'link', type: 'button', text: 'Voltar à página do meta' });
+    back.addEventListener('click', () => { runeEdits.delete(key); onChange(); });
+    out.prepend(h('div', { class: 'r-edited' }, h('span', { text: 'Página editada por você: o Importar usa esta versão.' }), back));
+  }
+  return out;
+}
+
+/* ---------- laboratório de builds (várias builds com win rate, geral ou contra um campeão) ---------- */
+const labState = new Map(); // `${id}:${role}` -> { vs, mode, sel, data, ask }
+const activeLabs = new Set();
+window.overlay.onLabUpdated((p) => {
+  for (const a of [...activeLabs]) {
+    if (!a.el.isConnected) { activeLabs.delete(a); continue; }
+    if (a.id === p.id) fetchLab(a, true);
+  }
+});
+const pctTxt = (x) => `${(x * 100).toFixed(1)}%`;
+const gamesTxt = (n) => tr('{n} jogos', { n: n.toLocaleString('pt-BR') });
+
+/**
+ * ctx: { id, role, vsOptions: [{ id, name }], defaultVs, runeKey, onRunes(page), owned: Set }
+ * Devolve um bloco que se atualiza sozinho quando os dados do OP.GG chegam.
+ */
+function buildLab(ctx) {
+  const key = `${ctx.id}:${ctx.role || ''}`;
+  let st = labState.get(key);
+  if (!st) { st = { vs: ctx.defaultVs || null, mode: (settings && settings.buildMode) || 'play', sel: 0, data: null, ask: '' }; labState.set(key, st); }
+  const el = h('div', { class: 'g-full lab' });
+  const a = { el, id: ctx.id, key, ctx, st };
+  activeLabs.add(a);
+  fetchLab(a, false);
+  drawLab(a);
+  return el;
+}
+function fetchLab(a, force) {
+  const { st, ctx } = a;
+  const ask = `${st.vs || ''}:${st.mode}`;
+  if (!force && st.data && st.ask === ask) return;
+  st.ask = ask;
+  window.overlay.getLab({ id: ctx.id, role: ctx.role, vs: st.vs, mode: st.mode }).then((d) => {
+    if (st.ask !== ask) return;
+    st.data = d;
+    if (st.sel >= ((d && d.cores.length) || 0)) st.sel = 0;
+    if (a.el.isConnected) drawLab(a);
+  });
+}
+function drawLab(a) {
+  const { st, ctx, el } = a;
+  const d = st.data;
+  const seg = (items, cur, onPick) => h('div', { class: 'seg lab-seg' }, ...items.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === cur ? ' on' : ''}`, type: 'button', text: label });
+    b.addEventListener('click', () => onPick(k));
+    return b;
+  }));
+  const mode = seg([['play', 'Mais jogada'], ['wr', 'Maior win rate']], st.mode, (k) => { st.mode = k; st.sel = 0; fetchLab(a); drawLab(a); });
+  const vsList = [{ id: null, name: t('Geral') }, ...(ctx.vsOptions || [])];
+  const chips = h('div', { class: 'lab-vs' }, h('span', { class: 'muted small', text: 'Contra' }), ...vsList.map((o) => {
+    const b = h('button', { class: `lab-chip${(o.id || null) === (st.vs || null) ? ' on' : ''}`, type: 'button' },
+      o.id && version ? h('img', { src: champIcon(version, o.id), alt: '' }) : null, h('span', { text: o.name }));
+    b.addEventListener('click', () => { st.vs = o.id || null; st.sel = 0; fetchLab(a); drawLab(a); });
+    return b;
+  }));
+  const top = h('div', { class: 'lab-top' }, h('div', { class: 'lbl', style: 'margin:0' }, h('span', { text: 'Builds · OP.GG' })), h('span', { class: 'spacer' }), mode);
+  if (!d || (!d.cores.length && d.pending)) {
+    el.replaceChildren(top, chips, h('p', { class: 'muted small lab-note', text: d && d.vs ? tr('Buscando as builds contra {champ}…', { champ: d.vsName }) : 'Buscando as builds com win rate…' }));
+    return;
+  }
+  if (!d.cores.length) {
+    el.replaceChildren(top, chips, h('p', { class: 'muted small lab-note', text: 'Sem amostra suficiente para listar builds.' }));
+    return;
+  }
+  const owned = ctx.owned || null;
+  const minG = d.minGames || 0;
+  const rows = d.cores.map((b, i) => {
+    const r = h('div', { class: `lab-row${i === st.sel ? ' on' : ''}` },
+      h('span', { class: 'muted small', text: String(i + 1) }),
+      h('div', { class: 'lab-its' }, ...b.items.map((it) => {
+        const im = icon(ddVerImg(`item/${it.id}.png`), `it-icon${owned && owned.has(it.id) ? ' own' : ''}`, it.name);
+        return im;
+      })),
+      h('span', { class: 'lab-names small', text: b.items.map((it) => it.name).join(' › ') }),
+      h('span', { class: `lab-wr ${b.wr >= 0.52 ? 'up' : b.wr < 0.48 ? 'down' : ''}`, text: pctTxt(b.wr) }),
+      h('span', { class: `muted small lab-g${b.play < Math.max(minG, 100) ? ' small-sample' : ''}`, text: gamesTxt(b.play), title: b.play < Math.max(minG, 100) ? t('Amostra pequena: win rate menos confiável') : '' }));
+    r.addEventListener('click', () => { st.sel = i; drawLab(a); });
+    return r;
+  });
+  const b = d.cores[st.sel] || d.cores[0];
+  // caminho da build escolhida: inicial -> 1º item -> botas -> resto do núcleo
+  const step = (items, cap) => h('div', { class: 'bp-step' }, h('div', { class: 'bp-icons' }, ...items.map((it) => icon(ddVerImg(`item/${it.id}.png`), `it-icon${owned && owned.has(it.id) ? ' own' : ''}`, it.name))), cap ? h('span', { class: 'bp-cap', text: cap }) : null);
+  const arrow = () => h('span', { class: 'bp-arr', text: '›' });
+  const path = [];
+  if (d.starters[0]) path.push(step(d.starters[0].items, t('Início')), arrow());
+  path.push(step([b.items[0]], t('1º item')));
+  if (d.boots[0]) path.push(arrow(), step(d.boots[0].items, t('Botas')));
+  for (const it of b.items.slice(1)) path.push(arrow(), step([it], ''));
+  const optLine = (label, list, fmt, onPick) => (list.length ? h('div', { class: 'lab-opts' }, h('span', { class: 'lab-ol muted small', text: label }),
+    ...list.slice(0, 4).map((o, i) => {
+      const c = h(onPick ? 'button' : 'span', { class: `lab-opt${onPick ? ' click' : ''}`, type: onPick ? 'button' : undefined }, ...fmt(o, i), h('b', { class: o.wr >= 0.52 ? 'up' : o.wr < 0.48 ? 'down' : '', text: pctTxt(o.wr) }), h('span', { class: 'muted small', text: o.play.toLocaleString('pt-BR') }));
+      if (onPick) c.addEventListener('click', () => onPick(o));
+      return c;
+    })) : null);
+  const runeOpts = optLine('Runas', d.runes, (o) => [h('span', { text: `${o.keystone} · ${o.subName}` })],
+    ctx.onRunes ? (o) => ctx.onRunes({ primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks }) : null);
+  const bootOpts = optLine('Botas', d.boots, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)));
+  const spellOpts = optLine('Feitiços', d.spells, (o) => [h('span', { text: o.names.join(' + ') })]);
+  const skillOpts = optLine('Habilidades', d.skills, (o) => [h('span', { text: skillPrio(o.order).prio.join(' › ') })]);
+  const sampleNote = d.vs ? tr('Partidas de {champ} contra {vs} nesta rota.', { champ: d.champion.name, vs: d.vsName })
+    : tr('Soma dos {n} confrontos mais comuns nesta rota{p}.', { n: d.sample, p: d.pending ? ` (${t('carregando o resto')})` : '' });
+  el.replaceChildren(top, chips,
+    d.tip ? h('div', { class: 'g-tip' }, h('b', { text: `vs ${d.vsName}` }), document.createTextNode(d.tip)) : null,
+    h('div', { class: 'lab-list' }, ...rows),
+    h('div', { class: 'bp lab-path' }, ...path),
+    runeOpts, bootOpts, spellOpts, skillOpts,
+    h('p', { class: 'muted small lab-note', text: `${sampleNote}${st.mode === 'wr' ? ` ${tr('Maior win rate: só builds com {n}+ jogos.', { n: minG })}` : ''}` }));
 }

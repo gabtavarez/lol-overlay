@@ -10,17 +10,17 @@ function fake() {
   return au;
 }
 
-test('updater: fluxo disponível -> baixando -> pronto -> instala', () => {
+test('updater: fluxo disponível -> baixando -> pronto -> instala', async () => {
   const au = fake();
   const seen = [];
   const u = createUpdater({ autoUpdater: au, send: (s) => seen.push(s.state) });
   au.emit('update-available', { version: '0.8.0' });
   au.emit('download-progress', { percent: 42.4 });
   assert.equal(u.get().percent, 42);
-  u.install();
+  await u.install();
   assert.ok(!au.installed, 'não instala antes de baixar');
   au.emit('update-downloaded', { version: '0.8.0' });
-  u.install();
+  await u.install();
   assert.ok(au.installed);
   assert.deepEqual(seen, ['downloading', 'downloading', 'ready']);
 });
@@ -32,4 +32,18 @@ test('updater: erro vira mensagem amigável e check automático respeita a confi
   assert.equal(u.get().state, 'idle');
   au.emit('error', new Error('x'));
   assert.equal(u.get().state, 'error');
+});
+
+test('updater: se saiu versão mais nova depois do download, instala direto a mais nova', async () => {
+  const au = fake();
+  const u = createUpdater({ autoUpdater: au, send() {} });
+  au.emit('update-available', { version: '0.8.0' });
+  au.emit('update-downloaded', { version: '0.8.0' });
+  au.checkForUpdates = async () => {
+    au.emit('update-available', { version: '0.9.0' });
+    return { updateInfo: { version: '0.9.0' }, downloadPromise: Promise.resolve().then(() => au.emit('update-downloaded', { version: '0.9.0' })) };
+  };
+  await u.install();
+  assert.ok(au.installed);
+  assert.equal(u.get().version, '0.9.0');
 });

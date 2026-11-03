@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.43.0",
+    "title": "Builds com win rate e runas editáveis",
+    "items": [
+      "Várias builds com win rate e jogos: escolha mais jogada ou maior win rate.",
+      "Build contra cada inimigo, ao vivo no champ select e na partida.",
+      "Runas clicáveis: monte sua página e importe do seu jeito.",
+      "Atualizador instala direto a versão mais nova."
+    ],
+    "en": {
+      "title": "Builds with win rates, editable runes",
+      "items": [
+        "Several builds with win rate and games: pick most played or highest win rate.",
+        "Build against each enemy, live in champ select and in game.",
+        "Clickable runes: build your page and import it your way.",
+        "Updater installs the newest version directly."
+      ]
+    },
+    "es": {
+      "title": "Builds con win rate y runas editables",
+      "items": [
+        "Varias builds con win rate y partidas: elige más jugada o mayor win rate.",
+        "Build contra cada enemigo, en vivo en la selección y en la partida.",
+        "Runas clicables: arma tu página e impórtala a tu manera.",
+        "El actualizador instala directo la versión más nueva."
+      ]
+    }
+  },
+  {
     "version": "0.42.0",
     "title": "Aba Skins separada",
     "items": [

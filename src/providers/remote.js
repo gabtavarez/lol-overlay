@@ -256,8 +256,13 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
 
     ensureAugments: (champ, onDone, lang = 'pt_BR') => (champ && champ.key ? refresh('augments', `${champ.key}:${lang}`, () => client.aramAugments(champ.key, lang), onDone, 12 * 3600 * 1000) : Promise.resolve()),
     getAugments: (champ, lang = 'pt_BR') => { const e = champ && champ.key && cache.augments && cache.augments[`${champ.key}:${lang}`]; return e ? e.data : null; },
-    ensureMatchup: (me, enemy, role, onDone) =>
-      me && enemy && !MODES.includes(role) ? refresh('matchups', `${norm(me.id)}:${norm(enemy.id)}:${role || 'none'}`, () => client.matchup(me, enemy, role), onDone) : Promise.resolve(),
+    ensureMatchup: (me, enemy, role, onDone) => {
+      if (!me || !enemy || MODES.includes(role)) return Promise.resolve();
+      const key = `${norm(me.id)}:${norm(enemy.id)}:${role || 'none'}`;
+      const old = cache.matchups[key];
+      // cache de antes da v0.43 (sem as listas de builds com win rate): busca de novo
+      return refresh('matchups', key, () => client.matchup(me, enemy, role), onDone, old && !old.data.opts ? 0 : TTL_MS);
+    },
     ensureSynergy: (ally, allyRole, myRole, onDone) =>
       ally && allyRole && myRole ? refresh('synergies', `${norm(ally.id)}:${allyRole}:${myRole}`, () => client.synergies(ally, allyRole, myRole), onDone) : Promise.resolve(),
 

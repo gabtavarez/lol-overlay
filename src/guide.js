@@ -89,4 +89,4 @@ function indexRunes(styles) {
   return out;
 }
 
-module.exports = { buildGuide, indexRunes, runeTree, fullBuild };
+module.exports = { buildGuide, indexRunes, runeTree, fullBuild, SHARDS };

@@ -1,0 +1,32 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const { mergeOpts, rank, labView } = require('../src/buildLab');
+const { parseMatchup } = require('../src/providers/opggMcp');
+
+test('lab: confronto do OP.GG vira listas de builds com partidas e vitórias', () => {
+  const d = { data: {
+    core_items: [{ ids: [3118, 4645, 3157], play: 675, win: 343, pick_rate: 0.11 }, { ids: [3118, 3157, 4645], play: 444, win: 246 }],
+    boots: [{ ids: [3020], play: 5161, win: 2599 }], starter_items: [{ ids: [1056, 2003, 2003], play: 9501, win: 4693 }],
+    summoner_spells: [{ ids: [4, 14], play: 6944, win: 3437 }],
+    skills: [{ order: ['Q', 'W', 'E'], play: 4492, win: 2500 }],
+    runes: [{ primary_page_id: 8100, secondary_page_id: 8200, primary_rune_ids: [8112, 8139, 8140, 8106], secondary_rune_ids: [8210, 8226], stat_mod_ids: [5005, 5008, 5001], play: 7118, win: 3459 }],
+    opponent_champion_tip: 'dica',
+  } };
+  const m = parseMatchup(JSON.stringify(d));
+  assert.equal(m.opts.cores.length, 2);
+  assert.deepEqual(m.opts.runes[0].perks, [8112, 8139, 8140, 8106, 8210, 8226, 5005, 5008, 5001]);
+  assert.equal(m.core.length, 3); // campos antigos continuam
+});
+
+test('lab: soma confrontos, ordena por mais jogada e por maior win rate com amostra mínima', () => {
+  const a = { cores: [{ ids: [1, 2, 3], play: 1000, win: 500 }, { ids: [1, 4, 5], play: 300, win: 180 }, { ids: [9, 9, 9], play: 10, win: 9 }] };
+  const b = { cores: [{ ids: [1, 2, 3], play: 1000, win: 520 }, { ids: [1, 4, 5], play: 100, win: 60 }] };
+  const m = mergeOpts([a, b]);
+  const play = rank(m.cores, 'play');
+  assert.deepEqual(play[0].ids, [1, 2, 3]);
+  assert.equal(play[0].play, 2000);
+  const wr = rank(m.cores, 'wr');
+  assert.deepEqual(wr[0].ids, [1, 4, 5]); // 60% com 400 jogos
+  assert.ok(!wr.some((o) => o.ids[0] === 9), 'build com 10 jogos não entra no maior win rate');
+  assert.equal(labView(m).cores.length, 3);
+});

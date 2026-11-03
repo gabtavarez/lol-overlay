@@ -287,7 +287,23 @@ function parseMatchup(text) {
   const spells = first(d.summoner_spells);
   const r = first(d.runes);
   const skills = first(d.skills);
+  // todas as opções com partidas e vitórias (o confronto traz listas; a análise geral, só a mais jogada)
+  const list = (arr) => (Array.isArray(arr) ? arr : []).filter((o) => o && Array.isArray(o.ids) && o.ids.length)
+    .map((o) => ({ ids: o.ids, play: o.play || 0, win: o.win || 0 }));
+  const opts = {
+    cores: list(d.core_items),
+    boots: list(d.boots),
+    starters: list(d.starter_items),
+    spells: list(d.summoner_spells),
+    skills: (Array.isArray(d.skills) ? d.skills : []).filter((x) => x && Array.isArray(x.order)).map((x) => ({ order: x.order, play: x.play || 0, win: x.win || 0 })),
+    runes: (Array.isArray(d.runes) ? d.runes : []).filter((x) => x && Array.isArray(x.primary_rune_ids) && Array.isArray(x.secondary_rune_ids)).map((x) => ({
+      primaryStyleId: x.primary_page_id, subStyleId: x.secondary_page_id,
+      perks: [...x.primary_rune_ids, ...x.secondary_rune_ids, ...(x.stat_mod_ids || [])],
+      play: x.play || 0, win: x.win || 0,
+    })),
+  };
   return {
+    opts,
     tip: typeof d.opponent_champion_tip === 'string' ? d.opponent_champion_tip : '',
     laneAdvantage: d.lane_advantage_champion || null,
     playStyle: d.recommended_play_style || null,

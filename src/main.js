@@ -9,7 +9,8 @@ const { createSettingsStore } = require('./settings');
 const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
 const { createRemoteData } = require('./providers/remote');
-const { buildGuide, indexRunes, runeTree } = require('./guide');
+const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
+const { mergeOpts, labView } = require('./buildLab');
 const { importRunes, importSpells, importItemSet } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
@@ -749,6 +750,90 @@ function champPatchFor(id, notify) {
   return undefined;
 }
 
+/**
+ * Laboratório de builds (v0.43): várias builds com win rate, por "mais jogada" ou "maior win rate",
+ * na visão geral (soma dos confrontos mais comuns) ou contra um campeão específico.
+ */
+const LAB_RAWPOS = { top: ['TOP'], jungle: ['JUNGLE'], middle: ['MID', 'MIDDLE'], bottom: ['ADC', 'BOTTOM'], utility: ['SUPPORT', 'UTILITY'] };
+const LAB_SAMPLE = 6; // confrontos mais comuns somados na visão geral
+function labFor({ id, role: wanted, vs, mode = 'play' } = {}) {
+  const champ = champById(id);
+  if (!champ || !dd) return null;
+  const roles = rolesOf(champ);
+  const role = ROLE_PT[wanted] ? wanted : lastRole && ROLE_PT[lastRole] ? lastRole : (roles[0] && roles[0].role) || 'middle';
+  const notify = () => send('lab-updated', { id: champ.id, role });
+  const named = (ids) => ids.map((x) => ({ id: x, name: ((dd.item(x) || {}).name) || String(x) }));
+  let opts = null;
+  let tip = '';
+  let vsName = null;
+  let sample = 0;
+  let pending = false;
+  const build = remote.getBuild(champ, role);
+  if (!build) { remote.ensureBuild(champ, role, notify, 20); pending = true; }
+  const opponents = build && build.rawCounters
+    ? ((LAB_RAWPOS[role] || []).map((k) => build.rawCounters[k]).find(Boolean) || [])
+      .map((c) => ({ c, ch: dd.championByRaw(null, c.name) })).filter((x) => x.ch).sort((a, b) => b.c.games - a.c.games)
+    : [];
+  if (vs) {
+    const enemy = champById(vs);
+    if (enemy) {
+      vsName = enemy.name;
+      remote.ensureMatchup(champ, enemy, role, notify);
+      const m = remote.getMatchup(champ, enemy, role);
+      if (m && m.opts) { opts = m.opts; tip = m.tip || ''; sample = 1; } else pending = true;
+    }
+  } else {
+    const top = opponents.slice(0, LAB_SAMPLE);
+    const got = [];
+    for (const o of top) {
+      remote.ensureMatchup(champ, o.ch, role, notify);
+      const m = remote.getMatchup(champ, o.ch, role);
+      if (m && m.opts) got.push(m.opts);
+    }
+    sample = got.length;
+    if (got.length) opts = mergeOpts(got);
+    if (got.length < top.length) pending = true;
+  }
+  const view = opts ? labView(opts, mode === 'wr' ? 'wr' : 'play') : null;
+  const runeName = (x) => (runeIndex[x] && runeIndex[x].name) || String(x);
+  return {
+    champion: { id: champ.id, name: champ.name }, role, vs: vs || null, vsName, tip, mode, pending,
+    sample, sampleOf: vs ? 1 : Math.min(LAB_SAMPLE, opponents.length),
+    opponents: opponents.slice(0, 8).map((o) => ({ id: o.ch.id, name: o.ch.name, games: o.c.games })),
+    minGames: view ? view.minGames : 0,
+    cores: view ? view.cores.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) : [],
+    boots: view ? view.boots.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) : [],
+    starters: view ? view.starters.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) : [],
+    spells: view ? view.spells.map((o) => ({ ids: o.ids, names: o.ids.map((x) => i18n.spellName ? i18n.spellName(x) : String(x)), play: o.play, wr: o.wr })) : [],
+    skills: view ? view.skills.map((o) => ({ order: o.order, play: o.play, wr: o.wr })) : [],
+    runes: view ? view.runes.map((o) => ({ primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks, keystone: runeName(o.perks[0]), primaryName: runeName(o.primaryStyleId), subName: runeName(o.subStyleId), play: o.play, wr: o.wr })) : [],
+  };
+}
+
+/** Catálogo de runas para o editor (árvores no idioma do app + fragmentos). */
+function runeCatalog() {
+  const plain = (x) => String(x || '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  return {
+    styles: (runeStyles || []).map((st) => ({ id: st.id, name: st.name, icon: st.icon,
+      slots: (st.slots || []).map((sl) => (sl.runes || []).map((r) => ({ id: r.id, name: r.name, icon: r.icon, desc: plain(r.shortDesc) }))) })),
+    shards: SHARDS.map((row) => row.map(([sid, name, file]) => ({ id: sid, name: i18n.t(name), icon: `perk-images/StatMods/${file}.png` }))),
+  };
+}
+
+/** Página de runas montada/editada pelo usuário -> cliente. */
+async function importCustomRunes(championId, page) {
+  const champ = champById(championId);
+  const creds = lcuEngine.getCreds();
+  if (!creds) return { ok: false, error: i18n.t('Cliente do LoL não conectado.') };
+  try {
+    const p = { primaryStyleId: Number(page.primaryStyleId), subStyleId: Number(page.subStyleId), perks: (page.perks || []).map(Number) };
+    await importRunes(creds, p, champ ? champ.name : '');
+    return { ok: true, done: [i18n.t('runas')] };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 /** Página do campeão: tudo que o OP.GG tem dele numa rota, sem depender do champ select. */
 async function champDetail(id, wanted) {
   const champ = champById(id);
@@ -1076,6 +1161,9 @@ function registerIpc() {
 
   // Página do campeão (aberta pela tier list): build, runas, skills, counters e sinergias numa rota.
   ipcMain.handle('champ:detail', (_e, { id, role } = {}) => champDetail(id, role));
+  ipcMain.handle('lab:get', (_e, q = {}) => labFor(q));
+  ipcMain.handle('runes:catalog', () => runeCatalog());
+  ipcMain.handle('import:runes', (_e, { championId, page } = {}) => importCustomRunes(championId, page || {}));
 
   // Tier list ranqueada (OP.GG): todas as rotas, com a fonte e o patch.
   ipcMain.handle('tierlist:get', (_e, opts = {}) => {
@@ -1226,7 +1314,7 @@ function registerIpc() {
   ipcMain.handle('win:close', () => mainWin && mainWin.close());
   ipcMain.handle('update:get', () => (updater ? updater.get() : { state: 'idle' }));
   ipcMain.handle('update:check', () => (updater ? updater.check({ manual: true }) : { state: 'error', message: i18n.t('Atualização só funciona no app instalado.') }));
-  ipcMain.handle('update:install', () => { if (updater) updater.install(); return true; });
+  ipcMain.handle('update:install', async () => (updater ? updater.install() : false));
   ipcMain.handle('overlay:preview', () => { previewOverlay(5000); return true; });
 
   // O painel só captura o mouse enquanto o cursor está sobre ele; no resto da tela o clique vai para o jogo.
@@ -1353,7 +1441,8 @@ app.whenReady().then(() => {
         isEnabled: () => settings.get().autoUpdate,
       });
       setTimeout(() => updater.check(), 8000);
-      setInterval(() => updater.check(), 4 * 3600 * 1000);
+      // confere a cada 30 min: com o app aberto por horas, a atualização baixada já é a mais recente
+      setInterval(() => updater.check(), 30 * 60 * 1000);
     } catch (err) {
       logger.log(`atualizador indisponível: ${err.message}`);
     }

@@ -18,6 +18,7 @@ function createUpdater({ autoUpdater, send, log = () => {}, isEnabled = () => tr
   autoUpdater.on('checking-for-update', () => { if (!busy()) set({ state: 'checking', message: '' }); });
   autoUpdater.on('update-available', (info) => {
     log(`atualização disponível: ${info.version}`);
+    if (state.state === 'ready' && info.version === state.version) return; // já baixada: não volta para "baixando"
     set({ state: 'downloading', version: info.version, percent: 0 });
   });
   autoUpdater.on('update-not-available', () => { if (!busy()) set({ state: 'none', message: 'Você já está na versão mais recente.' }); });
@@ -50,17 +51,18 @@ function createUpdater({ autoUpdater, send, log = () => {}, isEnabled = () => tr
     async install() {
       if (state.state !== 'ready') return false;
       const have = state.version;
+      const limit = (p, ms) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error('tempo esgotado')), ms); })]).finally(() => clearTimeout(t)); };
       try {
-        const r = await autoUpdater.checkForUpdates();
+        const r = await limit(autoUpdater.checkForUpdates(), 10000);
         const latest = r && r.updateInfo && r.updateInfo.version;
         if (latest && latest !== have && r.downloadPromise) {
           log(`versão mais nova saiu (${latest}): baixando antes de instalar`);
-          await r.downloadPromise;
+          await limit(r.downloadPromise, 300000);
         }
       } catch (err) {
         log(`reconferência antes de instalar falhou: ${err.message}`);
       }
-      if (state.state !== 'ready') return false;
+      // instala o que estiver baixado mesmo se a reconferência falhar
       autoUpdater.quitAndInstall(false, true);
       return true;
     },

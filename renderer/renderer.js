@@ -366,7 +366,7 @@ function drawGuide() {
   } else if (page && page.runeTree) {
     const st = page.stats || {};
     left.append(head(`${tr('Runas')} · ${page.view.primaryStyleName} + ${page.view.subStyleName}`, 'runes'), runePageTabs(pages) || '');
-    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
+    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick${st.winRate ? ` · ${(st.winRate * 100).toFixed(1)}% WR` : ''}` }));
     left.append(drawRunes(page.runeTree));
   } else if (g.runeTree) left.append(head(`${tr('Runas')} · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
   else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
@@ -374,7 +374,7 @@ function drawGuide() {
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
   right.append(drawBuildPath(g));
   parts.push(h('div', { class: 'g-grid' }, left, right));
-  const myRole = lastState && lastState.myPosition;
+  const myRole = (lastState && lastState.myPosition) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : 'middle');
   if (myRole && !['aram', 'arena'].includes(myRole) && !(lastState && lastState.mode)) {
     const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
     const lane = foes.find((e) => e.position === myRole) || foes.find((e) => !e.position && e.predicted === myRole && e.confidence >= 50);
@@ -1389,7 +1389,7 @@ function drawChamp() {
     left.append(head(`${tr('Runas')} · ${page.view.primaryStyleName} + ${page.view.subStyleName}`),
       runePageTabs(pages, cv.runePage, (i) => { cv.runePage = i; drawChamp(); }) || '');
     const st = page.stats || {};
-    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick · ${((st.winRate || 0) * 100).toFixed(1)}% WR` }));
+    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick${st.winRate ? ` · ${(st.winRate * 100).toFixed(1)}% WR` : ''}` }));
     left.append(editableRunes(page.runeTree, `c:${cv.id}:${cv.role}:${cv.runePage}`, drawChamp));
   }
   const right = h('div', { class: 'g-sec' });

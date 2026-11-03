@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.46.4",
+    "title": "Builds no modo treino",
+    "items": [
+      "O bloco de builds agora aparece no modo treino/personalizada (usa Meio).",
+      "Some o \"0.0% WR\" quando a página de runas não tem winrate."
+    ],
+    "en": {
+      "title": "Builds in practice mode",
+      "items": [
+        "Builds block now shows in practice/custom mode (uses Mid).",
+        "Hides \"0.0% WR\" when the rune page has no win rate."
+      ]
+    },
+    "es": {
+      "title": "Builds en modo práctica",
+      "items": [
+        "El bloque de builds ahora aparece en práctica/personalizada (usa Mid).",
+        "Oculta \"0.0% WR\" cuando la página de runas no tiene winrate."
+      ]
+    }
+  },
+  {
     "version": "0.46.3",
     "title": "U.GG e Lolalytics conectando",
     "items": [

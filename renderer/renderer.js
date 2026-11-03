@@ -37,13 +37,13 @@ function playerLabel(p) {
 
 let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' | 'history' = abas fixas
 let lastView = 'waiting';
-const VIEWS = ['waiting', 'select', 'game', 'profile', 'skins', 'tierlist', 'history', 'patches', 'settings'];
+const VIEWS = ['waiting', 'select', 'game', 'profile', 'skins', 'items', 'tierlist', 'history', 'patches', 'settings'];
 function showView(name) {
   if (name && name !== lastView && page === 'home') page = 'auto'; // mudou de fase (ex.: champ select -> partida): volta a seguir a fase
   if (name) lastView = name;
   const v = settingsOpen ? 'settings' : page === 'home' ? 'waiting' : page !== 'auto' ? page : lastView;
   for (const id of VIEWS) $(id).hidden = v !== id;
-  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', skins: 'nav-skins', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
+  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', skins: 'nav-skins', items: 'nav-items', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
   for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
   $('nav-select').querySelector('.live').hidden = lastView !== 'select';
   $('nav-game').querySelector('.live').hidden = lastView !== 'game';
@@ -216,7 +216,7 @@ const tipBox = h('div', { class: 'tipbox', hidden: '' });
 document.body.append(tipBox);
 function tipOn(el, title, desc) {
   el.addEventListener('mouseenter', () => {
-    tipBox.replaceChildren(h('b', { text: title }), desc ? h('div', { text: desc }) : null);
+    tipBox.replaceChildren(...[h('b', { text: title }), desc ? h('div', { text: desc }) : null].filter(Boolean));
     tipBox.hidden = false;
     const r = el.getBoundingClientRect();
     const w = 260;
@@ -1441,12 +1441,14 @@ function goPage(p) {
   if (p === 'history') loadHistory();
   if (p === 'patches') loadPatches();
   if (p === 'profile' || p === 'skins') loadProfile();
+  if (p === 'items') loadItems();
 }
 $('nav-tier').addEventListener('click', () => goPage('tierlist'));
 $('nav-history').addEventListener('click', () => goPage('history'));
 $('nav-patches').addEventListener('click', () => goPage('patches'));
 $('nav-profile').addEventListener('click', () => goPage('profile'));
 $('nav-skins').addEventListener('click', () => goPage('skins'));
+$('nav-items').addEventListener('click', () => goPage('items'));
 // Início também abre durante o champ select/partida (a aba AO VIVO continua a um clique)
 $('nav-home').addEventListener('click', () => goPage(lastView === 'waiting' ? 'auto' : 'home'));
 for (const id of ['nav-select', 'nav-game']) $(id).addEventListener('click', () => goPage('auto'));
@@ -2242,8 +2244,8 @@ function curFilters(list) {
 let runeCat = null;
 let runeCatAsk = null;
 function loadRuneCat() {
-  if (runeCat || runeCatAsk) return;
-  runeCatAsk = window.overlay.runeCatalog().then((c) => { runeCat = c && c.styles && c.styles.length ? c : null; runeCatAsk = null; });
+  if (runeCat || runeCatAsk || !window.overlay.runeCatalog) return;
+  runeCatAsk = window.overlay.runeCatalog().then((c) => { runeCat = c && c.styles && c.styles.length ? c : null; }).catch(() => {}).finally(() => { runeCatAsk = null; });
 }
 loadRuneCat();
 const runeEdits = new Map(); // chave da tela -> página { primaryStyleId, subStyleId, perks[9] }
@@ -2331,7 +2333,7 @@ function editableRunes(tree, key, onChange) {
 /* ---------- laboratório de builds (várias builds com win rate, geral ou contra um campeão) ---------- */
 const labState = new Map(); // `${id}:${role}` -> { vs, mode, sel, data, ask }
 const activeLabs = new Set();
-window.overlay.onLabUpdated((p) => {
+if (window.overlay.onLabUpdated) window.overlay.onLabUpdated((p) => {
   for (const a of [...activeLabs]) {
     if (!a.el.isConnected) { activeLabs.delete(a); continue; }
     if (a.id === p.id) fetchLab(a, true);
@@ -2429,10 +2431,70 @@ function drawLab(a) {
   const skillOpts = optLine('Habilidades', d.skills, (o) => [h('span', { text: skillPrio(o.order).prio.join(' › ') })]);
   const sampleNote = d.vs ? tr('Partidas de {champ} contra {vs} nesta rota.', { champ: d.champion.name, vs: d.vsName })
     : tr('Soma dos {n} confrontos mais comuns nesta rota{p}.', { n: d.sample, p: d.pending ? ` (${t('carregando o resto')})` : '' });
-  el.replaceChildren(top, chips,
+  el.replaceChildren(...[top, chips,
     d.tip ? h('div', { class: 'g-tip' }, h('b', { text: `vs ${d.vsName}` }), document.createTextNode(d.tip)) : null,
     h('div', { class: 'lab-list' }, ...rows),
     h('div', { class: 'bp lab-path' }, ...path),
     runeOpts, bootOpts, spellOpts, skillOpts,
-    h('p', { class: 'muted small lab-note', text: `${sampleNote}${st.mode === 'wr' ? ` ${tr('Maior win rate: só builds com {n}+ jogos.', { n: minG })}` : ''}` }));
+    h('p', { class: 'muted small lab-note', text: `${sampleNote}${st.mode === 'wr' ? ` ${tr('Maior win rate: só builds com {n}+ jogos.', { n: minG })}` : ''}` })].filter(Boolean));
 }
+
+/* ---------- aba Itens (database) ---------- */
+const itv = { data: null, cls: 'all', sel: null };
+const IT_CLS = [['all', 'Todos'], ['ap', 'Poder de habilidade'], ['ad', 'Dano físico'], ['tank', 'Defesa'], ['support', 'Suporte'], ['boots', 'Botas'], ['other', 'Outros']];
+async function loadItems() {
+  if (!itv.data || !itv.data.items.length) itv.data = await window.overlay.listItems().catch(() => null);
+  drawItems();
+}
+function itemIco(id, cls = 'it-icon') {
+  const v = (itv.data && itv.data.version) || version;
+  return icon(`${DD}/cdn/${v}/img/item/${id}.png`, cls, (itemById(id) || {}).name || String(id));
+}
+const itemById = (id) => itv.data && itv.data.items.find((x) => x.id === Number(id));
+function drawItems() {
+  const d = itv.data;
+  $('it-cls').replaceChildren(...IT_CLS.map(([k, label]) => {
+    const b = h('button', { class: `seg-btn${k === itv.cls ? ' on' : ''}`, type: 'button', text: label });
+    b.addEventListener('click', () => { itv.cls = k; drawItems(); });
+    return b;
+  }));
+  if (!d || !d.items.length) { $('it-grid').replaceChildren(h('p', { class: 'muted pad', text: 'Carregando os itens…' })); $('it-detail').replaceChildren(); return; }
+  const pv = String(d.version || '').split('.').slice(0, 2).join('.');
+  $('it-meta').replaceChildren(h('span', { text: "Summoner's Rift" }), document.createTextNode(` · ${tr('patch {v}', { v: pv })} · ${tr('{n} itens', { n: d.items.length })}`));
+  const q = $('it-q').value.trim().toLowerCase();
+  const sort = $('it-sort').value;
+  let list = d.items.filter((x) => (itv.cls === 'all' || x.cls === itv.cls) && (!q || x.name.toLowerCase().includes(q) || x.plaintext.toLowerCase().includes(q)));
+  list = list.sort(sort === 'name' ? (a, b) => a.name.localeCompare(b.name) : sort === 'cheap' ? (a, b) => a.gold - b.gold : (a, b) => b.gold - a.gold);
+  if (!itv.sel || !list.some((x) => x.id === itv.sel)) itv.sel = list[0] ? list[0].id : null;
+  $('it-grid').replaceChildren(...(list.length ? list.map((x) => {
+    const tile = h('div', { class: `it-tile${x.id === itv.sel ? ' on' : ''}` }, itemIco(x.id),
+      h('div', { class: 'it-tt' }, h('b', { text: x.name }), h('span', { class: 'muted small', text: `${x.gold.toLocaleString('pt-BR')} g` })));
+    tile.addEventListener('click', () => { itv.sel = x.id; drawItems(); });
+    return tile;
+  }) : [h('p', { class: 'muted pad', text: 'Nenhum item com esses filtros.' })]));
+  drawItemDetail(itemById(itv.sel));
+}
+function drawItemDetail(x) {
+  const box = $('it-detail');
+  if (!x) { box.replaceChildren(); return; }
+  const icons = (ids) => h('div', { class: 'it-mini-row' }, ...ids.map((id) => {
+    const el = itemIco(id, 'it-icon');
+    el.addEventListener('click', () => { if (itemById(id)) { itv.sel = id; drawItems(); } });
+    return el;
+  }));
+  box.replaceChildren(...[
+    h('div', { class: 'it-dh' }, itemIco(x.id, 'it-big'), h('div', {}, h('h2', { text: x.name }),
+      h('div', { class: 'small' }, h('b', { class: 'gold', text: `${x.gold.toLocaleString('pt-BR')} g` }),
+        h('span', { class: 'muted', text: ` · ${tr('combinar {g} g', { g: x.base.toLocaleString('pt-BR') })} · ${tr('vende por {g} g', { g: x.sell.toLocaleString('pt-BR') })}` })))),
+    x.plaintext ? h('p', { class: 'muted small', text: x.plaintext }) : null,
+    h('p', { class: 'it-desc small', text: x.desc }),
+    x.from.length ? h('div', {}, head('Receita'), icons(x.from)) : null,
+    x.into.length ? h('div', {}, head('Vira'), icons(x.into)) : null,
+    x.users.length ? h('div', {}, head('Na build de'), h('div', { class: 'it-users' }, ...x.users.map((u) => {
+      const el = h('button', { class: 'lab-chip', type: 'button' }, version ? h('img', { src: champIcon(version, u.id), alt: '' }) : null, h('span', { text: u.name }));
+      el.addEventListener('click', () => goChamp(u.id));
+      return el;
+    }))) : null].filter(Boolean));
+}
+$('it-q').addEventListener('input', () => drawItems());
+$('it-sort').addEventListener('change', () => drawItems());

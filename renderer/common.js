@@ -3,6 +3,12 @@ const DD = 'https://ddragon.leagueoflegends.com';
 const ROLE_LABEL = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirador', utility: 'Suporte', aram: 'ARAM', arena: 'Arena' };
 
 // Nomes de jogadores, itens e motivos vêm de fora: sempre textContent, nunca innerHTML.
+// replaceChildren/append/prepend com null/undefined/false escreviam "null" na tela: ignora esses valores.
+for (const m of ['replaceChildren', 'append', 'prepend']) {
+  const orig = Element.prototype[m];
+  Element.prototype[m] = function guarded(...nodes) { return orig.apply(this, nodes.filter((n) => n !== null && n !== undefined && n !== false)); };
+}
+
 function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(props)) {

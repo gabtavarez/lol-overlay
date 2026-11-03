@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('overlay', {
   getLab: (q) => ipcRenderer.invoke('lab:get', q),
   onLabUpdated: (cb) => ipcRenderer.on('lab-updated', (_e, p) => cb(p)),
   runeCatalog: () => ipcRenderer.invoke('runes:catalog'),
+  listItems: () => ipcRenderer.invoke('items:list'),
   importRunes: (championId, page) => ipcRenderer.invoke('import:runes', { championId, page }),
   onChampDetailUpdated: (cb) => ipcRenderer.on('champ-detail-updated', (_e, p) => cb(p)),
   onGuideUpdated: (cb) => ipcRenderer.on('guide-updated', (_e, p) => cb(p)),

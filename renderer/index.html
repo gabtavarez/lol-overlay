@@ -27,6 +27,7 @@
     <button id="nav-game" class="nav" type="button"><i data-ico="sword"></i><span>Partida</span><em class="live" hidden>AO VIVO</em></button>
     <button id="nav-profile" class="nav" type="button"><i data-ico="user"></i><span>Perfil</span></button>
     <button id="nav-skins" class="nav" type="button"><i data-ico="spark"></i><span>Skins</span></button>
+    <button id="nav-items" class="nav" type="button"><i data-ico="bag"></i><span>Itens</span></button>
     <button id="nav-tier" class="nav" type="button"><i data-ico="list"></i><span>Tier list</span></button>
     <button id="nav-history" class="nav" type="button"><i data-ico="clock"></i><span>Histórico</span></button>
     <button id="nav-patches" class="nav" type="button"><i data-ico="doc"></i><span>Patch notes</span></button>
@@ -300,6 +301,22 @@
         <div class="chips"><button id="sk-refresh" class="btn ghost" type="button"><i data-ico="refresh"></i>Atualizar</button></div>
       </div>
       <div id="sk-body"></div>
+    </main>
+
+    <!-- Itens (database) -->
+    <main id="items" class="view" hidden>
+      <div class="page-head">
+        <div>
+          <div class="eyebrow" id="it-meta">Summoner's Rift</div>
+          <h1>Itens</h1>
+        </div>
+      </div>
+      <div class="tl-filters">
+        <div id="it-cls" class="seg"></div>
+        <input id="it-q" type="text" placeholder="Buscar item" maxlength="40">
+        <select id="it-sort"><option value="gold">Mais caros</option><option value="cheap">Mais baratos</option><option value="name">Nome</option></select>
+      </div>
+      <div class="it-wrap"><div id="it-grid" class="it-grid"></div><aside id="it-detail" class="card it-detail"></aside></div>
     </main>
 
     <!-- Notas de atualização -->

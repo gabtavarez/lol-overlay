@@ -810,6 +810,48 @@ function labFor({ id, role: wanted, vs, mode = 'play' } = {}) {
   };
 }
 
+/** Aba Itens (v0.44): todos os itens à venda em Summoner's Rift, no idioma do app. */
+const ITEM_CLASS = (it) => {
+  const t = it.tags || [];
+  if (t.includes('Boots')) return 'boots';
+  if (t.includes('Consumable') || t.includes('Trinket') || t.includes('Vision') && it.gold.total <= 100) return 'other';
+  if (t.includes('SpellDamage')) return 'ap';
+  if (t.includes('Damage') || t.includes('CriticalStrike') || t.includes('AttackSpeed') || t.includes('ArmorPenetration')) return 'ad';
+  if (t.includes('GoldPer') || t.includes('ManaRegen') && t.includes('Aura')) return 'support';
+  if (t.includes('Health') || t.includes('Armor') || t.includes('SpellBlock')) return 'tank';
+  return 'other';
+};
+function itemList() {
+  if (!dd) return { items: [], version: null };
+  const plain = (x) => String(x || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+  const users = new Map();
+  for (const b of remote.allBuilds()) {
+    const c = dd.championByRaw(null, b.champ);
+    if (!c) continue;
+    for (const iid of new Set(b.ids)) {
+      const k = String(iid);
+      if (!users.has(k)) users.set(k, new Map());
+      users.get(k).set(c.id, c.name);
+    }
+  }
+  const items = [];
+  for (const [id, it] of Object.entries(dd.items || {})) {
+    if (!it.gold || !it.gold.purchasable || !(it.maps && it.maps['11']) || it.inStore === false || it.requiredChampion || it.requiredAlly) continue;
+    if ((it.tags || []).includes('Trinket') && it.gold.total === 0) continue;
+    items.push({
+      id: Number(id), name: it.name, plaintext: it.plaintext || '', desc: plain(it.description), tags: it.tags || [], cls: ITEM_CLASS(it),
+      gold: it.gold.total, base: it.gold.base, sell: it.gold.sell,
+      from: (it.from || []).map(Number), into: (it.into || []).map(Number).filter((x) => dd.items[x] && dd.items[x].maps && dd.items[x].maps['11']),
+      legendary: it.gold.total >= 2200 && !(it.into && it.into.length),
+      users: [...((users.get(id) || new Map()).entries())].map(([cid, name]) => ({ id: cid, name })).slice(0, 24),
+    });
+  }
+  // nomes repetidos (versões de modo/variações): fica a mais cara
+  const byName = new Map();
+  for (const x of items) { const o = byName.get(x.name); if (!o || x.gold > o.gold) byName.set(x.name, x); }
+  return { version: dd.version, items: [...byName.values()].sort((a, b) => b.gold - a.gold) };
+}
+
 /** Catálogo de runas para o editor (árvores no idioma do app + fragmentos). */
 function runeCatalog() {
   const plain = (x) => String(x || '').replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
@@ -1163,6 +1205,7 @@ function registerIpc() {
   ipcMain.handle('champ:detail', (_e, { id, role } = {}) => champDetail(id, role));
   ipcMain.handle('lab:get', (_e, q = {}) => labFor(q));
   ipcMain.handle('runes:catalog', () => runeCatalog());
+  ipcMain.handle('items:list', () => itemList());
   ipcMain.handle('import:runes', (_e, { championId, page } = {}) => importCustomRunes(championId, page || {}));
 
   // Tier list ranqueada (OP.GG): todas as rotas, com a fonte e o patch.

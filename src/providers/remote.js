@@ -153,6 +153,13 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
 
   return {
     flushSync,
+    /** Builds em cache (para "quem compra este item"): [{ champ (norm id), role, ids }] */
+    allBuilds: () => Object.entries(cache.builds).map(([k, e]) => {
+      const [champ, role] = k.split(':');
+      const d = e.data || {};
+      const later = (d.later || []).flat().map((o) => (o && o.ids) || []).flat();
+      return { champ, role, ids: [...(d.core || []), ...(d.boots || []), ...later] };
+    }),
     /** Tier list ranqueada de todas as rotas, atualizada a cada 3 h (segue o patch atual do OP.GG). */
     ensureTierList: (onDone, force = false) => refresh('tierlist', 'all', () => client.tierList(), onDone, force ? 60 * 1000 : 3 * 3600 * 1000),
     getTierList: () => cache.tierlist.all || null,

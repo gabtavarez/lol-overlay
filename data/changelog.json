@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.44.0",
+    "title": "Aba Itens",
+    "items": [
+      "Nova aba Itens: todos os itens com busca, filtros e preço.",
+      "Clique num item: receita, no que vira e quem usa na build.",
+      "Corrigido texto \"null\" que aparecia em algumas telas."
+    ],
+    "en": {
+      "title": "Items tab",
+      "items": [
+        "New Items tab: every item with search, filters and price.",
+        "Click an item: recipe, what it builds into and who uses it.",
+        "Fixed a \"null\" text showing on some screens."
+      ]
+    },
+    "es": {
+      "title": "Pestaña de objetos",
+      "items": [
+        "Nueva pestaña Objetos: todos con búsqueda, filtros y precio.",
+        "Haz clic en un objeto: receta, en qué se convierte y quién lo usa.",
+        "Corregido un texto \"null\" que aparecía en algunas pantallas."
+      ]
+    }
+  },
+  {
     "version": "0.43.0",
     "title": "Builds com win rate e runas editáveis",
     "items": [

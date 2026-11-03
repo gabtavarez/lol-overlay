@@ -2506,3 +2506,26 @@ function drawItemDetail(x) {
 }
 $('it-q').addEventListener('input', () => drawItems());
 $('it-sort').addEventListener('change', () => drawItems());
+
+/* ---------- apagar conjuntos de itens da loja (2 cliques: o 2º confirma) ---------- */
+function clearSetsButton(id, onlyApp, confirmText) {
+  const b = $(id);
+  let label = '';
+  let armed = 0;
+  b.addEventListener('click', async () => {
+    if (!label) label = b.textContent; // já traduzido
+    if (Date.now() - armed > 5000) {
+      armed = Date.now();
+      b.textContent = t(confirmText);
+      setTimeout(() => { if (Date.now() - armed >= 5000) b.textContent = label; }, 5100);
+      return;
+    }
+    armed = 0;
+    b.textContent = label;
+    $('clear-msg').textContent = t('Apagando…');
+    const r = await window.overlay.clearItemSets(onlyApp);
+    $('clear-msg').textContent = r.ok ? (r.removed ? tr('{n} conjuntos de itens apagados.', { n: r.removed }) : t('Não havia conjuntos para apagar.')) : tr('Não consegui apagar: {err}', { err: r.error });
+  });
+}
+clearSetsButton('set-clear-app', true, 'Clique de novo para apagar os do app');
+clearSetsButton('set-clear-all', false, 'Clique de novo: apaga TODOS');

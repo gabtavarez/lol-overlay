@@ -13,7 +13,7 @@ const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
 const { mergeOpts, labView, rank: labRank } = require('./buildLab');
 const { createUgg } = require('./providers/ugg');
 const { createLolalytics } = require('./providers/lolalytics');
-const { importRunes, importSpells, importItemSet } = require('./importer');
+const { importRunes, importSpells, importItemSet, clearItemSets } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
 const { createUpdater } = require('./updater');
@@ -1246,6 +1246,11 @@ function registerIpc() {
   ipcMain.handle('lab:get', (_e, q = {}) => labFor(q));
   ipcMain.handle('runes:catalog', () => runeCatalog());
   ipcMain.handle('items:list', () => itemList());
+  ipcMain.handle('itemsets:clear', async (_e, { onlyApp } = {}) => {
+    const creds = lcuEngine.getCreds();
+    if (!creds) return { ok: false, error: i18n.t('Cliente do LoL não conectado.') };
+    try { return { ok: true, ...(await clearItemSets(creds, { onlyApp: Boolean(onlyApp) })) }; } catch (err) { return { ok: false, error: err.message }; }
+  });
   ipcMain.handle('import:runes', (_e, { championId, page } = {}) => importCustomRunes(championId, page || {}));
 
   // Tier list ranqueada (OP.GG): todas as rotas, com a fonte e o patch.

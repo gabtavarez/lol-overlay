@@ -99,4 +99,22 @@ async function importItemSet(creds, build, champ) {
   return { title };
 }
 
-module.exports = { importRunes, importSpells, importItemSet, validRunes };
+/**
+ * Apaga conjuntos de itens da loja (o cliente não tem botão para isso).
+ * onlyApp = true: só os criados pelo LoL Overlay; false: todos. Devolve quantos foram apagados.
+ */
+async function clearItemSets(creds, { onlyApp = false } = {}) {
+  const me = await lcuGetJson(creds, '/lol-summoner/v1/current-summoner');
+  const sets = await lcuGetJson(creds, `/lol-item-sets/v1/item-sets/${me.summonerId}/sets`);
+  const all = sets.itemSets || [];
+  const keep = onlyApp ? all.filter((x) => !String(x.title || '').startsWith(PAGE_PREFIX)) : [];
+  const removed = all.length - keep.length;
+  if (!removed) return { removed: 0 };
+  const res = await lcuRequest(creds, `/lol-item-sets/v1/item-sets/${me.summonerId}/sets`, {
+    method: 'PUT', json: { ...sets, accountId: sets.accountId || me.accountId, itemSets: keep, timestamp: Date.now() },
+  });
+  if (!ok(res)) throw new Error(`o cliente recusou (HTTP ${res.status})`);
+  return { removed };
+}
+
+module.exports = { importRunes, importSpells, importItemSet, validRunes, clearItemSets };

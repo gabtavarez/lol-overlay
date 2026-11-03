@@ -892,3 +892,4 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .it-users { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 1100px) { .it-wrap { grid-template-columns: 1fr; } .it-detail { position: static; } }
 .lab-warn { margin: 0; color: var(--warn); }
+.btn.danger { color: var(--bad); border-color: rgba(229,72,77,.35); } .btn.danger:hover { background: rgba(229,72,77,.1); }

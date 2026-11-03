@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.46.1",
+    "title": "Apagar conjuntos de itens",
+    "items": [
+      "Configurações › Ferramentas: apague os conjuntos de itens da loja (só os do app ou todos)."
+    ],
+    "en": {
+      "title": "Delete item sets",
+      "items": [
+        "Settings › Tools: delete the shop's item sets (only the app's or all)."
+      ]
+    },
+    "es": {
+      "title": "Borrar conjuntos de objetos",
+      "items": [
+        "Ajustes › Herramientas: borra los conjuntos de objetos de la tienda (solo los de la app o todos)."
+      ]
+    }
+  },
+  {
     "version": "0.46.0",
     "title": "Lolalytics como fonte de builds",
     "items": [

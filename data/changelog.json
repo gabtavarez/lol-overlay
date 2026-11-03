@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.46.5",
+    "title": "Correção do \"fetch failed\"",
+    "items": [
+      "OP.GG, U.GG e Lolalytics agora usam a rede do Windows (corrige \"fetch failed\")."
+    ],
+    "en": {
+      "title": "\"fetch failed\" fix",
+      "items": [
+        "OP.GG, U.GG and Lolalytics now use Windows' network stack (fixes \"fetch failed\")."
+      ]
+    },
+    "es": {
+      "title": "Corrección de \"fetch failed\"",
+      "items": [
+        "OP.GG, U.GG y Lolalytics ahora usan la red de Windows (corrige \"fetch failed\")."
+      ]
+    }
+  },
+  {
     "version": "0.46.4",
     "title": "Builds no modo treino",
     "items": [

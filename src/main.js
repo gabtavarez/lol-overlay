@@ -9,6 +9,7 @@ const { createSettingsStore } = require('./settings');
 const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
 const { createRemoteData } = require('./providers/remote');
+const { netFetch } = require('./netfetch');
 const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
 const { mergeOpts, labView, rank: labRank } = require('./buildLab');
 const { createUgg } = require('./providers/ugg');
@@ -765,15 +766,7 @@ let lola = null;
  * U.GG e Lolalytics ficam atrás do Cloudflare: o fetch do Node falha em algumas redes ("fetch failed").
  * A rede do Chromium (net.fetch) usa o proxy do sistema e se apresenta como navegador; o Node fica de reserva.
  */
-async function browserFetch(url, opts = {}) {
-  try {
-    const { net } = require('electron');
-    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 25000));
-    return await Promise.race([net.fetch(url, { headers: opts.headers || {} }), timeout]);
-  } catch (err) {
-    try { return await fetch(url, opts); } catch (e2) { const c = e2.cause && (e2.cause.code || e2.cause.message); throw new Error(c ? `${e2.message} (${c})` : e2.message); }
-  }
-}
+const browserFetch = (url, opts = {}) => netFetch(url, { headers: opts.headers || {} });
 function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   const champ = champById(id);
   if (!champ || !dd) return null;

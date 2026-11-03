@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { norm } = require('../util');
 const { createMcpClient } = require('./opggMcp');
+const { netFetch } = require('../netfetch');
 
 const RUNE_TIERS = ['EMERALD_PLUS', 'ALL', 'MASTER_PLUS', 'DIAMOND_PLUS', 'GOLD', 'PLATINUM_PLUS'];
 const TTL_MS = 12 * 3600 * 1000;
@@ -23,7 +24,7 @@ function readJson(file) {
 const PRUNE_MS = 7 * 24 * 3600 * 1000;
 const SAVE_DELAY_MS = 1500;
 
-function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient(), getTier = () => null }) {
+function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient({ fetchImpl: netFetch }), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
   for (const k of ['tiers', 'builds', 'matchups', 'synergies', 'tierlist', 'scout', 'matches', 'details', 'otp', 'runes', 'tierlistElo', 'synlist', 'augments']) if (!cache[k]) cache[k] = {};

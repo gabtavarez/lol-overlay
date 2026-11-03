@@ -2332,7 +2332,7 @@ function editableRunes(tree, key, onChange) {
 
 /* ---------- laboratório de builds (várias builds com win rate, geral ou contra um campeão) ---------- */
 const labState = new Map(); // `${id}:${role}` -> { vs, mode, source, sel, data, ask }
-const LAB_SOURCES = [['opgg', 'OP.GG'], ['ugg', 'U.GG'], ['lola', 'Lolalytics']];
+const LAB_SOURCES = [['opgg', 'OP.GG'], ['lola', 'Lolalytics']];
 let labSource = 'opgg'; // última fonte escolhida vale para os próximos campeões
 const activeLabs = new Set();
 if (window.overlay.onLabUpdated) window.overlay.onLabUpdated((p) => {

@@ -42,3 +42,23 @@ test('U.GG: overview mundial Esmeralda+ vira build com win rate e opções de 4�
   assert.ok(r.slots[0][0].win <= r.slots[0][0].play);
   assert.equal(parseOverview(require('./fixtures/ugg-ahri.json'), 'top'), null); // sem a rota no arquivo
 });
+
+test('Lolalytics: lê o estado Qwik da página e monta build, opções por posição e runas', () => {
+  const { qwikObjects, parseBuild } = require('../src/providers/lolalytics');
+  // objs: 0 = dados da build (referências em base 36), demais = valores
+  const objs = [
+    { header: '1', itemSets: '2', item1: '3', item2: '4', item3: '5', item4: '6', boots: '7', spells: '8', skillOrder: '9', startSet: 'a', runes: 'b' },
+    { patch: '16.21', wr: 53.1, n: 1000 }, {},
+    [[3118, 53.1, 60, 1000, 11]], [[4645, 53, 30, 600, 20]], [[3157, 56.5, 20, 400, 25]], [[3089, 60.7, 8, 200, 31]],
+    [[3020, 53.8, 57, 900, 13]], [['4_14', 53.5, 70, 800]], [['QWE', 53.4, 91, 950]], [['1056_2003_2003', 53.1, 99, 990]],
+    { stats: {} },
+  ];
+  const html = `<html><script type="qwik/json">${JSON.stringify({ objs })}</script></html>`;
+  const b = parseBuild(qwikObjects(html), []);
+  assert.deepEqual(b.cores[0].ids, [3118, 4645, 3157]);
+  assert.equal(b.cores[0].play, 400);
+  assert.equal(b.slots.length, 5);
+  assert.deepEqual(b.spells[0].ids, [4, 14]);
+  assert.deepEqual(b.skills[0].order, ['Q', 'W', 'E']);
+  assert.throws(() => qwikObjects('<html>sem dados</html>'), /formato/);
+});

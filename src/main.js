@@ -12,6 +12,7 @@ const { createRemoteData } = require('./providers/remote');
 const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
 const { mergeOpts, labView, rank: labRank } = require('./buildLab');
 const { createUgg } = require('./providers/ugg');
+const { createLolalytics } = require('./providers/lolalytics');
 const { importRunes, importSpells, importItemSet } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
@@ -758,6 +759,7 @@ function champPatchFor(id, notify) {
 const LAB_RAWPOS = { top: ['TOP'], jungle: ['JUNGLE'], middle: ['MID', 'MIDDLE'], bottom: ['ADC', 'BOTTOM'], utility: ['SUPPORT', 'UTILITY'] };
 const LAB_SAMPLE = 6; // confrontos mais comuns somados na visão geral
 let ugg = null;
+let lola = null;
 function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   const champ = champById(id);
   if (!champ || !dd) return null;
@@ -774,6 +776,21 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   let slots = [];
   let src = 'opgg';
   if (source === 'ugg' && vs) note = i18n.t('O U.GG não separa a build por confronto: mostrando o OP.GG.');
+  if (source === 'lola' && vs) note = i18n.t('O Lolalytics por confronto ainda não é lido pelo app: mostrando o OP.GG.');
+  if (source === 'lola' && !vs) {
+    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), getStyles: () => runeStyles });
+    lola.ensure(champ.id, role, notify);
+    const l = lola.get(champ.id, role);
+    src = 'lola';
+    if (!l) pending = true;
+    else if (l.error || !l.cores) note = i18n.t('Lolalytics indisponível agora ({err}).', { err: l.error || i18n.t('sem dados da rota') });
+    else {
+      opts = l;
+      sample = 1;
+      const names = ['1º item', '2º item', '3º item', '4º item', '5º item'];
+      slots = (l.slots || []).map((list, i) => ({ label: i18n.t(names[i]), options: labRank(list, mode === 'wr' ? 'wr' : 'play', 4) }));
+    }
+  }
   if (source === 'ugg' && !vs) {
     if (!ugg) ugg = createUgg({ log: (m) => logger.log(m) });
     ugg.ensure(champ.key, role, notify);
@@ -794,7 +811,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
     ? ((LAB_RAWPOS[role] || []).map((k) => build.rawCounters[k]).find(Boolean) || [])
       .map((c) => ({ c, ch: dd.championByRaw(null, c.name) })).filter((x) => x.ch).sort((a, b) => b.c.games - a.c.games)
     : [];
-  if (src === 'ugg') {
+  if (src === 'ugg' || src === 'lola') {
     // dados já carregados acima
   } else if (vs) {
     const enemy = champById(vs);
@@ -819,7 +836,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   const view = opts ? labView(opts, mode === 'wr' ? 'wr' : 'play') : null;
   const runeName = (x) => (runeIndex[x] && runeIndex[x].name) || String(x);
   return {
-    champion: { id: champ.id, name: champ.name }, role, vs: src === 'ugg' ? null : vs || null, vsName: src === 'ugg' ? null : vsName, tip, mode, pending, source: src, note,
+    champion: { id: champ.id, name: champ.name }, role, vs: src !== 'opgg' ? null : vs || null, vsName: src !== 'opgg' ? null : vsName, tip, mode, pending, source: src, note,
     slots: slots.map((sl) => ({ label: sl.label, options: sl.options.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) })),
     sample, sampleOf: vs ? 1 : Math.min(LAB_SAMPLE, opponents.length),
     opponents: opponents.slice(0, 8).map((o) => ({ id: o.ch.id, name: o.ch.name, games: o.c.games })),

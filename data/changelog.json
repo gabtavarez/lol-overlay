@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.46.0",
+    "title": "Lolalytics como fonte de builds",
+    "items": [
+      "Nova fonte de builds: Lolalytics (Esmeralda+).",
+      "Win rate do 1º ao 5º item, botas, feitiços e habilidades."
+    ],
+    "en": {
+      "title": "Lolalytics as a build source",
+      "items": [
+        "New build source: Lolalytics (Emerald+).",
+        "Win rate for the 1st to 5th item, boots, spells and skills."
+      ]
+    },
+    "es": {
+      "title": "Lolalytics como fuente de builds",
+      "items": [
+        "Nueva fuente de builds: Lolalytics (Esmeralda+).",
+        "Win rate del 1.º al 5.º objeto, botas, hechizos y habilidades."
+      ]
+    }
+  },
+  {
     "version": "0.45.0",
     "title": "U.GG como fonte de builds",
     "items": [

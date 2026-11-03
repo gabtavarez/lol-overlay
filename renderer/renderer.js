@@ -2332,7 +2332,7 @@ function editableRunes(tree, key, onChange) {
 
 /* ---------- laboratório de builds (várias builds com win rate, geral ou contra um campeão) ---------- */
 const labState = new Map(); // `${id}:${role}` -> { vs, mode, source, sel, data, ask }
-const LAB_SOURCES = [['opgg', 'OP.GG'], ['ugg', 'U.GG']];
+const LAB_SOURCES = [['opgg', 'OP.GG'], ['ugg', 'U.GG'], ['lola', 'Lolalytics']];
 let labSource = 'opgg'; // última fonte escolhida vale para os próximos campeões
 const activeLabs = new Set();
 if (window.overlay.onLabUpdated) window.overlay.onLabUpdated((p) => {
@@ -2435,6 +2435,7 @@ function drawLab(a) {
   const skillOpts = optLine('Habilidades', d.skills, (o) => [h('span', { text: skillPrio(o.order).prio.join(' › ') })]);
   const slotOpts = (d.slots || []).map((sl) => optLine(sl.label, sl.options, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name))));
   const sampleNote = d.source === 'ugg' ? tr('U.GG · mundial, Esmeralda+ · build mais jogada da rota.')
+    : d.source === 'lola' ? tr('Lolalytics · Esmeralda+ · item mais escolhido em cada posição; o win rate é o do 3º item.')
     : d.vs ? tr('Partidas de {champ} contra {vs} nesta rota.', { champ: d.champion.name, vs: d.vsName })
     : tr('Soma dos {n} confrontos mais comuns nesta rota{p}.', { n: d.sample, p: d.pending ? ` (${t('carregando o resto')})` : '' });
   el.replaceChildren(...[top, chips,

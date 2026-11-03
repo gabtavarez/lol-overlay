@@ -761,6 +761,19 @@ const LAB_RAWPOS = { top: ['TOP'], jungle: ['JUNGLE'], middle: ['MID', 'MIDDLE']
 const LAB_SAMPLE = 6; // confrontos mais comuns somados na visão geral
 let ugg = null;
 let lola = null;
+/**
+ * U.GG e Lolalytics ficam atrás do Cloudflare: o fetch do Node falha em algumas redes ("fetch failed").
+ * A rede do Chromium (net.fetch) usa o proxy do sistema e se apresenta como navegador; o Node fica de reserva.
+ */
+async function browserFetch(url, opts = {}) {
+  try {
+    const { net } = require('electron');
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('tempo esgotado')), 25000));
+    return await Promise.race([net.fetch(url, { headers: opts.headers || {} }), timeout]);
+  } catch (err) {
+    try { return await fetch(url, opts); } catch (e2) { const c = e2.cause && (e2.cause.code || e2.cause.message); throw new Error(c ? `${e2.message} (${c})` : e2.message); }
+  }
+}
 function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   const champ = champById(id);
   if (!champ || !dd) return null;
@@ -779,7 +792,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   if (source === 'ugg' && vs) note = i18n.t('O U.GG não separa a build por confronto: mostrando o OP.GG.');
   if (source === 'lola' && vs) note = i18n.t('O Lolalytics por confronto ainda não é lido pelo app: mostrando o OP.GG.');
   if (source === 'lola' && !vs) {
-    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
+    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
     lola.ensure(champ.id, role, notify);
     const l = lola.get(champ.id, role);
     src = 'lola';
@@ -793,7 +806,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
     }
   }
   if (source === 'ugg' && !vs) {
-    if (!ugg) ugg = createUgg({ log: (m) => logger.log(m) });
+    if (!ugg) ugg = createUgg({ log: (m) => logger.log(m), fetchImpl: browserFetch });
     ugg.ensure(champ.key, role, notify);
     const u = ugg.get(champ.key, role);
     src = 'ugg';

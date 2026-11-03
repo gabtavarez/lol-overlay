@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.46.3",
+    "title": "U.GG e Lolalytics conectando",
+    "items": [
+      "U.GG e Lolalytics agora usam a rede do navegador do app (corrige \"fetch failed\")."
+    ],
+    "en": {
+      "title": "U.GG and Lolalytics connecting",
+      "items": [
+        "U.GG and Lolalytics now use the app's browser network (fixes \"fetch failed\")."
+      ]
+    },
+    "es": {
+      "title": "U.GG y Lolalytics conectando",
+      "items": [
+        "U.GG y Lolalytics ahora usan la red del navegador de la app (corrige \"fetch failed\")."
+      ]
+    }
+  },
+  {
     "version": "0.46.2",
     "title": "Correções nas fontes de builds",
     "items": [

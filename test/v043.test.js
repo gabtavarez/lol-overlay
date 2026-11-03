@@ -30,3 +30,15 @@ test('lab: soma confrontos, ordena por mais jogada e por maior win rate com amos
   assert.ok(!wr.some((o) => o.ids[0] === 9), 'build com 10 jogos não entra no maior win rate');
   assert.equal(labView(m).cores.length, 3);
 });
+
+test('U.GG: overview mundial Esmeralda+ vira build com win rate e opções de 4º/5º/6º item', () => {
+  const { parseOverview } = require('../src/providers/ugg');
+  const r = parseOverview(require('./fixtures/ugg-ahri.json'), 'middle');
+  assert.equal(r.rank, '17');
+  assert.deepEqual(r.cores[0].ids, [3118, 3020, 3100]);
+  assert.ok(r.cores[0].win < r.cores[0].play);
+  assert.equal(r.runes[0].perks.length, 9);
+  assert.equal(r.slots.length, 3);
+  assert.ok(r.slots[0][0].win <= r.slots[0][0].play);
+  assert.equal(parseOverview(require('./fixtures/ugg-ahri.json'), 'top'), null); // sem a rota no arquivo
+});

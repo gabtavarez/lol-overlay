@@ -2331,7 +2331,9 @@ function editableRunes(tree, key, onChange) {
 }
 
 /* ---------- laboratório de builds (várias builds com win rate, geral ou contra um campeão) ---------- */
-const labState = new Map(); // `${id}:${role}` -> { vs, mode, sel, data, ask }
+const labState = new Map(); // `${id}:${role}` -> { vs, mode, source, sel, data, ask }
+const LAB_SOURCES = [['opgg', 'OP.GG'], ['ugg', 'U.GG']];
+let labSource = 'opgg'; // última fonte escolhida vale para os próximos campeões
 const activeLabs = new Set();
 if (window.overlay.onLabUpdated) window.overlay.onLabUpdated((p) => {
   for (const a of [...activeLabs]) {
@@ -2349,7 +2351,7 @@ const gamesTxt = (n) => tr('{n} jogos', { n: n.toLocaleString('pt-BR') });
 function buildLab(ctx) {
   const key = `${ctx.id}:${ctx.role || ''}`;
   let st = labState.get(key);
-  if (!st) { st = { vs: ctx.defaultVs || null, mode: (settings && settings.buildMode) || 'play', sel: 0, data: null, ask: '' }; labState.set(key, st); }
+  if (!st) { st = { vs: ctx.defaultVs || null, mode: (settings && settings.buildMode) || 'play', source: labSource, sel: 0, data: null, ask: '' }; labState.set(key, st); }
   const el = h('div', { class: 'g-full lab' });
   const a = { el, id: ctx.id, key, ctx, st };
   activeLabs.add(a);
@@ -2359,10 +2361,10 @@ function buildLab(ctx) {
 }
 function fetchLab(a, force) {
   const { st, ctx } = a;
-  const ask = `${st.vs || ''}:${st.mode}`;
+  const ask = `${st.vs || ''}:${st.mode}:${st.source}`;
   if (!force && st.data && st.ask === ask) return;
   st.ask = ask;
-  window.overlay.getLab({ id: ctx.id, role: ctx.role, vs: st.vs, mode: st.mode }).then((d) => {
+  window.overlay.getLab({ id: ctx.id, role: ctx.role, vs: st.vs, mode: st.mode, source: st.source }).then((d) => {
     if (st.ask !== ask) return;
     st.data = d;
     if (st.sel >= ((d && d.cores.length) || 0)) st.sel = 0;
@@ -2385,13 +2387,14 @@ function drawLab(a) {
     b.addEventListener('click', () => { st.vs = o.id || null; st.sel = 0; fetchLab(a); drawLab(a); });
     return b;
   }));
-  const top = h('div', { class: 'lab-top' }, h('div', { class: 'lbl', style: 'margin:0' }, h('span', { text: 'Builds · OP.GG' })), h('span', { class: 'spacer' }), mode);
+  const source = seg(LAB_SOURCES, st.source, (k) => { st.source = k; labSource = k; st.sel = 0; fetchLab(a); drawLab(a); });
+  const top = h('div', { class: 'lab-top' }, h('div', { class: 'lbl', style: 'margin:0' }, h('span', { text: 'Builds' })), source, h('span', { class: 'spacer' }), mode);
   if (!d || (!d.cores.length && d.pending)) {
     el.replaceChildren(top, chips, h('p', { class: 'muted small lab-note', text: d && d.vs ? tr('Buscando as builds contra {champ}…', { champ: d.vsName }) : 'Buscando as builds com win rate…' }));
     return;
   }
   if (!d.cores.length) {
-    el.replaceChildren(top, chips, h('p', { class: 'muted small lab-note', text: 'Sem amostra suficiente para listar builds.' }));
+    el.replaceChildren(top, chips, h('p', { class: 'muted small lab-note', text: d.note || t('Sem amostra suficiente para listar builds.') }));
     return;
   }
   const owned = ctx.owned || null;
@@ -2416,7 +2419,8 @@ function drawLab(a) {
   const path = [];
   if (d.starters[0]) path.push(step(d.starters[0].items, t('Início')), arrow());
   path.push(step([b.items[0]], t('1º item')));
-  if (d.boots[0]) path.push(arrow(), step(d.boots[0].items, t('Botas')));
+  const bootIds = new Set(d.boots.flatMap((o) => o.items.map((it) => it.id)));
+  if (d.boots[0] && !b.items.some((it) => bootIds.has(it.id))) path.push(arrow(), step(d.boots[0].items, t('Botas')));
   for (const it of b.items.slice(1)) path.push(arrow(), step([it], ''));
   const optLine = (label, list, fmt, onPick) => (list.length ? h('div', { class: 'lab-opts' }, h('span', { class: 'lab-ol muted small', text: label }),
     ...list.slice(0, 4).map((o, i) => {
@@ -2429,13 +2433,16 @@ function drawLab(a) {
   const bootOpts = optLine('Botas', d.boots, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)));
   const spellOpts = optLine('Feitiços', d.spells, (o) => [h('span', { text: o.names.join(' + ') })]);
   const skillOpts = optLine('Habilidades', d.skills, (o) => [h('span', { text: skillPrio(o.order).prio.join(' › ') })]);
-  const sampleNote = d.vs ? tr('Partidas de {champ} contra {vs} nesta rota.', { champ: d.champion.name, vs: d.vsName })
+  const slotOpts = (d.slots || []).map((sl) => optLine(sl.label, sl.options, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name))));
+  const sampleNote = d.source === 'ugg' ? tr('U.GG · mundial, Esmeralda+ · build mais jogada da rota.')
+    : d.vs ? tr('Partidas de {champ} contra {vs} nesta rota.', { champ: d.champion.name, vs: d.vsName })
     : tr('Soma dos {n} confrontos mais comuns nesta rota{p}.', { n: d.sample, p: d.pending ? ` (${t('carregando o resto')})` : '' });
   el.replaceChildren(...[top, chips,
     d.tip ? h('div', { class: 'g-tip' }, h('b', { text: `vs ${d.vsName}` }), document.createTextNode(d.tip)) : null,
     h('div', { class: 'lab-list' }, ...rows),
     h('div', { class: 'bp lab-path' }, ...path),
-    runeOpts, bootOpts, spellOpts, skillOpts,
+    ...slotOpts, runeOpts, bootOpts, spellOpts, skillOpts,
+    d.note ? h('p', { class: 'small lab-warn', text: d.note }) : null,
     h('p', { class: 'muted small lab-note', text: `${sampleNote}${st.mode === 'wr' ? ` ${tr('Maior win rate: só builds com {n}+ jogos.', { n: minG })}` : ''}` })].filter(Boolean));
 }
 

@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.45.0",
+    "title": "U.GG como fonte de builds",
+    "items": [
+      "Escolha a fonte das builds: OP.GG ou U.GG (mundial, Esmeralda+).",
+      "U.GG mostra win rate do 4º, 5º e 6º item."
+    ],
+    "en": {
+      "title": "U.GG as a build source",
+      "items": [
+        "Choose the build source: OP.GG or U.GG (worldwide, Emerald+).",
+        "U.GG shows win rates for the 4th, 5th and 6th item."
+      ]
+    },
+    "es": {
+      "title": "U.GG como fuente de builds",
+      "items": [
+        "Elige la fuente de las builds: OP.GG o U.GG (mundial, Esmeralda+).",
+        "U.GG muestra el win rate del 4.º, 5.º y 6.º objeto."
+      ]
+    }
+  },
+  {
     "version": "0.44.0",
     "title": "Aba Itens",
     "items": [

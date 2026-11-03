@@ -10,7 +10,8 @@ const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
 const { createRemoteData } = require('./providers/remote');
 const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
-const { mergeOpts, labView } = require('./buildLab');
+const { mergeOpts, labView, rank: labRank } = require('./buildLab');
+const { createUgg } = require('./providers/ugg');
 const { importRunes, importSpells, importItemSet } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
@@ -756,7 +757,8 @@ function champPatchFor(id, notify) {
  */
 const LAB_RAWPOS = { top: ['TOP'], jungle: ['JUNGLE'], middle: ['MID', 'MIDDLE'], bottom: ['ADC', 'BOTTOM'], utility: ['SUPPORT', 'UTILITY'] };
 const LAB_SAMPLE = 6; // confrontos mais comuns somados na visão geral
-function labFor({ id, role: wanted, vs, mode = 'play' } = {}) {
+let ugg = null;
+function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   const champ = champById(id);
   if (!champ || !dd) return null;
   const roles = rolesOf(champ);
@@ -768,13 +770,33 @@ function labFor({ id, role: wanted, vs, mode = 'play' } = {}) {
   let vsName = null;
   let sample = 0;
   let pending = false;
+  let note = '';
+  let slots = [];
+  let src = 'opgg';
+  if (source === 'ugg' && vs) note = i18n.t('O U.GG não separa a build por confronto: mostrando o OP.GG.');
+  if (source === 'ugg' && !vs) {
+    if (!ugg) ugg = createUgg({ log: (m) => logger.log(m) });
+    ugg.ensure(champ.key, role, notify);
+    const u = ugg.get(champ.key, role);
+    src = 'ugg';
+    if (!u) pending = true;
+    else if (u.error || !u.cores) note = i18n.t('U.GG indisponível agora ({err}).', { err: u.error || i18n.t('sem dados da rota') });
+    else {
+      opts = u;
+      sample = 1;
+      const names = ['4º item', '5º item', '6º item'];
+      slots = (u.slots || []).map((list, i) => ({ label: i18n.t(names[i]), options: labRank(list, mode === 'wr' ? 'wr' : 'play', 4) }));
+    }
+  }
   const build = remote.getBuild(champ, role);
   if (!build) { remote.ensureBuild(champ, role, notify, 20); pending = true; }
   const opponents = build && build.rawCounters
     ? ((LAB_RAWPOS[role] || []).map((k) => build.rawCounters[k]).find(Boolean) || [])
       .map((c) => ({ c, ch: dd.championByRaw(null, c.name) })).filter((x) => x.ch).sort((a, b) => b.c.games - a.c.games)
     : [];
-  if (vs) {
+  if (src === 'ugg') {
+    // dados já carregados acima
+  } else if (vs) {
     const enemy = champById(vs);
     if (enemy) {
       vsName = enemy.name;
@@ -797,7 +819,8 @@ function labFor({ id, role: wanted, vs, mode = 'play' } = {}) {
   const view = opts ? labView(opts, mode === 'wr' ? 'wr' : 'play') : null;
   const runeName = (x) => (runeIndex[x] && runeIndex[x].name) || String(x);
   return {
-    champion: { id: champ.id, name: champ.name }, role, vs: vs || null, vsName, tip, mode, pending,
+    champion: { id: champ.id, name: champ.name }, role, vs: src === 'ugg' ? null : vs || null, vsName: src === 'ugg' ? null : vsName, tip, mode, pending, source: src, note,
+    slots: slots.map((sl) => ({ label: sl.label, options: sl.options.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) })),
     sample, sampleOf: vs ? 1 : Math.min(LAB_SAMPLE, opponents.length),
     opponents: opponents.slice(0, 8).map((o) => ({ id: o.ch.id, name: o.ch.name, games: o.c.games })),
     minGames: view ? view.minGames : 0,

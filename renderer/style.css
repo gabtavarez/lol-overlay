@@ -891,3 +891,4 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .it-mini-row .it-icon { width: 32px; height: 32px; border-radius: 6px; cursor: pointer; }
 .it-users { display: flex; gap: 6px; flex-wrap: wrap; }
 @media (max-width: 1100px) { .it-wrap { grid-template-columns: 1fr; } .it-detail { position: static; } }
+.lab-warn { margin: 0; color: var(--warn); }

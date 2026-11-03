@@ -893,3 +893,10 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 @media (max-width: 1100px) { .it-wrap { grid-template-columns: 1fr; } .it-detail { position: static; } }
 .lab-warn { margin: 0; color: var(--warn); }
 .btn.danger { color: var(--bad); border-color: rgba(229,72,77,.35); } .btn.danger:hover { background: rgba(229,72,77,.1); }
+.lab-rune { display: inline-flex; align-items: center; gap: 3px; }
+.lab-key { width: 24px; height: 24px; }
+.lab-minor { width: 16px; height: 16px; opacity: .9; }
+.lab-sk { position: relative; display: inline-block; width: 24px; height: 24px; }
+.lab-sk-i { width: 24px; height: 24px; border-radius: 5px; }
+.lab-sk b { position: absolute; right: -3px; bottom: -4px; font-size: 9.5px; background: #0e0f12; border-radius: 3px; padding: 0 2px; line-height: 12px; }
+.lab-opt .sk-key { width: 22px; height: 22px; font-size: 11px; }

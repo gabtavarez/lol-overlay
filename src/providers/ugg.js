@@ -48,8 +48,10 @@ function createUgg({ fetchImpl = fetch, log = () => {} } = {}) {
   async function patchInfo() {
     if (versions && Date.now() - versions.at < TTL) return versions;
     const v = await get(VERSIONS);
-    const patch = Object.keys(v).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))[0];
-    versions = { at: Date.now(), patch, overview: (v[patch] || {}).overview || '1.5.0' };
+    // o U.GG lista o patch novo antes de publicar os dados dele: guarda os 3 mais recentes para tentar em ordem
+    const patches = Object.keys(v).sort((a, b) => b.localeCompare(a, undefined, { numeric: true })).slice(0, 3)
+      .map((p) => ({ patch: p, overview: (v[p] || {}).overview || '1.5.0' }));
+    versions = { at: Date.now(), patches };
     return versions;
   }
   return {
@@ -61,8 +63,18 @@ function createUgg({ fetchImpl = fetch, log = () => {} } = {}) {
       const job = (async () => {
         try {
           const v = await patchInfo();
-          const json = await get(`https://stats2.u.gg/lol/1.5/overview/${v.patch}/ranked_solo_5x5/${champKey}/${v.overview}.json`);
-          cache.set(id, { at: Date.now(), data: { patch: v.patch.replace('_', '.'), ...parseOverview(json, role) } });
+          let data = null;
+          let lastErr = null;
+          for (const p of v.patches) {
+            try {
+              const json = await get(`https://stats2.u.gg/lol/1.5/overview/${p.patch}/ranked_solo_5x5/${champKey}/${p.overview}.json`);
+              const parsed = parseOverview(json, role);
+              if (parsed) { data = { patch: p.patch.replace('_', '.'), ...parsed }; break; }
+              lastErr = new Error('sem dados da rota');
+            } catch (err) { lastErr = err; } // 403 = arquivo ainda não existe nesse patch: tenta o anterior
+          }
+          if (!data) throw (lastErr && /403|404/.test(lastErr.message)) ? new Error('o U.GG ainda não tem dados deste campeão') : lastErr || new Error('sem dados');
+          cache.set(id, { at: Date.now(), data });
         } catch (err) {
           log(`U.GG: ${err.message}`);
           cache.set(id, { at: Date.now() - TTL + 5 * 60 * 1000, data: { error: err.message } }); // tenta de novo em 5 min

@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.46.2",
+    "title": "Correções nas fontes de builds",
+    "items": [
+      "U.GG: tenta o patch anterior quando o novo ainda não tem dados (erro 403).",
+      "Lolalytics: corrigido o erro ao montar as runas.",
+      "Runas, feitiços e habilidades das builds agora com ícones.",
+      "Ordens de habilidade repetidas viram uma opção só."
+    ],
+    "en": {
+      "title": "Build source fixes",
+      "items": [
+        "U.GG: tries the previous patch when the new one has no data yet (403 error).",
+        "Lolalytics: fixed the error when building runes.",
+        "Runes, spells and skills in builds now show icons.",
+        "Repeated skill orders are merged into one option."
+      ]
+    },
+    "es": {
+      "title": "Correcciones en las fuentes de builds",
+      "items": [
+        "U.GG: prueba el parche anterior si el nuevo aún no tiene datos (error 403).",
+        "Lolalytics: corregido el error al armar las runas.",
+        "Runas, hechizos y habilidades de las builds ahora con íconos.",
+        "Órdenes de habilidades repetidas se unen en una sola opción."
+      ]
+    }
+  },
+  {
     "version": "0.46.1",
     "title": "Apagar conjuntos de itens",
     "items": [

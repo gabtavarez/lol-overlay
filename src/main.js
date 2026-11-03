@@ -13,6 +13,7 @@ const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
 const { mergeOpts, labView, rank: labRank } = require('./buildLab');
 const { createUgg } = require('./providers/ugg');
 const { createLolalytics } = require('./providers/lolalytics');
+const SPELL_DATA = require('../data/spells.json');
 const { importRunes, importSpells, importItemSet, clearItemSets } = require('./importer');
 const { withMatchup } = require('./matchup');
 const { createLogger } = require('./log');
@@ -778,7 +779,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   if (source === 'ugg' && vs) note = i18n.t('O U.GG não separa a build por confronto: mostrando o OP.GG.');
   if (source === 'lola' && vs) note = i18n.t('O Lolalytics por confronto ainda não é lido pelo app: mostrando o OP.GG.');
   if (source === 'lola' && !vs) {
-    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), getStyles: () => runeStyles });
+    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
     lola.ensure(champ.id, role, notify);
     const l = lola.get(champ.id, role);
     src = 'lola';
@@ -844,9 +845,12 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
     cores: view ? view.cores.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) : [],
     boots: view ? view.boots.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) : [],
     starters: view ? view.starters.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) : [],
-    spells: view ? view.spells.map((o) => ({ ids: o.ids, names: o.ids.map((x) => i18n.spellName ? i18n.spellName(x) : String(x)), play: o.play, wr: o.wr })) : [],
+    spells: view ? view.spells.map((o) => ({ ids: o.ids, keys: o.ids.map((x) => (SPELL_DATA[x] || {}).key || null), names: o.ids.map((x) => i18n.spellName ? i18n.spellName(x) : String(x)), play: o.play, wr: o.wr })) : [],
     skills: view ? view.skills.map((o) => ({ order: o.order, play: o.play, wr: o.wr })) : [],
-    runes: view ? view.runes.map((o) => ({ primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks, keystone: runeName(o.perks[0]), primaryName: runeName(o.primaryStyleId), subName: runeName(o.subStyleId), play: o.play, wr: o.wr })) : [],
+    runes: view ? view.runes.map((o) => ({
+      primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks, keystone: runeName(o.perks[0]), primaryName: runeName(o.primaryStyleId), subName: runeName(o.subStyleId),
+      icons: o.perks.slice(0, 6).map((x) => ({ icon: (runeIndex[x] || {}).icon || null, name: runeName(x) })), subIcon: (runeIndex[o.subStyleId] || {}).icon || null,
+      play: o.play, wr: o.wr })) : [],
   };
 }
 

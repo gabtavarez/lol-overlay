@@ -62,3 +62,17 @@ test('Lolalytics: lê o estado Qwik da página e monta build, opções por posi�
   assert.deepEqual(b.skills[0].order, ['Q', 'W', 'E']);
   assert.throws(() => qwikObjects('<html>sem dados</html>'), /formato/);
 });
+
+test('Lolalytics: runas aceitam a árvore no formato do Data Dragon (slots[].runes)', () => {
+  const { topRunePage } = require('../src/providers/lolalytics');
+  const R = (id) => ({ id });
+  const styles = [
+    { id: 8100, slots: [{ runes: [R(8112), R(8128)] }, { runes: [R(8126), R(8139)] }, { runes: [R(8136), R(8140)] }, { runes: [R(8135), R(8106)] }] },
+    { id: 8200, slots: [{ runes: [R(8214)] }, { runes: [R(8224), R(8226)] }, { runes: [R(8210), R(8234)] }, { runes: [R(8237), R(8236)] }] },
+  ];
+  const stats = { 8112: [[80, 53, 1000]], 8139: [[70, 53, 900]], 8140: [[60, 53, 800]], 8106: [[90, 53, 950]], 8226: [[0, 0, 0], [50, 52, 400]], 8210: [[0, 0, 0], [40, 52, 300]] };
+  const p = topRunePage(stats, styles);
+  assert.equal(p.primaryStyleId, 8100);
+  assert.equal(p.subStyleId, 8200);
+  assert.deepEqual(p.perks.slice(0, 6), [8112, 8139, 8140, 8106, 8226, 8210]);
+});

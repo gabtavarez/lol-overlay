@@ -379,7 +379,7 @@ function drawGuide() {
     const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
     const lane = foes.find((e) => e.position === myRole) || foes.find((e) => !e.position && e.predicted === myRole && e.confidence >= 50);
     parts.push(buildLab({
-      id: shownId, role: myRole, defaultVs: lane ? lane.champion.id : null,
+      id: shownId, role: myRole, defaultVs: lane ? lane.champion.id : null, skillIcons: g.skillIcons,
       vsOptions: foes.map((e) => ({ id: e.champion.id, name: e.champion.name })),
       onRunes: (pg) => { runeEdits.set(guideRuneKey, pg); imported.runes = false; drawGuide(); },
     }));
@@ -579,7 +579,7 @@ function drawGameBuild() {
   const st = lastState || {};
   const foes = (st.enemies || []).filter((e) => e.championId);
   const lane = st.laneOpponent && st.laneOpponent.championId;
-  const lab = gb.role && !['aram', 'arena'].includes(gb.role) ? buildLab({ id: gb.id, role: gb.role, defaultVs: lane || null, owned: gb.owned,
+  const lab = gb.role && !['aram', 'arena'].includes(gb.role) ? buildLab({ id: gb.id, role: gb.role, defaultVs: lane || null, owned: gb.owned, skillIcons: g.skillIcons,
     vsOptions: foes.map((e) => ({ id: e.championId, name: e.champion })) }) : '';
   box.replaceChildren(h('div', { class: 'g-grid' }, left, right), lab,
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : '');
@@ -1413,7 +1413,7 @@ function drawChamp() {
   const buildCard = h('section', { class: 'card' },
     h('div', { class: 'card-h' }, h('h2', { text: `Build · ${t(ROLE_NAME[cv.role] || '')}` }), h('span', { class: 'spacer' }), seg || ''),
     h('div', { class: 'g-grid' }, left, right),
-    cv.role ? buildLab({ id: cv.id, role: cv.role, vsOptions: [...(d.losesTo || []), ...(d.beats || [])].filter((c) => c.id).slice(0, 8).map((c) => ({ id: c.id, name: c.name })),
+    cv.role ? buildLab({ id: cv.id, role: cv.role, skillIcons: g.skillIcons, vsOptions: [...(d.losesTo || []), ...(d.beats || [])].filter((c) => c.id).slice(0, 8).map((c) => ({ id: c.id, name: c.name })),
       onRunes: (pg) => { runeEdits.set(`c:${cv.id}:${cv.role}:${cv.runePage}`, pg); drawChamp(); } }) : null,
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : null,
     d.kit ? abilityBlock(d.kit, 'g-full') : null,
@@ -2428,11 +2428,30 @@ function drawLab(a) {
       if (onPick) c.addEventListener('click', () => onPick(o));
       return c;
     })) : null);
-  const runeOpts = optLine('Runas', d.runes, (o) => [h('span', { text: `${o.keystone} · ${o.subName}` })],
+  const runeOpts = optLine('Runas', d.runes, (o) => {
+    const ic = (x, cls) => (x && x.icon ? icon(ddImg(x.icon), cls, x.name) : null);
+    const el = h('span', { class: 'lab-rune' }, ic(o.icons && o.icons[0], 'lab-key'), ...((o.icons || []).slice(1).map((x) => ic(x, 'lab-minor'))));
+    el.title = (o.icons || []).map((x) => x.name).join(' · ');
+    return [el];
+  },
     ctx.onRunes ? (o) => ctx.onRunes({ primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks }) : null);
   const bootOpts = optLine('Botas', d.boots, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)));
-  const spellOpts = optLine('Feitiços', d.spells, (o) => [h('span', { text: o.names.join(' + ') })]);
-  const skillOpts = optLine('Habilidades', d.skills, (o) => [h('span', { text: skillPrio(o.order).prio.join(' › ') })]);
+  const spellOpts = optLine('Feitiços', d.spells, (o) => o.ids.map((sid, i) => (o.keys && o.keys[i] ? icon(ddVerImg(`spell/${o.keys[i]}.png`), 'it-mini', o.names[i]) : h('span', { text: o.names[i] }))));
+  // ordens diferentes com a mesma prioridade e o mesmo início viram uma opção só (somando os jogos)
+  const skillGroups = new Map();
+  for (const o of d.skills) {
+    const p = skillPrio(o.order);
+    const k = `${p.prio.join('')}:${p.start.join('')}`;
+    const g = skillGroups.get(k) || { prio: p.prio, start: p.start, play: 0, wins: 0 };
+    g.play += o.play; g.wins += o.wr * o.play;
+    skillGroups.set(k, g);
+  }
+  const skills = [...skillGroups.values()].map((g) => ({ ...g, wr: g.play ? g.wins / g.play : 0 })).sort((a, b) => b.play - a.play);
+  const sIcons = (ctx.skillIcons && ctx.skillIcons.spells) || [];
+  const skIco = (k) => { const sp = sIcons['QWER'.indexOf(k)]; return sp ? h('span', { class: 'lab-sk' }, icon(ddVerImg(sp.icon), 'lab-sk-i', `${k} · ${sp.name}`, k), h('b', { text: k })) : h('span', { class: `sk-key s-${k}`, text: k }); };
+  const skillOpts = optLine('Habilidades', skills, (o) => [
+    ...o.prio.flatMap((k, i) => (i ? [h('span', { class: 'sk-arr', text: '›' }), skIco(k)] : [skIco(k)])),
+    h('span', { class: 'muted small', text: `(${o.start.join(' ')})` })]);
   const slotOpts = (d.slots || []).map((sl) => optLine(sl.label, sl.options, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name))));
   const sampleNote = d.source === 'ugg' ? tr('U.GG · mundial, Esmeralda+ · build mais jogada da rota.')
     : d.source === 'lola' ? tr('Lolalytics · Esmeralda+ · item mais escolhido em cada posição; o win rate é o do 3º item.')

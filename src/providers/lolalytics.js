@@ -38,6 +38,8 @@ function qwikObjects(html) {
 /** Página de runas mais usada a partir das estatísticas por runa ([[pick%, wr, jogos] primária, secundária]). */
 function topRunePage(stats, styles) {
   if (!stats || !Array.isArray(styles) || !styles.length) return null;
+  // aceita a árvore do Data Dragon (slots[].runes) ou já em listas
+  styles = styles.map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => (Array.isArray(sl) ? sl : (sl && sl.runes) || [])) }));
   const pick = (id, sec) => { const s = stats[id]; const e = s && s[sec ? 1 : 0]; return e ? e[0] : -1; };
   const games = (id) => { const s = stats[id]; return s && s[0] ? s[0][2] : 0; };
   let best = null;

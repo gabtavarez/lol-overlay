@@ -1,0 +1,176 @@
+{
+ "lineMatches": [],
+ "inLine": [],
+ "byChamp": {
+  "28": [
+   {
+    "id": 28066,
+    "name": "Evelynn K/DA Hitmaker",
+    "rarity": "kMythic",
+    "lines": [
+     "K/DA"
+    ]
+   },
+   {
+    "id": 28065,
+    "name": "Evelynn K/DA FIRESTARTER",
+    "rarity": "kLegendary",
+    "lines": [
+     "K/DA"
+    ]
+   },
+   {
+    "id": 28064,
+    "name": "Evelynn Emissária da Escuridão",
+    "rarity": "kEpic",
+    "lines": [
+     "Emissários da Escuridão e Emissários da Luz"
+    ]
+   },
+   {
+    "id": 28053,
+    "name": "Evelynn Velho Oeste de Prestígio",
+    "rarity": "kMythic",
+    "lines": [
+     "Velho Oeste"
+    ]
+   },
+   {
+    "id": 28052,
+    "name": "Evelynn Velho Oeste",
+    "rarity": "kEpic",
+    "lines": [
+     "Velho Oeste"
+    ]
+   }
+  ],
+  "84": [
+   {
+    "id": 84103,
+    "name": "Akali True Damage Know My Name",
+    "rarity": "kLegendary",
+    "lines": [
+     "True Damage"
+    ]
+   },
+   {
+    "id": 84102,
+    "name": "Akali K/DA FIRESTARTER Ignição",
+    "rarity": "kMythic",
+    "lines": [
+     "K/DA"
+    ]
+   },
+   {
+    "id": 84092,
+    "name": "Akali Florescer Espiritual",
+    "rarity": "kEpic",
+    "lines": [
+     "Florescer Espiritual"
+    ]
+   },
+   {
+    "id": 84082,
+    "name": "Akali Empírea",
+    "rarity": "kEpic",
+    "lines": [
+     "Empíreos"
+    ]
+   },
+   {
+    "id": 84071,
+    "name": "Akali Congregação das Bruxas de Prestígio",
+    "rarity": "kMythic",
+    "lines": [
+     "Congregação das Bruxas"
+    ]
+   }
+  ],
+  "86": [
+   {
+    "id": 86046,
+    "name": "Garen Visões dos Caídos",
+    "rarity": "kEpic",
+    "lines": [
+     "Visões dos Caídos"
+    ]
+   },
+   {
+    "id": 86044,
+    "name": "Deus-Rei Garen Caído",
+    "rarity": "kMythic",
+    "lines": [
+     "Batalha dos Deuses-Reis"
+    ]
+   },
+   {
+    "id": 86033,
+    "name": "Garen Criador Mítico",
+    "rarity": "kEpic",
+    "lines": [
+     "Criadores Míticos"
+    ]
+   },
+   {
+    "id": 86024,
+    "name": "Garen Academia de Batalha",
+    "rarity": "kEpic",
+    "lines": [
+     "Academia de Batalha"
+    ]
+   },
+   {
+    "id": 86023,
+    "name": "Garen Reinos Mech de Prestígio",
+    "rarity": "kMythic",
+    "lines": [
+     "Reinos Mech"
+    ]
+   }
+  ],
+  "122": [
+   {
+    "id": 122067,
+    "name": "Darius Reinos Mech",
+    "rarity": "kLegendary",
+    "lines": [
+     "Reinos Mech"
+    ]
+   },
+   {
+    "id": 122065,
+    "name": "Darius General Triunfante de Prestígio",
+    "rarity": "kMythic",
+    "lines": [
+     "Desafio Grandioso"
+    ]
+   },
+   {
+    "id": 122064,
+    "name": "Deus-Rei Darius Divino",
+    "rarity": "kMythic",
+    "lines": [
+     "Batalha dos Deuses-Reis"
+    ]
+   },
+   {
+    "id": 122054,
+    "name": "Darius de Porcelana",
+    "rarity": "kEpic",
+    "lines": [
+     "Porcelana"
+    ]
+   },
+   {
+    "id": 122043,
+    "name": "Darius Florescer Espiritual",
+    "rarity": "kEpic",
+    "lines": [
+     "Florescer Espiritual"
+    ]
+   }
+  ]
+ },
+ "v": "16.22.1",
+ "imgs": []
+}

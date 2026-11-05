@@ -29,14 +29,18 @@ const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirado
 
 /* ---------- CommunityDragon: lista de skins (pt-BR), enxuta e em cache por 7 dias ---------- */
 
-function createSkinCatalog({ cacheDir, fetchImpl = fetch, log = () => {}, lang = 'pt_br' }) {
+function createSkinCatalog({ cacheDir, fetchImpl = fetch, log = () => {}, lang = 'pt_br', version = () => '' }) {
   const file = path.join(cacheDir, lang === 'pt_br' ? 'skins.json' : `skins.${lang}.json`); // nomes das skins no idioma do app
+  const verFile = `${file}.ver`;
   let mem = null;
+  let memVer = '';
   return async function catalog() {
-    if (mem) return mem;
+    const ver = String(version() || '');
+    if (mem && (!ver || ver === memVer)) return mem; // patch novo: recarrega para pegar as skins novas
     try {
       const st = await fs.stat(file);
-      if (Date.now() - st.mtimeMs < 7 * DAY) { mem = JSON.parse(await fs.readFile(file, 'utf8')); return mem; }
+      const saved = await fs.readFile(verFile, 'utf8').catch(() => '');
+      if (Date.now() - st.mtimeMs < DAY / 2 && (!ver || saved === ver)) { memVer = ver; mem = JSON.parse(await fs.readFile(file, 'utf8')); return mem; }
     } catch { /* sem cache */ }
     try {
       const res = await fetchImpl(CDRAGON_SKINS(lang));
@@ -48,11 +52,13 @@ function createSkinCatalog({ cacheDir, fetchImpl = fetch, log = () => {}, lang =
       }
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(file, JSON.stringify(slim));
+      await fs.writeFile(verFile, ver).catch(() => {});
       mem = slim;
+      memVer = ver;
       return mem;
     } catch (err) {
       log(`skins (CommunityDragon): ${err.message}`);
-      try { mem = JSON.parse(await fs.readFile(file, 'utf8')); return mem; } catch { return null; }
+      try { mem = JSON.parse(await fs.readFile(file, 'utf8')); memVer = ver; return mem; } catch { return null; }
     }
   };
 }

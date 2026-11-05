@@ -404,6 +404,24 @@ async function loadDataDragon() {
   }
 }
 
+/** Com o app aberto por horas: se saiu patch novo no Data Dragon, recarrega campeões, itens, runas e skins sem reiniciar. */
+async function refreshDataDragon() {
+  if (!dd || USE_MOCK) return;
+  try {
+    const res = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+    if (!res.ok) return;
+    const latest = (await res.json())[0];
+    if (!latest || latest === dd.version) return;
+    const instance = new DataDragon({ cacheDir: path.join(app.getPath('userData'), 'ddragon'), lang: DD_LANG[appLang()] || 'pt_BR' });
+    await instance.init();
+    dd = instance;
+    logger.log(`Data Dragon atualizado para ${dd.version}`);
+    setStatus(`Data Dragon ${dd.version}`, 'ok');
+    loadRuneIndex(dd.version);
+    loadSpellNames(dd.version);
+  } catch (err) { logger.log(`refresh do Data Dragon falhou: ${err.message}`); }
+}
+
 /** Nomes oficiais dos feitiços no idioma do app (Data Dragon summoner.json). */
 async function loadSpellNames(version) {
   try {
@@ -1470,7 +1488,7 @@ app.whenReady().then(() => {
   elo = createEloTracker({ dir: userData });
   meraki = createMeraki({ cacheDir: path.join(userData, 'meraki') });
   rpc = createDiscordRpc({ log: (m) => logger.log(m) });
-  skinCatalog = profileView.createSkinCatalog({ cacheDir: path.join(userData, 'cdragon'), log: (m) => logger.log(m), lang: (DD_LANG[appLang()] || 'pt_BR').toLowerCase() });
+  skinCatalog = profileView.createSkinCatalog({ fetchImpl: netFetch, version: () => (dd && dd.version) || '', cacheDir: path.join(userData, 'cdragon'), log: (m) => logger.log(m), lang: (DD_LANG[appLang()] || 'pt_BR').toLowerCase() });
   patchNotes = createPatchNotes({ cacheDir: path.join(userData, 'patchnotes'), resolve: (n, k) => resolveEntity(n, k), log: (m) => logger.log(m), locale: { pt: 'pt-br', en: 'en-us', es: 'es-mx' }[appLang()] || 'pt-br' });
   configurePresence();
   recorder = createRecorder({ dir: userData, dd: () => dd, log: (m) => logger.log(m) });
@@ -1541,6 +1559,7 @@ app.whenReady().then(() => {
       setTimeout(() => updater.check(), 8000);
       // confere a cada 30 min: com o app aberto por horas, a atualização baixada já é a mais recente
       setInterval(() => updater.check(), 30 * 60 * 1000);
+      setInterval(() => refreshDataDragon(), 30 * 60 * 1000);
     } catch (err) {
       logger.log(`atualizador indisponível: ${err.message}`);
     }

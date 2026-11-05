@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.46.8",
+    "title": "Assets sempre atualizados",
+    "items": [
+      "Patch novo recarrega campeões, itens e ícones sem reiniciar o app.",
+      "Skins novas aparecem no mesmo dia (antes o cache durava 7 dias)."
+    ],
+    "en": {
+      "title": "Assets always up to date",
+      "items": [
+        "A new patch reloads champions, items and icons without restarting.",
+        "New skins show up the same day (cache used to last 7 days)."
+      ]
+    },
+    "es": {
+      "title": "Assets siempre actualizados",
+      "items": [
+        "Un parche nuevo recarga campeones, objetos e iconos sin reiniciar.",
+        "Las skins nuevas aparecen el mismo día (el caché duraba 7 días)."
+      ]
+    }
+  },
+  {
     "version": "0.46.7",
     "title": "U.GG removido",
     "items": [

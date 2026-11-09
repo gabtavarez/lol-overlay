@@ -296,6 +296,25 @@ function drawBuild(g) {
     sit);
 }
 
+/** Troca a rota em que você caiu: muda a build do guia, do laboratório, do Importar e do overlay. */
+function rolePicker(root, onChange = null) {
+  const auto = (lastState && (lastState.assignedPosition != null ? lastState.assignedPosition : lastState.myPosition)) || '';
+  const cur = (root && root.roleOverride) || '';
+  const sel = h('select', { class: 'role-pick', title: 'Rota usada para a build' },
+    h('option', { value: '', text: auto ? `${t('Automática')} (${t(ROLE_NAME[auto] || auto)})` : t('Automática') }),
+    ...Object.entries(ROLE_NAME).map(([k, v]) => h('option', { value: k, text: v })));
+  sel.value = cur;
+  sel.addEventListener('change', async () => {
+    sel.disabled = true;
+    await window.overlay.setRole(sel.value || null);
+    if (onChange) return onChange();
+    guide = await window.overlay.getGuide(shownId);
+    imported.runes = false; imported.spells = false; variant = 0;
+    drawGuide();
+  });
+  return h('label', { class: 'role-pick-wrap' }, h('span', { text: 'Rota' }), sel);
+}
+
 function drawGuide() {
   if (!guide) {
     $('guide-tabs').replaceChildren();
@@ -337,12 +356,11 @@ function drawGuide() {
     sub.push(h('span', { class: 'spacer' }), h('span', { text: 'Matchup contra' }), sel);
     if (root.pending) sub.push(h('span', { text: root.pending }));
   }
+  if (lastState && lastState.phase === 'champselect' && !lastState.mode) sub.unshift(rolePicker(root));
   if (sub.length) parts.push(h('div', { class: 'g-sub' }, ...sub));
+  if (root.chosen) parts.push(h('div', { class: 'g-tip chosen-tip', text: tr('Usando a sua build do laboratório ({label}). Para voltar à do OP.GG, use "Voltar ao padrão" no bloco Builds.', { label: root.chosen.label || 'OP.GG' }) }));
   if (root.roleNote) parts.push(h('div', { class: 'g-tip', text: root.roleNote }));
-  if (root.augments && root.augments.length) {
-    parts.push(h('div', { class: 'g-aug' }, h('div', { class: 'lbl' }, h('span', { text: 'Augments que mais ganham (ARAM: Desordem)' })),
-      h('div', { class: 'g-aug-list' }, ...root.augments.map((a) => h('span', { class: `aug t${a.tier}`, title: tr('Desempenho {s} · escolhido em {p}%', { s: Math.round(a.score), p: Math.round((a.pick || 0) * 100) }), text: a.name })))));
-  }
+
   if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
   if ((g.changes || []).length) {
     const KIND = { items: 'Itens', spells: 'Feitiços', runes: 'Runas', shards: 'Fragmento', skills: 'Habilidades' };
@@ -374,12 +392,12 @@ function drawGuide() {
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
   right.append(drawBuildPath(g));
   parts.push(h('div', { class: 'g-grid' }, left, right));
-  const myRole = (lastState && lastState.myPosition) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : 'middle');
+  const myRole = (lastState && (lastState.myRole || lastState.myPosition)) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : 'middle');
   if (myRole && !['aram', 'arena'].includes(myRole) && !(lastState && lastState.mode)) {
     const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
     const lane = foes.find((e) => e.position === myRole) || foes.find((e) => !e.position && e.predicted === myRole && e.confidence >= 50);
     parts.push(buildLab({
-      id: shownId, role: myRole, defaultVs: lane ? lane.champion.id : null, skillIcons: g.skillIcons,
+      id: shownId, role: myRole, defaultVs: lane ? lane.champion.id : null, skillIcons: g.skillIcons, runeKey: guideRuneKey,
       vsOptions: foes.map((e) => ({ id: e.champion.id, name: e.champion.name })),
       onRunes: (pg) => { runeEdits.set(guideRuneKey, pg); imported.runes = false; drawGuide(); },
     }));
@@ -560,7 +578,12 @@ function drawGameBuild() {
   const box = $('gbuild');
   const d = gb && gb.data;
   $('gbuild-title').textContent = d && d.champion ? `${t('Build completa')} · ${d.champion.name}${d.role && ROLE_NAME[d.role] ? ` · ${t(ROLE_NAME[d.role])}` : ''}` : t('Build completa');
-  $('gbuild-src').textContent = d && d.winRate ? `${(d.winRate * (d.winRate <= 1 ? 100 : 1)).toFixed(1)}% WR · OP.GG` : 'OP.GG';
+  $('gbuild-src').textContent = d && d.chosen ? tr('Sua build · {label}', { label: d.chosen.label }) : d && d.winRate ? `${(d.winRate * (d.winRate <= 1 ? 100 : 1)).toFixed(1)}% WR · OP.GG` : 'OP.GG';
+  const rp = $('gbuild-role');
+  if (rp && !['aram', 'arena'].includes(gb && gb.role)) {
+    rp.hidden = false;
+    rp.replaceChildren(rolePicker({ roleOverride: lastState && lastState.roleOverride }, () => {})); // o próximo estado do jogo já vem com a rota nova
+  } else if (rp) rp.hidden = true;
   if (!d || !d.guide) {
     box.replaceChildren(h('p', { class: 'muted pad', text: d && d.error ? tr('Sem dados do OP.GG: {err}', { err: d.error }) : tr('Carregando a build do OP.GG…') }));
     return;
@@ -579,7 +602,7 @@ function drawGameBuild() {
   const st = lastState || {};
   const foes = (st.enemies || []).filter((e) => e.championId);
   const lane = st.laneOpponent && st.laneOpponent.championId;
-  const lab = gb.role && !['aram', 'arena'].includes(gb.role) ? buildLab({ id: gb.id, role: gb.role, defaultVs: lane || null, owned: gb.owned, skillIcons: g.skillIcons,
+  const lab = gb.role && !['aram', 'arena'].includes(gb.role) ? buildLab({ id: gb.id, role: gb.role, defaultVs: lane || null, owned: gb.owned, skillIcons: g.skillIcons, importNow: false,
     vsOptions: foes.map((e) => ({ id: e.championId, name: e.champion })) }) : '';
   box.replaceChildren(h('div', { class: 'g-grid' }, left, right), lab,
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : '');
@@ -1414,7 +1437,7 @@ function drawChamp() {
     h('div', { class: 'card-h' }, h('h2', { text: `Build · ${t(ROLE_NAME[cv.role] || '')}` }), h('span', { class: 'spacer' }), seg || ''),
     h('div', { class: 'g-grid' }, left, right),
     cv.role ? buildLab({ id: cv.id, role: cv.role, skillIcons: g.skillIcons, vsOptions: [...(d.losesTo || []), ...(d.beats || [])].filter((c) => c.id).slice(0, 8).map((c) => ({ id: c.id, name: c.name })),
-      onRunes: (pg) => { runeEdits.set(`c:${cv.id}:${cv.role}:${cv.runePage}`, pg); drawChamp(); } }) : null,
+      runeKey: `c:${cv.id}:${cv.role}:${cv.runePage}`, onRunes: (pg) => { runeEdits.set(`c:${cv.id}:${cv.role}:${cv.runePage}`, pg); drawChamp(); } }) : null,
     g.skills.length ? h('div', { class: 'g-full' }, head('Ordem de habilidades'), skillSummary(g.skills), drawSkills(g)) : null,
     d.kit ? abilityBlock(d.kit, 'g-full') : null,
     h('div', { class: 'card-f' }, msg, copyMsg, copy, imp));
@@ -2351,7 +2374,7 @@ const gamesTxt = (n) => tr('{n} jogos', { n: n.toLocaleString('pt-BR') });
 function buildLab(ctx) {
   const key = `${ctx.id}:${ctx.role || ''}`;
   let st = labState.get(key);
-  if (!st) { st = { vs: ctx.defaultVs || null, mode: (settings && settings.buildMode) || 'play', source: labSource, sel: 0, data: null, ask: '' }; labState.set(key, st); }
+  if (!st) { st = { vs: ctx.defaultVs || null, mode: (settings && settings.buildMode) || 'play', source: labSource, sel: 0, pick: {}, data: null, ask: '' }; labState.set(key, st); }
   const el = h('div', { class: 'g-full lab' });
   const a = { el, id: ctx.id, key, ctx, st };
   activeLabs.add(a);
@@ -2368,6 +2391,7 @@ function fetchLab(a, force) {
     if (st.ask !== ask) return;
     st.data = d;
     if (st.sel >= ((d && d.cores.length) || 0)) st.sel = 0;
+    if (st.pickAsk !== ask) { st.pick = {}; st.pickAsk = ask; }
     if (a.el.isConnected) drawLab(a);
   });
 }
@@ -2409,40 +2433,76 @@ function drawLab(a) {
       h('span', { class: 'lab-names small', text: b.items.map((it) => it.name).join(' › ') }),
       h('span', { class: `lab-wr ${b.wr >= 0.52 ? 'up' : b.wr < 0.48 ? 'down' : ''}`, text: pctTxt(b.wr) }),
       h('span', { class: `muted small lab-g${b.play < Math.max(minG, 100) ? ' small-sample' : ''}`, text: gamesTxt(b.play), title: b.play < Math.max(minG, 100) ? t('Amostra pequena: win rate menos confiável') : '' }));
-    r.addEventListener('click', () => { st.sel = i; drawLab(a); });
+    r.addEventListener('click', () => { st.sel = i; st.pick.slots = {}; drawLab(a); });
     return r;
   });
-  const b = d.cores[st.sel] || d.cores[0];
+  const b0 = d.cores[st.sel] || d.cores[0];
+  const pk = st.pick || (st.pick = {});
+  // posições 1º–3º do Lolalytics trocam o item daquela posição no núcleo
+  const coreItems = b0.items.slice();
+  (d.slots || []).filter((sl) => sl.pos <= 3).forEach((sl) => {
+    const i = sl.pos - 1;
+    const j = pk.slots && pk.slots[sl.pos];
+    const o = j != null && sl.options[j];
+    if (!o || !o.items[0]) return;
+    const dup = coreItems.findIndex((it) => it.id === o.items[0].id);
+    if (dup >= 0 && dup !== i) coreItems[dup] = coreItems[i];
+    coreItems[i] = o.items[0];
+  });
+  const b = { ...b0, items: coreItems };
+  // 4º/5º/6º: sem escolha manual, o 1º item que ainda não está na build
+  const laterSel = {};
+  const usedIds = new Set(b.items.map((it) => it.id));
+  for (const sl of (d.slots || []).filter((x) => x.pos >= 4)) {
+    let j = pk.slots && pk.slots[sl.pos] != null ? pk.slots[sl.pos] : sl.options.findIndex((o) => o.items[0] && !usedIds.has(o.items[0].id));
+    if (j < 0) j = 0;
+    laterSel[sl.pos] = j;
+    const o = sl.options[j];
+    if (o && o.items[0]) usedIds.add(o.items[0].id);
+  }
   // caminho da build escolhida: inicial -> 1º item -> botas -> resto do núcleo
   const step = (items, cap) => h('div', { class: 'bp-step' }, h('div', { class: 'bp-icons' }, ...items.map((it) => icon(ddVerImg(`item/${it.id}.png`), `it-icon${owned && owned.has(it.id) ? ' own' : ''}`, it.name))), cap ? h('span', { class: 'bp-cap', text: cap }) : null);
   const arrow = () => h('span', { class: 'bp-arr', text: '›' });
   const path = [];
-  if (d.starters[0]) path.push(step(d.starters[0].items, t('Início')), arrow());
+  const starterSel = d.starters[pk.starters || 0] || d.starters[0];
+  const bootSel = d.boots[pk.boots || 0] || d.boots[0];
+  if (starterSel) path.push(step(starterSel.items, t('Início')), arrow());
   path.push(step([b.items[0]], t('1º item')));
   const bootIds = new Set(d.boots.flatMap((o) => o.items.map((it) => it.id)));
-  if (d.boots[0] && !b.items.some((it) => bootIds.has(it.id))) path.push(arrow(), step(d.boots[0].items, t('Botas')));
+  if (bootSel && !b.items.some((it) => bootIds.has(it.id))) path.push(arrow(), step(bootSel.items, t('Botas')));
   for (const it of b.items.slice(1)) path.push(arrow(), step([it], ''));
-  const optLine = (label, list, fmt, onPick) => (list.length ? h('div', { class: 'lab-opts' }, h('span', { class: 'lab-ol muted small', text: label }),
+  // 4º/5º/6º item escolhidos
+  (d.slots || []).filter((sl) => sl.pos >= 4).forEach((sl) => {
+    const o = sl.options[laterSel[sl.pos]];
+    if (o && o.items[0] && !b.items.some((it) => it.id === o.items[0].id)) path.push(arrow(), step([o.items[0]], ''));
+  });
+  // cada linha de opções é clicável: a escolhida entra na build ("Usar esta build")
+  const optLine = (label, list, fmt, onPick, selIdx = -1) => (list.length ? h('div', { class: 'lab-opts' }, h('span', { class: 'lab-ol muted small', text: label }),
     ...list.slice(0, 4).map((o, i) => {
-      const c = h(onPick ? 'button' : 'span', { class: `lab-opt${onPick ? ' click' : ''}`, type: onPick ? 'button' : undefined }, ...fmt(o, i), h('b', { class: o.wr >= 0.52 ? 'up' : o.wr < 0.48 ? 'down' : '', text: pctTxt(o.wr) }), h('span', { class: 'muted small', text: o.play.toLocaleString('pt-BR') }));
-      if (onPick) c.addEventListener('click', () => onPick(o));
+      const stats = o.wr == null
+        ? [h('span', { class: 'muted small', text: tr('{p}% escolhem', { p: Math.round((o.pick || 0) * (o.pick <= 1 ? 100 : 1)) }) })]
+        : [h('b', { class: o.wr >= 0.52 ? 'up' : o.wr < 0.48 ? 'down' : '', text: pctTxt(o.wr) }), h('span', { class: `muted small${o.play < 100 ? ' small-sample' : ''}`, text: o.play.toLocaleString('pt-BR'), title: o.play < 100 ? t('Amostra pequena: win rate menos confiável') : '' })];
+      const c = h(onPick ? 'button' : 'span', { class: `lab-opt${onPick ? ' click' : ''}${i === selIdx ? ' on' : ''}`, type: onPick ? 'button' : undefined }, ...fmt(o, i), ...stats);
+      if (onPick) c.addEventListener('click', () => onPick(o, i));
       return c;
     })) : null);
+  const pickIn = (kind) => (o, i) => { pk[kind] = i; drawLab(a); };
   const runeOpts = optLine('Runas', d.runes, (o) => {
     const ic = (x, cls) => (x && x.icon ? icon(ddImg(x.icon), cls, x.name) : null);
     const el = h('span', { class: 'lab-rune' }, ic(o.icons && o.icons[0], 'lab-key'), ...((o.icons || []).slice(1).map((x) => ic(x, 'lab-minor'))));
     el.title = (o.icons || []).map((x) => x.name).join(' · ');
     return [el];
   },
-    ctx.onRunes ? (o) => ctx.onRunes({ primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks }) : null);
-  const bootOpts = optLine('Botas', d.boots, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)));
-  const spellOpts = optLine('Feitiços', d.spells, (o) => o.ids.map((sid, i) => (o.keys && o.keys[i] ? icon(ddVerImg(`spell/${o.keys[i]}.png`), 'it-mini', o.names[i]) : h('span', { text: o.names[i] }))));
+    (o, i) => { pk.runes = i; if (ctx.onRunes) ctx.onRunes({ primaryStyleId: o.primaryStyleId, subStyleId: o.subStyleId, perks: o.perks }); else drawLab(a); }, pk.runes || 0);
+  const starterOpts = d.starters.length > 1 ? optLine('Início', d.starters, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)), pickIn('starters'), pk.starters || 0) : null;
+  const bootOpts = optLine('Botas', d.boots, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)), pickIn('boots'), pk.boots || 0);
+  const spellOpts = optLine('Feitiços', d.spells, (o) => o.ids.map((sid, i) => (o.keys && o.keys[i] ? icon(ddVerImg(`spell/${o.keys[i]}.png`), 'it-mini', o.names[i]) : h('span', { text: o.names[i] }))), pickIn('spells'), pk.spells || 0);
   // ordens diferentes com a mesma prioridade e o mesmo início viram uma opção só (somando os jogos)
   const skillGroups = new Map();
   for (const o of d.skills) {
     const p = skillPrio(o.order);
     const k = `${p.prio.join('')}:${p.start.join('')}`;
-    const g = skillGroups.get(k) || { prio: p.prio, start: p.start, play: 0, wins: 0 };
+    const g = skillGroups.get(k) || { prio: p.prio, start: p.start, order: o.order, play: 0, wins: 0 };
     g.play += o.play; g.wins += o.wr * o.play;
     skillGroups.set(k, g);
   }
@@ -2451,17 +2511,59 @@ function drawLab(a) {
   const skIco = (k) => { const sp = sIcons['QWER'.indexOf(k)]; return sp ? h('span', { class: 'lab-sk' }, icon(ddVerImg(sp.icon), 'lab-sk-i', `${k} · ${sp.name}`, k), h('b', { text: k })) : h('span', { class: `sk-key s-${k}`, text: k }); };
   const skillOpts = optLine('Habilidades', skills, (o) => [
     ...o.prio.flatMap((k, i) => (i ? [h('span', { class: 'sk-arr', text: '›' }), skIco(k)] : [skIco(k)])),
-    h('span', { class: 'muted small', text: `(${o.start.join(' ')})` })]);
-  const slotOpts = (d.slots || []).map((sl) => optLine(sl.label, sl.options, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name))));
+    h('span', { class: 'muted small', text: `(${o.start.join(' ')})` })], pickIn('skills'), pk.skills || 0);
+  const slotOpts = (d.slots || []).map((sl) => optLine(sl.label, sl.options, (o) => o.items.map((it) => icon(ddVerImg(`item/${it.id}.png`), 'it-mini', it.name)),
+    (o, i) => { pk.slots = { ...(pk.slots || {}), [sl.pos]: i }; drawLab(a); }, sl.pos >= 4 ? laterSel[sl.pos] : pk.slots && pk.slots[sl.pos] != null ? pk.slots[sl.pos] : sl.options.findIndex((o) => o.items[0] && b.items[sl.pos - 1] && o.items[0].id === b.items[sl.pos - 1].id)));
+  // "Usar esta build": vira a build do guia, do Importar e do overlay ao vivo
+  const srcName = (LAB_SOURCES.find(([k]) => k === d.source) || [null, 'OP.GG'])[1];
+  const labelTxt = `${srcName}${d.vsName ? ` · vs ${d.vsName}` : ''} · ${st.mode === 'wr' ? t('Maior win rate') : t('Mais jogada')}`;
+  const patch = () => {
+    const later = (d.slots || []).filter((sl) => sl.pos >= 4).map((sl) => sl.options.map((o, j) => ({ ids: o.items.map((it) => it.id), pick: j === laterSel[sl.pos] ? 1e9 : (o.play || o.pick || 0) })));
+    const runeSel = d.runes[pk.runes || 0];
+    const edited = ctx.runeKey && runeEdits.get(ctx.runeKey);
+    const skillSel = skills[pk.skills || 0];
+    return {
+      core: b.items.map((it) => it.id), boots: bootSel ? bootSel.items.map((it) => it.id) : null, starter: starterSel ? starterSel.items.map((it) => it.id) : null,
+      spells: (d.spells[pk.spells || 0] || {}).ids || null, skills: skillSel ? skillSel.order : null,
+      runes: edited || (runeSel ? { primaryStyleId: runeSel.primaryStyleId, subStyleId: runeSel.subStyleId, perks: runeSel.perks } : null),
+      later: later.length ? later : null,
+    };
+  };
+  // comparação com a outra fonte
+  const oc = d.other;
+  const cmp = oc ? h('div', { class: 'lab-cmp small' },
+    h('span', { class: 'muted', text: tr('Comparando com {src}:', { src: oc.source }) }),
+    h('span', { class: oc.same === oc.of ? 'up' : oc.same === 0 ? 'down' : '', text: tr('núcleo {a}/{b} igual', { a: oc.same, b: oc.of }) }),
+    ...(oc.core || []).filter((id) => !b0.items.some((it) => it.id === id)).slice(0, 3).map((id) => icon(ddVerImg(`item/${id}.png`), 'it-mini', tr('Na build do {src}', { src: oc.source }))),
+    oc.keystoneSame == null ? null : h('span', { class: oc.keystoneSame ? 'up' : 'down', text: oc.keystoneSame ? t('mesma runa principal') : tr('runa principal diferente ({name})', { name: (oc.keystone && oc.keystone.name) || '?' }) }),
+    oc.bootsSame == null ? null : h('span', { class: oc.bootsSame ? 'up' : '', text: oc.bootsSame ? t('mesmas botas') : t('botas diferentes') })) : null;
+  const lowData = d.totalGames > 0 && d.totalGames < 1500
+    ? h('p', { class: 'small lab-warn', text: tr('Poucos dados ({n} jogos): os win rates ainda oscilam. Comum no começo do patch ou em elos altos.', { n: d.totalGames.toLocaleString('pt-BR') }) }) : null;
+  const useBtn = h('button', { class: 'btn primary lab-use', type: 'button', text: d.chosen ? 'Atualizar minha build' : 'Usar esta build' });
+  useBtn.title = t('Vale para o Importar, a página de itens da loja e as sugestões do overlay durante a partida.');
+  useBtn.addEventListener('click', async () => {
+    useBtn.disabled = true;
+    const res = await window.overlay.chooseLab({ id: ctx.id, role: d.role, patch: patch(), source: d.source, label: labelTxt, importNow: ctx.importNow !== false });
+    useBtn.disabled = false;
+    st.flash = res && res.imported ? (res.imported.ok ? tr('Build aplicada e importada ({what}).', { what: (res.imported.done || []).join(', ') }) : tr('Build aplicada; a importação falhou: {err}', { err: res.imported.error })) : t('Build aplicada: o Importar e o overlay vão usar esta.');
+    fetchLab(a, true);
+  });
+  const resetBtn = d.chosen ? h('button', { class: 'btn ghost', type: 'button', text: 'Voltar ao padrão' }) : null;
+  if (resetBtn) resetBtn.addEventListener('click', async () => { await window.overlay.chooseLab({ id: ctx.id, role: d.role, patch: null }); st.flash = t('Voltou para a build padrão do OP.GG.'); fetchLab(a, true); });
+  const useRow = h('div', { class: 'lab-use-row' }, useBtn, resetBtn,
+    d.chosen ? h('span', { class: 'small lab-chosen', text: tr('Em uso: {label}', { label: d.chosen.label || srcName }) }) : null,
+    st.flash ? h('span', { class: 'muted small', text: st.flash }) : null);
+  st.flash = '';
+  const tierName = t(TL_ELO_PT[d.tier] || 'Esmeralda+');
   const sampleNote = d.source === 'ugg' ? tr('U.GG · mundial, Esmeralda+ · build mais jogada da rota.')
-    : d.source === 'lola' ? tr('Lolalytics · Esmeralda+ · item mais escolhido em cada posição; o win rate é o do 3º item.')
+    : d.source === 'lola' ? `${tr('Lolalytics · {tier}{patch}', { tier: tierName, patch: d.patch ? ` · patch ${d.patch}` : '' })}${d.vsName ? ` · ${tr('contra {vs}', { vs: d.vsName })}` : ''} · ${t('item mais escolhido em cada posição; o win rate é o do 3º item.')}`
     : d.vs ? tr('Partidas de {champ} contra {vs} nesta rota.', { champ: d.champion.name, vs: d.vsName })
     : tr('Soma dos {n} confrontos mais comuns nesta rota{p}.', { n: d.sample, p: d.pending ? ` (${t('carregando o resto')})` : '' });
   el.replaceChildren(...[top, chips,
     d.tip ? h('div', { class: 'g-tip' }, h('b', { text: `vs ${d.vsName}` }), document.createTextNode(d.tip)) : null,
     h('div', { class: 'lab-list' }, ...rows),
     h('div', { class: 'bp lab-path' }, ...path),
-    ...slotOpts, runeOpts, bootOpts, spellOpts, skillOpts,
+    cmp, ...slotOpts, runeOpts, starterOpts, bootOpts, spellOpts, skillOpts, lowData, useRow,
     d.note ? h('p', { class: 'small lab-warn', text: d.note }) : null,
     h('p', { class: 'muted small lab-note', text: `${sampleNote}${st.mode === 'wr' ? ` ${tr('Maior win rate: só builds com {n}+ jogos.', { n: minG })}` : ''}` })].filter(Boolean));
 }
@@ -2547,4 +2649,13 @@ function clearSetsButton(id, onlyApp, confirmText) {
   });
 }
 clearSetsButton('set-clear-app', true, 'Clique de novo para apagar os do app');
+$('set-net').addEventListener('click', async () => {
+  const box = $('net-test');
+  box.hidden = false;
+  box.replaceChildren(h('p', { class: 'muted small', text: 'Testando…' }));
+  const res = await window.overlay.testNet().catch((e) => [{ name: 'App', ok: false, error: e.message }]);
+  box.replaceChildren(...res.map((r) => h('div', { class: `net-row ${r.ok ? 'ok' : 'bad'}` },
+    h('b', { text: r.name }), h('span', { text: r.ok ? tr('ok · {ms} ms', { ms: r.ms }) : tr('falhou: {err}', { err: r.error || '?' }) }))),
+  res.some((r) => !r.ok) ? h('p', { class: 'muted small', text: 'Se uma fonte falha e as outras não: firewall, antivírus, VPN ou DNS bloqueando aquele site. Se todas falham: sem internet para o app.' }) : null);
+});
 clearSetsButton('set-clear-all', false, 'Clique de novo: apaga TODOS');

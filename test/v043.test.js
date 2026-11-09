@@ -76,3 +76,47 @@ test('Lolalytics: runas aceitam a árvore no formato do Data Dragon (slots[].run
   assert.equal(p.subStyleId, 8200);
   assert.deepEqual(p.perks.slice(0, 6), [8112, 8139, 8140, 8106, 8226, 8210]);
 });
+
+test('Laboratório: build escolhida é validada e entra por cima da build do OP.GG', () => {
+  const { cleanPatch, applyPatch } = require('../src/buildLab');
+  const p = cleanPatch({ core: ['3118', 4645, 'x'], boots: [], spells: [4, 14], skills: ['Q', 'W', 'E', 'zz'],
+    runes: { primaryStyleId: 8100, subStyleId: 8200, perks: [8112, 8139, 8140, 8106, 8226, 8210, 5005, 5008, 5001] },
+    later: [[{ ids: [3089], pick: 1e9 }, { ids: [], pick: 1 }], 'lixo'] });
+  assert.deepEqual(p.core, [3118, 4645]);
+  assert.equal(p.boots, undefined); // vazio: mantém a do OP.GG
+  assert.deepEqual(p.skills, ['Q', 'W', 'E']);
+  assert.equal(p.later.length, 1);
+  assert.equal(cleanPatch({ runes: { primaryStyleId: 8100, perks: [1] } }).runes, undefined); // página incompleta
+  const base = { core: [1, 2, 3], boots: [3020], spells: [4, 12], matchup: { vs: 'Zed' }, winRate: 0.5 };
+  const b = applyPatch(base, p, { source: 'lola', label: 'Lolalytics' });
+  assert.deepEqual(b.core, [3118, 4645]);
+  assert.deepEqual(b.boots, [3020]);
+  assert.deepEqual(b.spells, [4, 14]);
+  assert.equal(b.matchup, null);
+  assert.equal(b.chosen.source, 'lola');
+  assert.equal(applyPatch(null, p), null);
+});
+
+test('Lolalytics: URL respeita o elo e a página por confronto', () => {
+  const { buildUrl } = require('../src/providers/lolalytics');
+  assert.equal(buildUrl('Ahri', 'middle', { tier: 'DIAMOND_PLUS' }), 'https://lolalytics.com/lol/ahri/build/?lane=middle&tier=diamond_plus');
+  assert.equal(buildUrl('MonkeyKing', 'top', { vs: 'Belveth', tier: 'ALL' }), 'https://lolalytics.com/lol/wukong/vs/belveth/build/?lane=top&vslane=top&tier=all');
+  assert.equal(buildUrl('Ahri', 'utility', { tier: 'xx' }), 'https://lolalytics.com/lol/ahri/build/?lane=support&tier=emerald_plus');
+});
+
+test('Lolalytics: página por confronto (sem itemSets) e WR da runa principal', () => {
+  const { qwikObjects, parseBuild } = require('../src/providers/lolalytics');
+  const objs = [
+    { header: '1', item1: '2', item2: '3', item3: '4', boots: '5', runes: '6' },
+    { patch: '16.22', wr: 50.9, vsWinRate: 51.4, n: 5457 },
+    [[3118, 51, 62, 3425, 11]], [[3020, 51.4, 50, 3036, 12]], [[4645, 52, 30, 1435, 20]], [[3020, 51.3, 55, 3029, 14]],
+    { stats: { 8112: [[86.9, 50.8, 4744]] } },
+  ];
+  const z = qwikObjects(`<script type="qwik/json">${JSON.stringify({ objs })}</script>`);
+  const R = (id) => ({ id });
+  const styles = [{ id: 8100, slots: [[R(8112)], [R(8139)], [R(8140)], [R(8106)]] }, { id: 8200, slots: [[R(8214)], [R(8226)], [R(8210)], [R(8237)]] }];
+  const b = parseBuild(z, styles);
+  assert.deepEqual(b.cores[0].ids, [3118, 3020, 4645]);
+  assert.equal(b.runes[0].play, 4744);
+  assert.equal(Math.round((b.runes[0].win / b.runes[0].play) * 1000), 508);
+});

@@ -900,3 +900,20 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .lab-sk-i { width: 24px; height: 24px; border-radius: 5px; }
 .lab-sk b { position: absolute; right: -3px; bottom: -4px; font-size: 9.5px; background: #0e0f12; border-radius: 3px; padding: 0 2px; line-height: 12px; }
 .lab-opt .sk-key { width: 22px; height: 22px; font-size: 11px; }
+
+/* v0.47: build escolhida e rota manual */
+.lab-opt.on { border-color: var(--acc); background: var(--acc-soft); }
+.lab-opt .small-sample { color: var(--warn); }
+.lab-use-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.lab-chosen { color: var(--acc); font-weight: 600; }
+.role-pick-wrap { display: inline-flex; align-items: center; gap: 6px; }
+.role-pick-wrap select { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line2); background: var(--card2); color: var(--text); font-family: inherit; }
+#gbuild-role { margin-right: 10px; font-size: 12px; }
+.chosen-tip { border-left-color: var(--acc); }
+.lab-src-tag { font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--card2); color: var(--muted); margin-left: 4px; }
+.lab-cmp { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
+.lab-cmp .up { color: var(--good, #4ade80); } .lab-cmp .down { color: var(--warn); }
+.net-test { margin-top: 10px; display: grid; gap: 4px; }
+.net-row { display: flex; gap: 10px; font-size: 12px; }
+.net-row b { min-width: 120px; }
+.net-row.ok span { color: var(--good, #4ade80); } .net-row.bad span { color: var(--warn); }

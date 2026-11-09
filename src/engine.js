@@ -13,7 +13,7 @@ const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
  * Faz polling da Live Client API, monta o estado, passa pelo recomendador e
  * entrega para quem estiver ouvindo (o overlay).
  */
-function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatchup = () => null, prefetch = () => {}, getRoleHint = () => '', onError = () => {}, intervalMs = 2000 }) {
+function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatchup = () => null, prefetch = () => {}, getRoleHint = () => '', getRoleOverride = () => null, onError = () => {}, intervalMs = 2000 }) {
   let timer = null;
   let busy = false;
   const alerts = createAlertTracker();
@@ -31,7 +31,7 @@ function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatch
         state.advice = recommend(state);
         const live = String(state.me.position || '').toLowerCase();
         const gm = String(state.gameMode || '').toUpperCase();
-        state.myRole = gm === 'ARAM' ? 'aram' : gm === 'CHERRY' ? 'arena' : ROLES.includes(live) ? live : getRoleHint() || '';
+        state.myRole = gm === 'ARAM' ? 'aram' : gm === 'CHERRY' ? 'arena' : getRoleOverride() || (ROLES.includes(live) ? live : getRoleHint() || '');
         try {
           const me = { id: state.me.championId };
           const opp = state.laneOpponent ? { id: state.laneOpponent.championId } : null;

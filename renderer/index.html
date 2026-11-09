@@ -206,7 +206,7 @@
             </div>
           </section>
           <section class="card" id="gbuild-card" hidden>
-            <div class="card-h"><h2 id="gbuild-title">Build completa</h2><span class="spacer"></span><span id="gbuild-src" class="muted small"></span></div>
+            <div class="card-h"><h2 id="gbuild-title">Build completa</h2><span class="spacer"></span><span id="gbuild-role" hidden></span><span id="gbuild-src" class="muted small"></span></div>
             <div id="gbuild" class="gbuild"></div>
           </section>
           <section class="card">
@@ -438,6 +438,7 @@
             <button id="set-test" class="btn ghost">Testar overlay</button>
             <button id="set-update-now" class="btn ghost">Verificar atualização</button>
             <button id="set-diag" class="btn ghost">Diagnóstico</button>
+            <button id="set-net" class="btn ghost">Testar conexões</button>
             <button id="set-folder" class="btn ghost">Pasta de dados</button>
             <button id="set-whatsnew" class="btn ghost">Novidades</button>
           </div>
@@ -446,6 +447,7 @@
             <button id="set-clear-all" class="btn ghost danger">Apagar todos os conjuntos de itens</button>
             <span id="clear-msg" class="muted small"></span>
           </div>
+          <div id="net-test" class="net-test" hidden></div>
           <div id="diag" class="diag" hidden></div>
           <p class="muted small">Overlay: segure TAB em partida e arraste o título do painel (mover) ou o canto (redimensionar). Seu meta.json (pasta de dados) sempre vence os dados da internet.</p>
         </section>

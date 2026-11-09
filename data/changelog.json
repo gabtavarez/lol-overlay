@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.47.0",
+    "title": "Builds: escolha a sua e troque a rota",
+    "items": [
+      "\"Usar esta build\": a build do laboratório vale no Importar e no overlay.",
+      "Botão de rota no champ select e na partida: troca a build da rota em que caiu.",
+      "Lolalytics: elo das configurações, build por confronto e WR real das runas.",
+      "4º–6º item, comparação OP.GG x Lolalytics e botão \"Testar conexões\"."
+    ],
+    "en": {
+      "title": "Builds: pick yours, switch roles",
+      "items": [
+        "\"Use this build\": the lab build now drives Import and the overlay.",
+        "Role picker in champ select and in game: switch to the role you got.",
+        "Lolalytics: elo from settings, matchup builds and real rune win rates.",
+        "4th–6th items, OP.GG vs Lolalytics comparison and a \"Test connections\" button."
+      ]
+    },
+    "es": {
+      "title": "Builds: elige la tuya y cambia de línea",
+      "items": [
+        "\"Usar esta build\": la build del laboratorio vale en Importar y en el overlay.",
+        "Selector de línea en la selección y en partida: cambia a la línea que te tocó.",
+        "Lolalytics: elo de los ajustes, build por enfrentamiento y WR real de runas.",
+        "4.º–6.º objeto, comparación OP.GG x Lolalytics y botón \"Probar conexiones\"."
+      ]
+    }
+  },
+  {
     "version": "0.46.8",
     "title": "Assets sempre atualizados",
     "items": [

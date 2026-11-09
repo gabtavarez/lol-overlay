@@ -46,4 +46,32 @@ function labView(opts, mode = 'play') {
   return out;
 }
 
-module.exports = { mergeOpts, rank, labView, minGames };
+const idList = (x) => (Array.isArray(x) ? x.map(Number).filter((n) => Number.isFinite(n) && n > 0) : null);
+
+/** Valida a build montada na tela (laboratório) antes de virar a build usada no Importar e no overlay. */
+function cleanPatch(p = {}) {
+  const out = {};
+  for (const k of ['core', 'boots', 'starter', 'spells']) { const v = idList(p[k]); if (v && v.length) out[k] = v; }
+  if (Array.isArray(p.skills) && p.skills.length) {
+    const sk = p.skills.map(String).filter((k) => /^[QWER]$/.test(k));
+    if (sk.length) out.skills = sk;
+  }
+  if (p.runes && Number(p.runes.primaryStyleId) && Array.isArray(p.runes.perks) && p.runes.perks.length >= 6) {
+    out.runes = { primaryStyleId: Number(p.runes.primaryStyleId), subStyleId: Number(p.runes.subStyleId), perks: idList(p.runes.perks) };
+  }
+  if (Array.isArray(p.later)) {
+    const later = p.later.map((slot) => (Array.isArray(slot) ? slot.map((o) => ({ ids: idList(o && o.ids) || [], pick: Number(o && o.pick) || 0 })).filter((o) => o.ids.length) : [])).filter((sl) => sl.length);
+    if (later.length) out.later = later;
+  }
+  return out;
+}
+
+/** Build do OP.GG com a sua escolha por cima (o que não foi escolhido continua o do OP.GG). */
+function applyPatch(build, patch, chosen = {}) {
+  if (!build || !patch) return build;
+  const out = { ...build, matchup: null, chosen };
+  for (const k of ['core', 'boots', 'starter', 'spells', 'skills', 'runes', 'later']) if (patch[k]) out[k] = patch[k];
+  return out;
+}
+
+module.exports = { mergeOpts, rank, labView, minGames, cleanPatch, applyPatch };

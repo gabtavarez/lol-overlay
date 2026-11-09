@@ -30,7 +30,8 @@ function qwikObjects(html) {
     memo.set(i, v);
     return v;
   };
-  const idx = objs.findIndex((o) => o && typeof o === 'object' && !Array.isArray(o) && 'itemSets' in o && 'header' in o);
+  // página geral tem "itemSets"; a página por confronto (vs) tem o mesmo formato sem ele
+  const idx = objs.findIndex((o) => o && typeof o === 'object' && !Array.isArray(o) && 'item1' in o && 'header' in o && 'boots' in o);
   if (idx < 0) throw new Error('formato da página mudou (sem build)');
   return R(idx.toString(36));
 }
@@ -56,7 +57,9 @@ function topRunePage(stats, styles) {
     if (!sub || score > sub.score) sub = { st, top2: top2.sort((a, b) => a.i - b.i), score };
   }
   const shards = SHARD_ROWS.map((row) => [...row].sort((a, b) => pick(b) - pick(a))[0]);
-  return { primaryStyleId: prim.id, subStyleId: sub.st.id, perks: [...perks, ...sub.top2.map((x) => x.r.id), ...shards], play: games(best.r.id), keystonePick: pick(best.r.id) };
+  const ks = stats[best.r.id] && stats[best.r.id][0];
+  return { primaryStyleId: prim.id, subStyleId: sub.st.id, perks: [...perks, ...sub.top2.map((x) => x.r.id), ...shards], play: games(best.r.id), keystonePick: pick(best.r.id),
+    wr: ks && typeof ks[1] === 'number' ? ks[1] / 100 : null };
 }
 
 /** Converte os dados da página no mesmo formato de opções do laboratório (jogos e vitórias). */
@@ -74,26 +77,39 @@ function parseBuild(z, styles) {
   const spells = (z.spells || []).map((s) => ({ ids: String(s[0]).split('_').map(Number), ...fromRow(s) }));
   const skills = (z.skillOrder || []).map((s) => ({ order: String(s[0]).split(''), ...fromRow(s) }));
   const page = topRunePage(z.runes && z.runes.stats, styles);
-  const runes = page ? [{ primaryStyleId: page.primaryStyleId, subStyleId: page.subStyleId, perks: page.perks, play: page.play, win: Math.round(page.play * ((z.header && z.header.wr) || 50) / 100) }] : [];
+  // win rate da página = o da runa principal (o site não cruza a página inteira)
+  const runeWr = page ? (page.wr != null ? page.wr : ((z.header && z.header.wr) || 50) / 100) : 0;
+  const runes = page ? [{ primaryStyleId: page.primaryStyleId, subStyleId: page.subStyleId, perks: page.perks, play: page.play, win: Math.round(page.play * runeWr) }] : [];
   const slots = ['item1', 'item2', 'item3', 'item4', 'item5'].map((k) => (z[k] || []).map((r) => ({ ids: [r[0]], ...fromRow(r) })));
   const h = z.header || {};
-  return { cores, boots, starters, spells, skills, runes, slots, patch: h.patch || null, wr: h.wr || null, games: h.n || 0,
+  return { cores, boots, starters, spells, skills, runes, slots, patch: h.patch || null, wr: h.wr || null, games: h.n || 0, vsWr: h.vsWinRate != null ? h.wr / 100 : null,
     damage: h.damage ? { physical: h.damage.physical, magic: h.damage.magic, true: h.damage.true } : null };
 }
 
-function createLolalytics({ fetchImpl = fetch, log = () => {}, getStyles = () => [] } = {}) {
+const TIER = { ALL: 'all', GOLD: 'gold', PLATINUM_PLUS: 'platinum_plus', EMERALD_PLUS: 'emerald_plus', DIAMOND_PLUS: 'diamond_plus', MASTER_PLUS: 'master_plus', CHALLENGER: 'challenger' };
+const slugOf = (id) => SLUG[id] || String(id).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** URL da build: geral ou contra um campeão na mesma rota, no elo escolhido. */
+function buildUrl(champId, role, { vs = null, tier = 'EMERALD_PLUS' } = {}) {
+  const t = TIER[tier] || 'emerald_plus';
+  return vs
+    ? `https://lolalytics.com/lol/${slugOf(champId)}/vs/${slugOf(vs)}/build/?lane=${LANE[role]}&vslane=${LANE[role]}&tier=${t}`
+    : `https://lolalytics.com/lol/${slugOf(champId)}/build/?lane=${LANE[role]}&tier=${t}`;
+}
+
+function createLolalytics({ fetchImpl = fetch, log = () => {}, getStyles = () => [], getTier = () => 'EMERALD_PLUS' } = {}) {
   const cache = new Map();
   const inflight = new Set();
+  const keyOf = (champId, role, vs) => `${champId}:${role}:${vs || ''}:${getTier() || ''}`;
   return {
-    ensure(champId, role, onDone) {
-      const key = `${champId}:${role}`;
+    ensure(champId, role, onDone, vs = null) {
+      const key = keyOf(champId, role, vs);
       const e = cache.get(key);
       if ((e && Date.now() - e.at < TTL) || inflight.has(key) || !LANE[role]) return;
       inflight.add(key);
       (async () => {
         try {
-          const slug = SLUG[champId] || String(champId).toLowerCase();
-          const r = await fetchImpl(`https://lolalytics.com/lol/${slug}/build/?lane=${LANE[role]}&tier=emerald_plus`, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(25000) });
+          const r = await fetchImpl(buildUrl(champId, role, { vs, tier: getTier() }), { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(25000) });
           if (!r.ok) throw new Error(`Lolalytics respondeu HTTP ${r.status}`);
           cache.set(key, { at: Date.now(), data: parseBuild(qwikObjects(await r.text()), getStyles()) });
         } catch (err) {
@@ -105,8 +121,8 @@ function createLolalytics({ fetchImpl = fetch, log = () => {}, getStyles = () =>
         }
       })();
     },
-    get(champId, role) { const e = cache.get(`${champId}:${role}`); return e ? e.data : null; },
+    get(champId, role, vs = null) { const e = cache.get(keyOf(champId, role, vs)); return e ? e.data : null; },
   };
 }
 
-module.exports = { createLolalytics, qwikObjects, parseBuild, topRunePage };
+module.exports = { createLolalytics, qwikObjects, parseBuild, topRunePage, buildUrl };

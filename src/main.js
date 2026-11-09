@@ -11,7 +11,7 @@ const { pickState } = require('./router');
 const { createRemoteData } = require('./providers/remote');
 const { netFetch } = require('./netfetch');
 const { buildGuide, indexRunes, runeTree, SHARDS } = require('./guide');
-const { mergeOpts, labView, rank: labRank } = require('./buildLab');
+const { cleanPatch, applyPatch, mergeOpts, labView, rank: labRank } = require('./buildLab');
 const { createUgg } = require('./providers/ugg');
 const { createLolalytics } = require('./providers/lolalytics');
 const SPELL_DATA = require('../data/spells.json');
@@ -80,6 +80,10 @@ const DEVTOOLS_ALLOWED = !app.isPackaged && process.env.LOL_DEVTOOLS === '1';
 let quitting = false;
 const hook = { loaded: false, error: '', lastKeyAt: 0, tabPresses: 0, poller: 'não iniciado' };
 let lastRole = '';
+// rota escolhida à mão no champ select (vale até o próximo champ select)
+let roleOverride = null; // { session, role }
+// build montada no laboratório: vale para o guia, o Importar e o overlay ao vivo
+const chosenBuilds = new Map(); // `${champId}:${role}` -> { patch, source, label }
 
 let liveState = { phase: 'waiting' };
 let lcuState = { phase: 'idle', client: 'closed' };
@@ -109,7 +113,11 @@ function publish() {
     logger.log(`Live API: ${liveState.phase}${liveState.reason ? ` (${liveState.reason})` : ''}`);
   }
   lastState = pickState(liveState, lcuState);
-  if (lcuState.phase === 'champselect') lastRole = lcuState.mode || lcuState.myPosition || (MODE_ROLES.includes(lastRole) ? '' : lastRole);
+  if (lcuState.phase === 'champselect') {
+    if (roleOverride && lcuState.sessionId && roleOverride.session !== lcuState.sessionId) roleOverride = null; // novo champ select
+    lastRole = (!lcuState.mode && roleOverride && roleOverride.role) || lcuState.mode || lcuState.myPosition || (MODE_ROLES.includes(lastRole) ? '' : lastRole);
+  }
+  if (lastState) { lastState.myRole = lastRole || ''; lastState.roleOverride = roleOverride ? roleOverride.role : null; }
   // Só manda para as janelas quando o estado mudou de fato: evita reconstruir a tela inteira
   // a cada ciclo do cliente/Live API sem nada novo.
   let sig = '';
@@ -471,7 +479,15 @@ function laneEnemy() {
   return e ? e.champion : null;
 }
 
+/** Build do laboratório (se você escolheu uma) por cima da build do OP.GG. */
+function chosenFor(champ, role) { return champ ? chosenBuilds.get(`${champ.id}:${role}`) || null : null; }
+function applyChoice(champ, role, build) {
+  const c = chosenFor(champ, role);
+  return c && build ? applyPatch(build, c.patch, { source: c.source, label: c.label }) : build;
+}
+
 function buildFor(champ, role) {
+  if (chosenFor(champ, role)) return applyChoice(champ, role, remote.getBuild(champ, role));
   const opp = laneEnemy();
   return withMatchup(remote.getBuild(champ, role), opp && remote.getMatchup(champ, opp, role), opp && opp.name);
 }
@@ -488,6 +504,10 @@ const pctTxt = (x) => (typeof x === 'number' && x > 0 ? `${Math.round(x * (x <= 
 function buildVariants(champ, role) {
   const base = remote.getBuild(champ, role);
   if (!base) return [];
+  if (chosenFor(champ, role)) {
+    const c = chosenFor(champ, role);
+    return [{ label: i18n.t('Sua build'), sub: c.label || i18n.t('Montada no laboratório'), build: applyChoice(champ, role, base), changes: [] }];
+  }
   const opp = laneEnemy();
   const mu = opp && remote.getMatchup(champ, opp, role);
   const wr = pctTxt(base.winRate);
@@ -544,7 +564,7 @@ function runePagesFor(champ, role, build) {
 async function importBuild(championId, what, variant = 0, runePage = 0, forRole = null) {
   const champ = champById(championId);
   const role = forRole || lastRole || lcuState.myPosition;
-  const variants = champ ? (forRole ? [{ build: remote.getBuild(champ, role) }] : buildVariants(champ, role)) : [];
+  const variants = champ ? (forRole ? [{ build: applyChoice(champ, role, remote.getBuild(champ, role)) }] : buildVariants(champ, role)) : [];
   const build = (variants[variant] || variants[0] || {}).build;
   const creds = lcuEngine.getCreds();
   if (!build) return { ok: false, error: i18n.t('Ainda não há dados do OP.GG para este campeão.') };
@@ -556,7 +576,7 @@ async function importBuild(championId, what, variant = 0, runePage = 0, forRole 
       const pages = remote.getRunePages(champ, role);
       const v = variants[variant] || {};
       const matchupRunes = (v.changes || []).some((c) => c.kind === 'runes' || c.kind === 'shards');
-      const runes = matchupRunes ? build.runes : (pages && pages[runePage]) || build.runes;
+      const runes = matchupRunes || build.chosen ? build.runes : (pages && pages[runePage]) || build.runes;
       if (!runes) throw new Error('sem runas nos dados do OP.GG');
       await importRunes(creds, runes, champ.name);
       done.push(i18n.t('runas'));
@@ -583,12 +603,12 @@ function maybeAutoImport(state) {
   const champ = state.me.champion;
   const key = `${state.sessionId || ''}:${champ.id}`;
   if (autoImported === key) return;
-  const role = state.myPosition || lastRole;
+  const role = state.myPosition || lastRole; // já vem com a rota escolhida à mão
   const run = async () => {
     if (autoImported === key || !buildFor(champ, role)) return;
     autoImported = key;
     // com ajustes para o matchup já disponíveis, importa a versão "Contra X"
-    const vi = buildVariants(champ, role).findIndex((v) => v.changes && v.changes.length);
+    const vi = chosenFor(champ, role) ? 0 : buildVariants(champ, role).findIndex((v) => v.changes && v.changes.length);
     const res = await importBuild(champ.id, 'both', vi > 0 ? vi : 0);
     logger.log(`importação automática de ${champ.id}: ${res.ok ? res.done.join(', ') : res.error}`);
     send('auto-import', { championId: String(champ.id), name: champ.name, ...res });
@@ -624,17 +644,9 @@ async function guideFor(championId) {
   const mode = matchupPick && matchupPick.session === lcuState.sessionId ? matchupPick.id : 'auto';
   const pending = opp && !remote.getMatchup(champ, opp, role) ? i18n.t('Buscando o matchup contra {champ}…', { champ: opp.name }) : null;
   const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
-  const runePages = runePagesFor(champ, role, build);
-  // ARAM: Desordem: augments com melhor desempenho do campeão (OP.GG)
-  let augments = null;
-  if (role === 'aram' && MAYHEM_QUEUES.includes(lcuState.queueId)) {
-    const full = dd.champions[champ.id] || champ;
-    const lang = DD_LANG[appLang()] || 'pt_BR';
-    augments = remote.getAugments(full, lang);
-    if (!augments) remote.ensureAugments(full, () => send('guide-updated', { championId: String(champ.id) }), lang);
-    else augments = augments.slice(0, 8);
-  }
-  return { ...variants[0].guide, variants, runePages, roleNote, opponents, augments, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
+  const runePages = build.chosen && chosenFor(champ, role).patch.runes ? [] : runePagesFor(champ, role, build);
+  const augments = null; // win rate de augments removido (regras de desenvolvedor da Riot)
+  return { ...variants[0].guide, variants, runePages, roleNote, role, roleOverride: roleOverride ? roleOverride.role : null, chosen: build.chosen || null, opponents, augments, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
 }
 
 let skinCatalog = async () => null;
@@ -801,19 +813,24 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   let slots = [];
   let src = 'opgg';
   if (source === 'ugg' && vs) note = i18n.t('O U.GG não separa a build por confronto: mostrando o OP.GG.');
-  if (source === 'lola' && vs) note = i18n.t('O Lolalytics por confronto ainda não é lido pelo app: mostrando o OP.GG.');
-  if (source === 'lola' && !vs) {
-    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
-    lola.ensure(champ.id, role, notify);
-    const l = lola.get(champ.id, role);
+  if (source === 'lola') {
+    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getTier: () => settings.get().buildTier || 'EMERALD_PLUS', getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
+    const enemyL = vs ? champById(vs) : null;
+    if (enemyL) vsName = enemyL.name;
+    lola.ensure(champ.id, role, notify, enemyL ? enemyL.id : null);
+    const l = lola.get(champ.id, role, enemyL ? enemyL.id : null);
     src = 'lola';
     if (!l) pending = true;
-    else if (l.error || !l.cores) note = i18n.t('Lolalytics indisponível agora ({err}).', { err: l.error || i18n.t('sem dados da rota') });
+    else if (l.error || !l.cores || !l.cores.length) {
+      // plano B: mostra o OP.GG e avisa
+      note = i18n.t('Lolalytics indisponível agora ({err}): mostrando o OP.GG.', { err: l.error || i18n.t('sem dados suficientes') });
+      src = 'opgg';
+    }
     else {
       opts = l;
       sample = 1;
       const names = ['1º item', '2º item', '3º item', '4º item', '5º item'];
-      slots = (l.slots || []).map((list, i) => ({ label: i18n.t(names[i]), options: labRank(list, mode === 'wr' ? 'wr' : 'play', 4) }));
+      slots = (l.slots || []).map((list, i) => ({ pos: i + 1, label: i18n.t(names[i]), options: labRank(list, mode === 'wr' ? 'wr' : 'play', 4) }));
     }
   }
   if (source === 'ugg' && !vs) {
@@ -836,7 +853,9 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
     ? ((LAB_RAWPOS[role] || []).map((k) => build.rawCounters[k]).find(Boolean) || [])
       .map((c) => ({ c, ch: dd.championByRaw(null, c.name) })).filter((x) => x.ch).sort((a, b) => b.c.games - a.c.games)
     : [];
-  if (src === 'ugg' || src === 'lola') {
+  if (src === 'lola' && pending) {
+    // aguardando o Lolalytics
+  } else if (src === 'ugg' || src === 'lola') {
     // dados já carregados acima
   } else if (vs) {
     const enemy = champById(vs);
@@ -859,10 +878,38 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
     if (got.length < top.length) pending = true;
   }
   const view = opts ? labView(opts, mode === 'wr' ? 'wr' : 'play') : null;
+  // 4º/5º/6º item do OP.GG (só taxa de escolha; o OP.GG não manda win rate desses)
+  if (src === 'opgg' && build && Array.isArray(build.later)) {
+    const names = ['4º item', '5º item', '6º item'];
+    slots = build.later.map((list, i) => ({ pos: i + 4, label: i18n.t(names[i]), options: (list || []).filter((o) => o.ids && o.ids.length).sort((a, b) => b.pick - a.pick).slice(0, 4).map((o) => ({ ids: o.ids, pick: o.pick })) }))
+      .filter((sl) => sl.options.length);
+  }
+  // comparação com a outra fonte (núcleo e runa principal)
+  let other = null;
+  if (view && view.cores[0]) {
+    let ref = null;
+    if (src === 'lola' && build) ref = { source: 'OP.GG', core: build.core || [], keystone: build.runes && build.runes.perks ? build.runes.perks[0] : null, boots: (build.boots || [])[0] || null };
+    else if (src === 'opgg' && !vs && source !== 'lola') {
+      if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getTier: () => settings.get().buildTier || 'EMERALD_PLUS', getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
+      lola.ensure(champ.id, role, notify);
+      const l = lola.get(champ.id, role);
+      if (l && l.cores && l.cores[0]) ref = { source: 'Lolalytics', core: l.cores[0].ids, keystone: l.runes[0] ? l.runes[0].perks[0] : null, boots: l.boots[0] ? l.boots[0].ids[0] : null };
+    }
+    if (ref) {
+      const mine = view.cores[0].ids;
+      const ks = view.runes[0] ? view.runes[0].perks[0] : null;
+      other = { source: ref.source, core: ref.core, same: mine.filter((x) => ref.core.includes(x)).length, of: mine.length,
+        keystoneSame: ks && ref.keystone ? ks === ref.keystone : null, keystone: ref.keystone ? { id: ref.keystone, name: (runeIndex[ref.keystone] || {}).name || '', icon: (runeIndex[ref.keystone] || {}).icon || null } : null,
+        bootsSame: view.boots[0] && ref.boots ? view.boots[0].ids[0] === ref.boots : null };
+    }
+  }
+  const totalGames = opts ? (opts.games || (opts.cores || []).reduce((n, o) => n + (o.play || 0), 0)) : 0;
   const runeName = (x) => (runeIndex[x] && runeIndex[x].name) || String(x);
   return {
-    champion: { id: champ.id, name: champ.name }, role, vs: src !== 'opgg' ? null : vs || null, vsName: src !== 'opgg' ? null : vsName, tip, mode, pending, source: src, note,
-    slots: slots.map((sl) => ({ label: sl.label, options: sl.options.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr })) })),
+    champion: { id: champ.id, name: champ.name }, role, vs: src === 'ugg' ? null : vs || null, vsName: src === 'ugg' ? null : vsName, tip, mode, pending, source: src, note,
+    tier: settings.get().buildTier || 'EMERALD_PLUS', patch: (opts && opts.patch) || null, chosen: chosenFor(champ, role) ? { source: chosenFor(champ, role).source, label: chosenFor(champ, role).label } : null,
+    slots: slots.map((sl) => ({ pos: sl.pos, label: sl.label, options: sl.options.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr, pick: o.pick })) })),
+    other, totalGames,
     sample, sampleOf: vs ? 1 : Math.min(LAB_SAMPLE, opponents.length),
     opponents: opponents.slice(0, 8).map((o) => ({ id: o.ch.id, name: o.ch.name, games: o.c.games })),
     minGames: view ? view.minGames : 0,
@@ -987,8 +1034,9 @@ async function champDetail(id, wanted) {
     patch: champPatchFor(champ.id, notify),
     winRate: build ? build.winRate : null,
     error: build ? null : remote.buildError(champ, role),
-    guide: build ? { ...buildGuide({ champ, role, build, dd, runeIndex, runeStyles, skills }), situational: [] } : null,
-    runePages: build ? runePagesFor(champ, role, build) : [],
+    guide: build ? { ...buildGuide({ champ, role, build: applyChoice(champ, role, build), dd, runeIndex, runeStyles, skills }), situational: [] } : null,
+    runePages: build && !(chosenFor(champ, role) && chosenFor(champ, role).patch.runes) ? runePagesFor(champ, role, build) : [],
+    chosen: chosenFor(champ, role) ? { source: chosenFor(champ, role).source, label: chosenFor(champ, role).label } : null,
     kit: abilityCard(champ, 1),
     // weak = quem counteria este campeão (ele perde); strong = quem ele counteria (ele ganha)
     losesTo: build ? merged(counters(build.weakCounters, 1), (wr) => wr < 0.5).sort((a, b) => a.winRate - b.winRate).slice(0, 7) : [],
@@ -1006,8 +1054,8 @@ function prefetchChampSelect(state, done) {
     if (mine) remote.ensureBuild(mine, state.mode, done, 25);
     return;
   }
-  if (!state.myPosition) return;
-  const role = state.myPosition;
+  const role = roleOverride && roleOverride.role ? roleOverride.role : state.myPosition;
+  if (!role) return;
   remote.ensureTiers(role, done);
   const mine = state.me && state.me.champion;
   if (mine) { remote.ensureBuild(mine, role, done, 25); remote.ensureRunePages(mine, role, done); }
@@ -1421,6 +1469,54 @@ function registerIpc() {
     return true;
   });
 
+  // Testar conexões: cada fonte de dados, com o motivo real do erro
+  ipcMain.handle('net:test', async () => {
+    const { netFetch, describe } = require('./netfetch');
+    const checks = [
+      ['OP.GG', 'https://mcp-api.op.gg/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'lol-overlay', version: app.getVersion() } } }) }],
+      ['Lolalytics', 'https://lolalytics.com/lol/ahri/build/', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36' } }],
+      ['Data Dragon', 'https://ddragon.leagueoflegends.com/api/versions.json', {}],
+      ['CommunityDragon', 'https://raw.communitydragon.org/latest/content-metadata.json', {}],
+      ['GitHub', 'https://api.github.com/repos/gabtavarez/lol-overlay/releases/latest', { headers: { 'User-Agent': 'lol-overlay' } }],
+    ];
+    return Promise.all(checks.map(async ([name, url, opts]) => {
+      const t0 = Date.now();
+      try {
+        const r = await Promise.race([netFetch(url, { ...opts, signal: AbortSignal.timeout(15000) }), new Promise((_, rej) => setTimeout(() => rej(new Error(i18n.t('tempo esgotado'))), 16000))]);
+        return { name, ok: r.ok, status: r.status, ms: Date.now() - t0, error: r.ok ? null : `HTTP ${r.status}` };
+      } catch (err) {
+        return { name, ok: false, ms: Date.now() - t0, error: describe(err) };
+      }
+    }));
+  });
+
+  // Rota manual: troca a build do guia, do laboratório, do Importar e do overlay.
+  ipcMain.handle('role:set', (_e, role) => {
+    roleOverride = ROLE_PT[role] && !MODE_ROLES.includes(role) ? { session: lcuState.sessionId || null, role } : null;
+    lastRole = (roleOverride && roleOverride.role) || lcuState.mode || lcuState.myPosition || lastRole;
+    lastStateSig = '';
+    if (lcuEngine && lcuEngine.tick) lcuEngine.tick();
+    publish();
+    send('guide-updated', { championId: '*' });
+    return lastRole;
+  });
+
+  // Build escolhida no laboratório (patch = core, boots, starter, spells, skills, runes, later); null volta ao padrão.
+  ipcMain.handle('lab:choose', async (_e, { id, role, patch, source, label, importNow } = {}) => {
+    const champ = champById(id);
+    if (!champ || !ROLE_PT[role]) return { ok: false };
+    const key = `${champ.id}:${role}`;
+    if (!patch) chosenBuilds.delete(key);
+    else chosenBuilds.set(key, { patch: cleanPatch(patch), source: source || 'opgg', label: label || '' });
+    send('guide-updated', { championId: String(champ.id) });
+    send('lab-updated', { id: champ.id, role });
+    if (patch && importNow && lcuEngine.getCreds() && lcuState.phase === 'champselect') {
+      const res = await importBuild(champ.id, 'both', 0, 0, role);
+      return { ok: true, imported: res };
+    }
+    return { ok: true };
+  });
+
   ipcMain.handle('import:build', (_e, { championId, what, variant, runePage, role }) =>
     importBuild(championId, what, Number(variant) || 0, Number(runePage) || 0, ROLE_PT[role] ? role : null));
 
@@ -1512,7 +1608,8 @@ app.whenReady().then(() => {
   liveEngine = createEngine({
     baseUrl: LIVE_URL,
     getDd: () => dd,
-    getBuild: (champ, role) => remote.getBuild(champ, role),
+    getBuild: (champ, role) => applyChoice(champ, role, remote.getBuild(champ, role)),
+    getRoleOverride: () => (roleOverride ? roleOverride.role : null),
     getMatchup: (me, opp, role) => remote.getMatchup(me, opp, role),
     getRoleHint: () => lastRole,
     onError: (err) => logger.log(`erro nas sugestões: ${err.stack || err.message}`),
@@ -1536,6 +1633,7 @@ app.whenReady().then(() => {
     getBuild: (champ, role) => remote.getBuild(champ, role),
     prefetch: (state, done) => prefetchChampSelect(state, done),
     getTierRows: (role) => { const tl = remote.getTierList(); return (tl && role && tl.data[role]) || []; },
+    getRoleOverride: () => (roleOverride ? roleOverride.role : null),
     onState: (state) => {
       lcuState = decorateLcu(state);
       publish();

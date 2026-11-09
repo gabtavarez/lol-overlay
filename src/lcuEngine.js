@@ -49,7 +49,7 @@ function homeSummary(profile, dd) {
   return { summoner: profile.summoner, top, roles, gamesAnalyzed: profile.gamesAnalyzed, version: dd ? dd.version : null, tilt: tiltFor(profile, dd) };
 }
 
-function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, getBuild = () => null, prefetch = () => {}, getTierRows = () => [], intervalMs = 1500 }) {
+function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, getBuild = () => null, prefetch = () => {}, getTierRows = () => [], getRoleOverride = () => null, intervalMs = 1500 }) {
   let creds = null;
   let lastDiscovery = 0;
   let timer = null;
@@ -162,6 +162,10 @@ function createLcuEngine({ credsProvider, getDd, getSettings, getMeta, onState, 
     const state = buildChampSelectState(session, { names, dd, pickable, bannable });
     if (queueInfo) { state.queueId = queueInfo.id || state.queueId; state.gameMode = queueInfo.gameMode; }
     state.mode = modeRole(state);
+    // rota escolhida à mão no app: picks, bans, builds e oponente de rota seguem ela
+    state.assignedPosition = state.myPosition;
+    const ov = !state.mode && getRoleOverride();
+    if (ov) { state.myPosition = ov; if (state.me) state.me.position = ov; }
     state.tilt = tiltFor(profile, dd);
     const loaded = ensureProfile();
     state.advice = {

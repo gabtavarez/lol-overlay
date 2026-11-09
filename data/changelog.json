@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.47.1",
+    "title": "Fragmentos do Lolalytics corrigidos",
+    "items": [
+      "Lolalytics: o fragmento do meio (flex) não repete mais o de vida."
+    ],
+    "en": {
+      "title": "Lolalytics shards fixed",
+      "items": [
+        "Lolalytics: the middle (flex) shard no longer repeats the health one."
+      ]
+    },
+    "es": {
+      "title": "Fragmentos de Lolalytics corregidos",
+      "items": [
+        "Lolalytics: el fragmento del medio (flex) ya no repite el de vida."
+      ]
+    }
+  },
+  {
     "version": "0.47.0",
     "title": "Builds: escolha a sua e troque a rota",
     "items": [

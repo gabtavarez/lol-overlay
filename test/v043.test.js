@@ -120,3 +120,12 @@ test('Lolalytics: página por confronto (sem itemSets) e WR da runa principal', 
   assert.equal(b.runes[0].play, 4744);
   assert.equal(Math.round((b.runes[0].win / b.runes[0].play) * 1000), 508);
 });
+
+test('Lolalytics: fragmentos da linha do meio usam as chaves "f" do site', () => {
+  const { topRunePage } = require('../src/providers/lolalytics');
+  const R = (id) => ({ id });
+  const styles = [{ id: 8100, slots: [[R(8112)], [R(8139)], [R(8140)], [R(8106)]] }, { id: 8200, slots: [[R(8214)], [R(8226)], [R(8210)], [R(8237)]] }];
+  const stats = { 8112: [[90, 53, 1000]], 5005: [[60, 53, 600]], 5008: [[30, 52, 300]], '5008f': [[20, 52, 200]], '5010f': [[75, 53, 750]], '5001f': [[5, 50, 50]], 5001: [[70, 53, 700]], 5011: [[25, 52, 250]] };
+  const p = topRunePage(stats, styles);
+  assert.deepEqual(p.perks.slice(-3), [5005, 5010, 5001]);
+});

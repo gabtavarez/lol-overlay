@@ -7,7 +7,8 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const LANE = { top: 'top', jungle: 'jungle', middle: 'middle', bottom: 'bottom', utility: 'support' };
 const SLUG = { MonkeyKing: 'wukong', Nunu: 'nunu', Renata: 'renata' };
 const TTL = 6 * 3600 * 1000;
-const SHARD_ROWS = [[5008, 5005, 5007], [5008, 5010, 5001], [5011, 5013, 5001]];
+// fragmentos: a linha do meio (flex) vem com sufixo "f" nas estatísticas do site (5008f, 5010f, 5001f)
+const SHARD_ROWS = [[[5008, '5008'], [5005, '5005'], [5007, '5007']], [[5008, '5008f'], [5010, '5010f'], [5001, '5001f']], [[5011, '5011'], [5013, '5013'], [5001, '5001']]];
 
 /** Desserializa o estado Qwik (objs + referências em base 36). */
 function qwikObjects(html) {
@@ -56,7 +57,7 @@ function topRunePage(stats, styles) {
     const score = top2.reduce((s, x) => s + x.p, 0);
     if (!sub || score > sub.score) sub = { st, top2: top2.sort((a, b) => a.i - b.i), score };
   }
-  const shards = SHARD_ROWS.map((row) => [...row].sort((a, b) => pick(b) - pick(a))[0]);
+  const shards = SHARD_ROWS.map((row) => [...row].sort((a, b) => pick(b[1]) - pick(a[1]))[0][0]);
   const ks = stats[best.r.id] && stats[best.r.id][0];
   return { primaryStyleId: prim.id, subStyleId: sub.st.id, perks: [...perks, ...sub.top2.map((x) => x.r.id), ...shards], play: games(best.r.id), keystonePick: pick(best.r.id),
     wr: ks && typeof ks[1] === 'number' ? ks[1] / 100 : null };

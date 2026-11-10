@@ -95,23 +95,50 @@ test('composição de dano: % AD/AP/verdadeiro por time e aviso de time quase s�
   assert.equal(damageComp({ me: { champion: null }, allies: [], enemies: [] }), null);
 });
 
-test('plano: desligado libera tudo; ligado exige licença assinada e válida', () => {
+test('plano: cobrança desligada libera tudo; ligada exige licença assinada, válida e desta instalação', () => {
   const crypto = require('crypto');
-  const { createPlan, verifyLicense } = require('../src/plan');
-  assert.equal(createPlan({ paywall: false }).can('laneCoach'), true);
+  const { createPlan, verifyLicense, FEATURES } = require('../src/plan');
+  assert.equal(createPlan({ getPaywall: () => false }).can('lab'), true);
   const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
   const pub = publicKey.export({ type: 'spki', format: 'pem' });
   const sign = (p) => { const body = Buffer.from(JSON.stringify(p)).toString('base64url'); return `${body}.${crypto.sign(null, Buffer.from(body), privateKey).toString('base64url')}`; };
-  const good = sign({ email: 'a@b.c', plan: 'pro', exp: Date.now() + 86400e3 });
+  const good = sign({ plan: 'pro', kind: 'y1', install: 'pc-1', exp: Date.now() + 86400e3, until: Date.now() + 300 * 86400e3 });
   assert.equal(verifyLicense(good, pub).plan, 'pro');
   const [b, sg] = good.split('.');
   const bad = Buffer.from(sg, 'base64url'); bad[10] ^= 0xff; // muda um byte de verdade (o último caractere base64 pode ser só preenchimento)
   assert.equal(verifyLicense(`${b}.${bad.toString('base64url')}`, pub), null); // assinatura adulterada
   assert.equal(verifyLicense(sign({ plan: 'pro', exp: Date.now() - 10 * 86400e3 }), pub), null); // vencida
-  const off = createPlan({ paywall: true, publicKey: pub, getLicense: () => '' });
-  assert.equal(off.can('laneCoach'), false);
-  assert.equal(off.can('picks'), true);
-  assert.equal(createPlan({ paywall: true, publicKey: pub, getLicense: () => good }).can('laneCoach'), true);
+  assert.equal(verifyLicense(good, pub, Date.now(), 'pc-2'), null); // copiada de outro PC
+  assert.equal(verifyLicense(good), null); // assinada por outra chave que não a do servidor
+  const free = createPlan({ getPaywall: () => true, publicKey: pub, getLicense: () => '', getInstall: () => 'pc-1' });
+  for (const f of ['lab', 'roleSwitch', 'picks', 'bans', 'skins', 'items']) assert.equal(free.can(f), false, f);
+  for (const f of ['build', 'import', 'overlay', 'tierlist']) assert.equal(free.can(f), true, f);
+  assert.equal(free.current().plan, 'free');
+  const pro = createPlan({ getPaywall: () => true, publicKey: pub, getLicense: () => good, getInstall: () => 'pc-1' });
+  assert.equal(pro.can('lab'), true);
+  assert.equal(pro.current().kind, 'y1');
+  assert.ok(Object.values(FEATURES).every((v) => v === 'free' || v === 'pro'));
+});
+
+test('Pro: estado local cria o id da instalação e o cliente trata servidor fora do ar', async () => {
+  const os = require('os');
+  const { createProStore } = require('../src/proStore');
+  const { createLicenseClient } = require('../src/plan');
+  const file = path.join(os.tmpdir(), `pro-${process.pid}-${Date.now()}.json`);
+  const a = createProStore(file);
+  assert.match(a.get().install, /^[A-Za-z0-9-]{16,64}$/);
+  a.set({ paywall: true, key: 'LOP-AAAAA-BBBBB-CCCCC' });
+  const b2 = createProStore(file);
+  assert.equal(b2.get().install, a.get().install); // o id não muda entre execuções
+  assert.equal(b2.get().paywall, true);
+  fs.unlinkSync(file);
+  const down = createLicenseClient({ fetchImpl: async () => { throw new Error('sem rede'); } });
+  assert.equal((await down.license('x')).offline, true);
+  assert.ok((await down.checkout('x', 'm1')).error);
+  let sent = null;
+  const up = createLicenseClient({ server: 'https://s', fetchImpl: async (url, o) => { sent = { url, body: JSON.parse(o.body) }; return { ok: true, json: async () => ({ token: 't', paywall: true }) }; } });
+  assert.equal((await up.license('inst', 'LOP-1')).token, 't');
+  assert.deepEqual(sent, { url: 'https://s/license', body: { install: 'inst', key: 'LOP-1' } });
 });
 
 test('desempenho: cache do OP.GG grava em lote (assíncrono) e descarta entradas velhas', async () => {

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>LoL Overlay Pro — admin</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <h1>LoL Overlay Pro — admin</h1>
+  <p class="muted small" id="msg"></p>
+  <div class="card" id="login">
+    <h2>Entrar</h2>
+    <form class="row" id="login-form"><input type="password" id="pass" placeholder="Senha de admin" autocomplete="current-password" required><button class="primary">Entrar</button></form>
+  </div>
+  <div id="panel" hidden>
+    <div class="card">
+      <div class="stats" id="stats"></div>
+      <div class="row" style="margin-top:14px"><button id="paywall"></button><button id="reload">Atualizar</button><span class="muted small" id="state"></span></div>
+    </div>
+    <div class="card">
+      <h2>Dar Pro de graça</h2>
+      <form class="row" id="grant">
+        <select id="g-days"><option value="30">30 dias</option><option value="365">1 ano</option><option value="">Vitalício</option></select>
+        <input id="g-note" placeholder="Para quem? (anotação)" maxlength="200">
+        <button class="primary">Gerar chave</button>
+      </form>
+      <p class="key" id="g-key"></p>
+    </div>
+    <div class="card"><h2>Licenças</h2><div class="scroll"><table><thead><tr><th>Chave</th><th>Tipo</th><th>Vence</th><th>PCs</th><th>Origem</th><th>Nota</th><th></th></tr></thead><tbody id="lic"></tbody></table></div></div>
+    <div class="card"><h2>Pagamentos</h2><div class="scroll"><table><thead><tr><th>Data</th><th>ID Mercado Pago</th><th>Status</th><th>Valor</th><th>Meio</th></tr></thead><tbody id="pay"></tbody></table></div></div>
+  </div>
+</main>
+<script src="admin.js"></script>
+</body>
+</html>

@@ -25,10 +25,17 @@ const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { laneCoach } = require('./coach');
 const { damageComp } = require('./damageComp');
-const { createPlan } = require('./plan');
+const { createPlan, createLicenseClient, PLANS: PRO_PLANS } = require('./plan');
+const { createProStore } = require('./proStore');
 // Coach de rota ao vivo: desligado por enquanto (código mantido; true reativa painel, atalho e configuração)
 const COACH_ON = false;
-const plan = createPlan({ getLicense: () => (settings && settings.get().license) || '' }); // assinatura: desligada (tudo liberado)
+// Pro: a cobrança é ligada pelo servidor; desligada, todo mundo tem tudo
+let proStore = null;
+const plan = createPlan({
+  getLicense: () => (proStore ? proStore.get().token : ''),
+  getPaywall: () => Boolean(proStore && proStore.get().paywall),
+  getInstall: () => (proStore ? proStore.get().install : null),
+});
 const i18n = require('./i18n');
 const { predictRoles, roleIndex } = require('./roles');
 const { championFit, mainRoleOf } = require('./fit');
@@ -480,7 +487,7 @@ function laneEnemy() {
 }
 
 /** Build do laboratório (se você escolheu uma) por cima da build do OP.GG. */
-function chosenFor(champ, role) { return champ ? chosenBuilds.get(`${champ.id}:${role}`) || null : null; }
+function chosenFor(champ, role) { return champ && plan.can('lab') ? chosenBuilds.get(`${champ.id}:${role}`) || null : null; }
 function applyChoice(champ, role, build) {
   const c = chosenFor(champ, role);
   return c && build ? applyPatch(build, c.patch, { source: c.source, label: c.label }) : build;
@@ -1196,7 +1203,50 @@ function prefetchInGame(state, me, opp) {
 }
 
 /** Champ select: rotas previstas do time inimigo; tela inicial: champion fit. */
+/* ---------- Pro: licença ---------- */
+let licenseClient = null;
+function planInfo() {
+  const st = proStore ? proStore.get() : {};
+  return { ...plan.current(), key: st.key || '', expiresAt: st.expiresAt || null, plans: PRO_PLANS, proFeatures: Object.entries(require('./plan').FEATURES).filter(([, v]) => v === 'pro').map(([k]) => k) };
+}
+/** Busca/renova a licença desta instalação (ou ativa uma chave). Sem internet, mantém a que já tem. */
+async function refreshLicense(key = null) {
+  if (!proStore || !licenseClient) return null;
+  const before = JSON.stringify(plan.current());
+  const res = await licenseClient.license(proStore.get().install, key || proStore.get().key || null);
+  if (!res || res.offline) return res;
+  const patch = {};
+  if (typeof res.paywall === 'boolean') patch.paywall = res.paywall;
+  if (res.token) Object.assign(patch, { token: res.token, key: res.key || proStore.get().key, expiresAt: res.expires_at || null, kind: res.kind || null });
+  else if (!key && !res.error) Object.assign(patch, { token: '' }); // vencida, cancelada ou sem licença
+  proStore.set(patch);
+  if (JSON.stringify(plan.current()) !== before) {
+    lastStateSig = '';
+    send('plan-updated', planInfo());
+    send('guide-updated', { championId: '*' });
+    if (lcuEngine && lcuEngine.tick) lcuEngine.tick();
+  }
+  return res;
+}
+/** Depois de abrir o pagamento: confere a cada 5 s (até 20 min) se a licença chegou. */
+let payWatch = null;
+function watchPayment() {
+  if (payWatch) clearInterval(payWatch);
+  const had = proStore.get().expiresAt;
+  const hadToken = Boolean(proStore.get().token);
+  let n = 0;
+  payWatch = setInterval(async () => {
+    n += 1;
+    const res = await refreshLicense();
+    const got = res && res.token && (!hadToken || (res.expires_at || null) !== had);
+    if (got) send('plan-updated', { ...planInfo(), justPaid: true });
+    if (got || n >= 240) { clearInterval(payWatch); payWatch = null; }
+  }, 5000);
+}
+
 function decorateLcu(state) {
+  // plano grátis: sugestões de pick e ban são do Pro
+  if (state.advice && !plan.can('picks')) { state.advice.picks = { candidates: [], notes: [], locked: true }; state.advice.bans = []; state.proLocked = true; }
   const tl = remote.getTierList();
   if (state.phase === 'champselect') {
     state.damageComp = damageComp(state);
@@ -1311,7 +1361,25 @@ function registerIpc() {
     const loc = (e) => (e && e[L] ? { version: e.version, title: e[L].title, items: e[L].items } : e); // novidades no idioma do app
     return { version, unseen: seen !== version, current: loc(log.find((e) => e.version === version)) || null, history: log.slice(0, 6).map(loc) };
   });
-  ipcMain.handle('plan:get', () => plan.current());
+  ipcMain.handle('plan:get', () => planInfo());
+  ipcMain.handle('pro:refresh', async () => { await refreshLicense(); return planInfo(); });
+  ipcMain.handle('pro:activate', async (_e, key) => {
+    const k = String(key || '').trim().toUpperCase();
+    if (!/^LOP-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(k)) return { ok: false, error: i18n.t('Chave inválida. O formato é LOP-XXXXX-XXXXX-XXXXX.') };
+    const res = await refreshLicense(k);
+    return res && res.token ? { ok: true, plan: planInfo() } : { ok: false, error: (res && (res.reason || res.error)) || i18n.t('não consegui falar com o servidor') };
+  });
+  ipcMain.handle('pro:checkout', async (_e, planId) => {
+    if (!PRO_PLANS.some((p) => p.id === planId)) return { ok: false, error: 'plano inválido' };
+    const res = await licenseClient.checkout(proStore.get().install, planId);
+    if (!res.url) return { ok: false, error: res.error || i18n.t('não consegui abrir o pagamento') };
+    let host = '';
+    try { host = new URL(res.url).hostname; } catch { /* inválida */ }
+    if (!/(^|\.)mercadopago\.com(\.br)?$/.test(host)) return { ok: false, error: i18n.t('endereço de pagamento inesperado') };
+    await shell.openExternal(res.url);
+    watchPayment();
+    return { ok: true };
+  });
   ipcMain.handle('whatsnew:seen', () => { settings.update({ lastSeenVersion: app.getVersion() }); return true; });
 
   // Mudanças do patch nos seus campeões (maestria + mais jogados no OP.GG).
@@ -1319,9 +1387,9 @@ function registerIpc() {
 
   // Página do campeão (aberta pela tier list): build, runas, skills, counters e sinergias numa rota.
   ipcMain.handle('champ:detail', (_e, { id, role } = {}) => champDetail(id, role));
-  ipcMain.handle('lab:get', (_e, q = {}) => labFor(q));
+  ipcMain.handle('lab:get', (_e, q = {}) => (plan.can('lab') ? labFor(q) : { locked: true }));
   ipcMain.handle('runes:catalog', () => runeCatalog());
-  ipcMain.handle('items:list', () => itemList());
+  ipcMain.handle('items:list', () => (plan.can('items') ? itemList() : { locked: true }));
   ipcMain.handle('itemsets:clear', async (_e, { onlyApp } = {}) => {
     const creds = lcuEngine.getCreds();
     if (!creds) return { ok: false, error: i18n.t('Cliente do LoL não conectado.') };
@@ -1492,6 +1560,7 @@ function registerIpc() {
 
   // Rota manual: troca a build do guia, do laboratório, do Importar e do overlay.
   ipcMain.handle('role:set', (_e, role) => {
+    if (!plan.can('roleSwitch')) return lastRole;
     roleOverride = ROLE_PT[role] && !MODE_ROLES.includes(role) ? { session: lcuState.sessionId || null, role } : null;
     lastRole = (roleOverride && roleOverride.role) || lcuState.mode || lcuState.myPosition || lastRole;
     lastStateSig = '';
@@ -1504,7 +1573,7 @@ function registerIpc() {
   // Build escolhida no laboratório (patch = core, boots, starter, spells, skills, runes, later); null volta ao padrão.
   ipcMain.handle('lab:choose', async (_e, { id, role, patch, source, label, importNow } = {}) => {
     const champ = champById(id);
-    if (!champ || !ROLE_PT[role]) return { ok: false };
+    if (!champ || !ROLE_PT[role] || !plan.can('lab')) return { ok: false };
     const key = `${champ.id}:${role}`;
     if (!patch) chosenBuilds.delete(key);
     else chosenBuilds.set(key, { patch: cleanPatch(patch), source: source || 'opgg', label: label || '' });
@@ -1578,6 +1647,9 @@ app.whenReady().then(() => {
   logger = createLogger(path.join(userData, 'overlay.log'));
   logger.log(`LoL Overlay ${app.getVersion()} iniciou (${process.platform})`);
   settings = createSettingsStore(path.join(userData, 'settings.json'));
+  proStore = createProStore(path.join(userData, 'pro.json'));
+  licenseClient = createLicenseClient({ fetchImpl: netFetch, log: (m) => logger.log(m) });
+  refreshLicense(); // em segundo plano: descobre se a cobrança está ligada e renova a licença
   i18n.setLang(appLang()); // textos gerados no main (coach, compras, notas) no idioma do app
   meta = loadMeta([path.join(__dirname, '..', 'data', 'meta.json'), path.join(userData, 'meta.json')]);
 
@@ -1609,7 +1681,7 @@ app.whenReady().then(() => {
     baseUrl: LIVE_URL,
     getDd: () => dd,
     getBuild: (champ, role) => applyChoice(champ, role, remote.getBuild(champ, role)),
-    getRoleOverride: () => (roleOverride ? roleOverride.role : null),
+    getRoleOverride: () => (roleOverride && plan.can('roleSwitch') ? roleOverride.role : null),
     getMatchup: (me, opp, role) => remote.getMatchup(me, opp, role),
     getRoleHint: () => lastRole,
     onError: (err) => logger.log(`erro nas sugestões: ${err.stack || err.message}`),
@@ -1633,7 +1705,7 @@ app.whenReady().then(() => {
     getBuild: (champ, role) => remote.getBuild(champ, role),
     prefetch: (state, done) => prefetchChampSelect(state, done),
     getTierRows: (role) => { const tl = remote.getTierList(); return (tl && role && tl.data[role]) || []; },
-    getRoleOverride: () => (roleOverride ? roleOverride.role : null),
+    getRoleOverride: () => (roleOverride && plan.can('roleSwitch') ? roleOverride.role : null),
     onState: (state) => {
       lcuState = decorateLcu(state);
       publish();
@@ -1657,6 +1729,7 @@ app.whenReady().then(() => {
       setTimeout(() => updater.check(), 8000);
       // confere a cada 30 min: com o app aberto por horas, a atualização baixada já é a mais recente
       setInterval(() => updater.check(), 30 * 60 * 1000);
+      setInterval(() => refreshLicense(), 6 * 3600 * 1000);
       setInterval(() => refreshDataDragon(), 30 * 60 * 1000);
     } catch (err) {
       logger.log(`atualizador indisponível: ${err.message}`);

@@ -917,3 +917,25 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .net-row { display: flex; gap: 10px; font-size: 12px; }
 .net-row b { min-width: 120px; }
 .net-row.ok span { color: var(--good, #4ade80); } .net-row.bad span { color: var(--warn); }
+
+/* v0.48: Pro */
+.nav-pro { color: var(--acc); }
+.pro-tag { font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .06em; padding: 2px 6px; border-radius: 4px; background: var(--acc-soft); color: var(--acc); border: 1px solid var(--acc); }
+.pro-lock { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px; border: 1px dashed var(--line2); border-radius: 10px; margin: 8px 12px 12px; }
+.pro-lock p { margin: 0; flex: 1; min-width: 180px; color: var(--muted); font-size: 13px; }
+.role-pick-wrap.locked select { opacity: .6; cursor: pointer; }
+.pro-status { display: grid; gap: 4px; }
+.pro-status.ok b { color: var(--acc); }
+.pro-why { margin: 10px 0 0; padding: 8px 10px; border-left: 3px solid var(--acc); background: var(--acc-soft); border-radius: 4px; font-size: 13px; }
+.pro-msg { margin: 10px 0 0; font-size: 13px; }
+.pro-feats { margin: 8px 0 16px; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+.pro-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.pro-plan { position: relative; display: grid; gap: 6px; padding: 16px; border: 1px solid var(--line2); border-radius: 12px; background: var(--card2); align-content: start; }
+.pro-plan.best { border-color: var(--acc); }
+.pro-plan .pro-tag { position: absolute; top: -9px; right: 12px; background: var(--card); }
+.pro-plan h3 { margin: 0; font-size: 14px; }
+.pro-price { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pro-plan p { margin: 0 0 6px; min-height: 32px; }
+.pro-key-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.pro-key { flex: 1; min-width: 220px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line2); background: var(--card2); color: var(--text); font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
+#pro-body { display: grid; gap: 14px; max-width: 860px; }

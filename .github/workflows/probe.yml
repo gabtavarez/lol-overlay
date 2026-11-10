@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node scripts/probe-sites.js
+        env:
+          PROBE_KEY: LOP-PROBE-TESTE-AAAAA
       - run: |
           git config user.name "audit-bot"
           git config user.email "audit-bot@users.noreply.github.com"

@@ -37,13 +37,13 @@ function playerLabel(p) {
 
 let page = 'auto'; // 'auto' = segue a fase (início/champ select/partida); 'tierlist' | 'history' = abas fixas
 let lastView = 'waiting';
-const VIEWS = ['waiting', 'select', 'game', 'profile', 'skins', 'items', 'tierlist', 'history', 'patches', 'settings'];
+const VIEWS = ['waiting', 'select', 'game', 'profile', 'skins', 'items', 'tierlist', 'history', 'patches', 'pro', 'settings'];
 function showView(name) {
   if (name && name !== lastView && page === 'home') page = 'auto'; // mudou de fase (ex.: champ select -> partida): volta a seguir a fase
   if (name) lastView = name;
   const v = settingsOpen ? 'settings' : page === 'home' ? 'waiting' : page !== 'auto' ? page : lastView;
   for (const id of VIEWS) $(id).hidden = v !== id;
-  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', skins: 'nav-skins', items: 'nav-items', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', settings: 'gear' };
+  const navOf = { waiting: 'nav-home', select: 'nav-select', game: 'nav-game', profile: 'nav-profile', skins: 'nav-skins', items: 'nav-items', tierlist: 'nav-tier', history: 'nav-history', patches: 'nav-patches', pro: 'nav-pro', settings: 'gear' };
   for (const [view, id] of Object.entries(navOf)) $(id).classList.toggle('on', v === view);
   $('nav-select').querySelector('.live').hidden = lastView !== 'select';
   $('nav-game').querySelector('.live').hidden = lastView !== 'game';
@@ -304,6 +304,11 @@ function rolePicker(root, onChange = null) {
     h('option', { value: '', text: auto ? `${t('Automática')} (${t(ROLE_NAME[auto] || auto)})` : t('Automática') }),
     ...Object.entries(ROLE_NAME).map(([k, v]) => h('option', { value: k, text: v })));
   sel.value = cur;
+  if (!can('roleSwitch')) {
+    sel.title = t('Trocar a rota é do Pro');
+    sel.addEventListener('mousedown', (e) => { e.preventDefault(); proWhy = 'roleSwitch'; goPage('pro'); });
+    return h('label', { class: 'role-pick-wrap locked' }, h('span', { text: 'Rota' }), sel, h('i', { class: 'pro-tag', text: 'PRO' }));
+  }
   sel.addEventListener('change', async () => {
     sel.disabled = true;
     await window.overlay.setRole(sel.value || null);
@@ -484,7 +489,7 @@ function renderSelect(state) {
   els.turn.hidden = !turnText;
 
   const selectedId = chosenId || (state.me && state.me.champion && state.me.champion.id) || (picks.candidates[0] && picks.candidates[0].id);
-  els.picks.replaceChildren(...picks.candidates.map((c, i) => pickCard(c, c.id === selectedId, i)));
+  els.picks.replaceChildren(...(picks.locked ? [proLock('picks')] : picks.candidates.map((c, i) => pickCard(c, c.id === selectedId, i))));
   els.pickNotes.replaceChildren(...picks.notes.map((n) => h('p', { text: n })));
 
   els.team.replaceChildren(...[state.me, ...state.allies].filter(Boolean).map((p) => slot(p)));
@@ -1458,7 +1463,9 @@ function drawChamp() {
 
 function goPage(p) {
   settingsOpen = false;
+  if ((p === 'skins' || p === 'items') && !can(p)) { proWhy = p; p = 'pro'; } // abas do Pro: mostra os planos
   page = p;
+  if (p === 'pro') drawPro();
   showView(null);
   if (p === 'tierlist') { closeChamp(); tlRoleButtons(); loadTierList(); }
   if (p === 'history') loadHistory();
@@ -1471,6 +1478,7 @@ $('nav-history').addEventListener('click', () => goPage('history'));
 $('nav-patches').addEventListener('click', () => goPage('patches'));
 $('nav-profile').addEventListener('click', () => goPage('profile'));
 $('nav-skins').addEventListener('click', () => goPage('skins'));
+$('nav-pro').addEventListener('click', () => { proWhy = ''; goPage('pro'); });
 $('nav-items').addEventListener('click', () => goPage('items'));
 // Início também abre durante o champ select/partida (a aba AO VIVO continua a um clique)
 $('nav-home').addEventListener('click', () => goPage(lastView === 'waiting' ? 'auto' : 'home'));
@@ -2390,6 +2398,7 @@ function fetchLab(a, force) {
   window.overlay.getLab({ id: ctx.id, role: ctx.role, vs: st.vs, mode: st.mode, source: st.source }).then((d) => {
     if (st.ask !== ask) return;
     st.data = d;
+    if (d && d.locked) { a.el.replaceChildren(h('div', { class: 'gb-h' }, h('h3', { text: 'Builds' })), proLock('lab')); return; }
     if (st.sel >= ((d && d.cores.length) || 0)) st.sel = 0;
     if (st.pickAsk !== ask) { st.pick = {}; st.pickAsk = ask; }
     if (a.el.isConnected) drawLab(a);
@@ -2649,6 +2658,84 @@ function clearSetsButton(id, onlyApp, confirmText) {
   });
 }
 clearSetsButton('set-clear-app', true, 'Clique de novo para apagar os do app');
+/* ---------- Pro: plano, travas e compra ---------- */
+let planInfo = { plan: 'pro', paywall: false, plans: [], proFeatures: [] };
+let proWhy = '';
+let proMsg = '';
+let proWaiting = false;
+function can(feature) { return !planInfo.paywall || planInfo.plan === 'pro' || !(planInfo.proFeatures || []).includes(feature); }
+const PRO_TEXT = {
+  lab: 'Laboratório de builds: Lolalytics, build por confronto e "Usar esta build".',
+  roleSwitch: 'Trocar a rota em que você caiu.',
+  picks: 'Sugestões de pick e de ban no champ select.',
+  skins: 'Aba Skins: sua coleção e sugestões.',
+  items: 'Aba Itens: todos os itens do jogo.',
+};
+/** Cartão que fica no lugar de um recurso do Pro no plano grátis. */
+function proLock(feature) {
+  const btn = h('button', { class: 'btn primary', type: 'button', text: 'Ver planos' });
+  btn.addEventListener('click', () => { proWhy = feature; goPage('pro'); });
+  return h('div', { class: 'pro-lock' }, h('i', { class: 'pro-tag', text: 'PRO' }), h('p', { text: PRO_TEXT[feature] || 'Recurso do Pro.' }), btn);
+}
+const brl = (n) => `R$ ${Number(n).toFixed(2).replace('.', ',')}`;
+const PLAN_NAME = { m1: '30 dias', y1: '1 ano', life: 'Vitalício' };
+const PLAN_SUB = { m1: 'Pagamento único, sem renovação automática.', y1: 'Sai mais barato que 12 passes de 30 dias.', life: 'Paga uma vez, vale para sempre.' };
+function applyPlan(p) {
+  if (!p) return;
+  const was = planInfo.plan + planInfo.paywall;
+  planInfo = { ...planInfo, ...p };
+  $('nav-pro').hidden = !planInfo.paywall;
+  if (p.justPaid) { proWaiting = false; proMsg = t('Pagamento aprovado. Pro liberado!'); }
+  if (!$('pro').hidden) drawPro();
+  if (was !== planInfo.plan + planInfo.paywall && lastState) { try { render(lastState); } catch { /* tela ainda não montada */ } }
+}
+function drawPro() {
+  const p = planInfo;
+  const isPro = p.paywall && p.plan === 'pro';
+  $('pro-eyebrow').textContent = !p.paywall ? t('Tudo liberado') : isPro ? t('Você é Pro') : t('Plano grátis');
+  const until = p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('pt-BR') : null;
+  const status = !p.paywall ? h('p', { class: 'muted', text: 'A cobrança ainda não está ligada: todos os recursos estão liberados para todo mundo.' })
+    : isPro ? h('div', { class: 'pro-status ok' }, h('b', { text: until ? tr('Pro ativo até {date}', { date: until }) : t('Pro vitalício ativo') }),
+      p.key ? h('span', { class: 'muted small', text: tr('Sua chave: {key} (vale em até 2 computadores)', { key: p.key }) }) : null)
+      : h('div', { class: 'pro-status' }, h('b', { text: 'Você está no plano grátis' }),
+        h('span', { class: 'muted small', text: 'Grátis: build do OP.GG, Importar, overlay e tier list.' }));
+  const why = proWhy && PRO_TEXT[proWhy] ? h('p', { class: 'pro-why', text: tr('Recurso do Pro: {what}', { what: t(PRO_TEXT[proWhy]) }) }) : null;
+  const feats = h('ul', { class: 'pro-feats' }, ...Object.values(PRO_TEXT).map((x) => h('li', { text: x })));
+  const cards = h('div', { class: 'pro-plans' }, ...(p.plans || []).map((pl) => {
+    const b = h('button', { class: 'btn primary', type: 'button', text: isPro && !until ? 'Você já tem' : isPro ? 'Estender' : 'Comprar' });
+    b.disabled = isPro && !until;
+    b.addEventListener('click', async () => {
+      b.disabled = true; proMsg = t('Abrindo o pagamento no navegador…'); drawPro();
+      const res = await window.overlay.proCheckout(pl.id);
+      proWaiting = Boolean(res && res.ok);
+      proMsg = res && res.ok ? t('Pague com Pix ou cartão na página que abriu. O Pro libera aqui sozinho, em alguns segundos após a aprovação.') : tr('Não consegui abrir o pagamento: {err}', { err: (res && res.error) || '?' });
+      drawPro();
+    });
+    return h('div', { class: `pro-plan${pl.id === 'y1' ? ' best' : ''}` },
+      pl.id === 'y1' ? h('i', { class: 'pro-tag', text: 'Mais escolhido' }) : null,
+      h('h3', { text: PLAN_NAME[pl.id] || pl.id }), h('div', { class: 'pro-price', text: brl(pl.price) }),
+      h('p', { class: 'muted small', text: PLAN_SUB[pl.id] || '' }), b);
+  }));
+  const keyIn = h('input', { type: 'text', class: 'pro-key', placeholder: 'LOP-XXXXX-XXXXX-XXXXX', maxlength: '21', spellcheck: 'false' });
+  const keyBtn = h('button', { class: 'btn ghost', type: 'button', text: 'Ativar chave' });
+  keyBtn.addEventListener('click', async () => {
+    keyBtn.disabled = true;
+    const res = await window.overlay.proActivate(keyIn.value);
+    proMsg = res && res.ok ? t('Chave ativada. Pro liberado!') : tr('Não ativou: {err}', { err: (res && res.error) || '?' });
+    if (res && res.ok) applyPlan(res.plan); else drawPro();
+  });
+  const again = h('button', { class: 'btn ghost', type: 'button', text: 'Já paguei, conferir agora' });
+  again.addEventListener('click', async () => { again.disabled = true; applyPlan(await window.overlay.proRefresh()); if (planInfo.plan !== 'pro' || !planInfo.paywall) { proMsg = t('Ainda não chegou a confirmação do pagamento. O Pix costuma levar alguns segundos.'); drawPro(); } });
+  $('pro-body').replaceChildren(
+    h('section', { class: 'card pad' }, status, why, proMsg ? h('p', { class: 'pro-msg', text: proMsg }) : null, proWaiting && !isPro ? again : null),
+    p.paywall ? h('section', { class: 'card pad' }, h('h2', { text: 'O que o Pro libera' }), feats, cards,
+      h('p', { class: 'muted small', text: 'Pagamento pelo Mercado Pago: Pix ou cartão. Sem assinatura: nada é cobrado de novo sozinho.' })) : null,
+    p.paywall ? h('section', { class: 'card pad' }, h('h2', { text: 'Já tenho uma chave' }),
+      h('p', { class: 'muted small', text: 'Use a chave para reinstalar ou ativar em outro computador.' }), h('div', { class: 'pro-key-row' }, keyIn, keyBtn)) : null);
+}
+window.overlay.getPlan().then(applyPlan).catch(() => {});
+if (window.overlay.onPlanUpdated) window.overlay.onPlanUpdated(applyPlan);
+
 $('set-net').addEventListener('click', async () => {
   const box = $('net-test');
   box.hidden = false;

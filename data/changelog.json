@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.48.0",
+    "title": "Plano Pro (Pix e cartão)",
+    "items": [
+      "Plano Pro: 30 dias, 1 ano ou vitalício, pago uma vez por Pix ou cartão.",
+      "Pro libera laboratório de builds, troca de rota, picks/bans, Skins e Itens.",
+      "Ativação automática após o pagamento ou por chave (até 2 PCs).",
+      "A cobrança só liga quando o admin ativar: por enquanto tudo segue liberado."
+    ],
+    "en": {
+      "title": "Pro plan (Pix and card)",
+      "items": [
+        "Pro plan: 30 days, 1 year or lifetime, paid once by Pix or card.",
+        "Pro unlocks the build lab, role switch, picks/bans, Skins and Items.",
+        "Activates automatically after payment or with a key (up to 2 PCs).",
+        "Billing only turns on when the admin enables it: everything stays unlocked for now."
+      ]
+    },
+    "es": {
+      "title": "Plan Pro (Pix y tarjeta)",
+      "items": [
+        "Plan Pro: 30 días, 1 año o vitalicio, pago único por Pix o tarjeta.",
+        "Pro libera laboratorio de builds, cambio de línea, picks/bans, Skins y Objetos.",
+        "Se activa solo tras el pago o con una clave (hasta 2 PCs).",
+        "El cobro solo se activa cuando el admin lo habilite: por ahora todo sigue liberado."
+      ]
+    }
+  },
+  {
     "version": "0.47.1",
     "title": "Fragmentos do Lolalytics corrigidos",
     "items": [

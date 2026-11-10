@@ -2684,10 +2684,33 @@ function applyPlan(p) {
   if (!p) return;
   const was = planInfo.plan + planInfo.paywall;
   planInfo = { ...planInfo, ...p };
-  $('nav-pro').hidden = !planInfo.paywall;
+  $('nav-pro').hidden = false;
+  if (p.justLogged) { proMsg = tr('Conectado como {who}.', { who: p.account || '' }); }
+  maybeAskAccount();
   if (p.justPaid) { proWaiting = false; proMsg = t('Pagamento aprovado. Pro liberado!'); }
   if (!$('pro').hidden) drawPro();
   if (was !== planInfo.plan + planInfo.paywall && lastState) { try { render(lastState); } catch { /* tela ainda não montada */ } }
+}
+async function accountLogin(btn) {
+  if (btn) btn.disabled = true;
+  const res = await window.overlay.accountLogin();
+  proMsg = res && res.ok ? t('Termine o login no navegador que abriu. O app entra sozinho.') : tr('Não consegui abrir o login: {err}', { err: (res && res.error) || '?' });
+  if (btn) btn.disabled = false;
+  if (!$('pro').hidden) drawPro(); else goPage('pro');
+}
+let askedShown = false;
+function maybeAskAccount() {
+  if (askedShown || planInfo.asked || planInfo.account || planInfo.asked === undefined) return;
+  askedShown = true;
+  const close = () => { window.overlay.accountAsked(); box.remove(); };
+  const login = h('button', { class: 'pro-choice primary', type: 'button' }, h('b', { text: 'Entrar com conta' }), h('span', { text: 'Seu Pro libera sozinho e vale em até 2 PCs. Google ou e-mail.' }));
+  const guest = h('button', { class: 'pro-choice', type: 'button' }, h('b', { text: 'Continuar como convidado' }), h('span', { text: 'Sem conta. Usa a conta do LoL aberta neste PC.' }));
+  login.addEventListener('click', () => { close(); accountLogin(null); });
+  guest.addEventListener('click', close);
+  const box = h('div', { class: 'pro-ask', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Como você quer usar?') },
+    h('div', { class: 'pro-ask-card' }, h('h2', { text: 'Como você quer usar?' }), h('p', { class: 'muted', text: 'Dá para trocar depois na aba Pro.' }), h('div', { class: 'pro-choices' }, login, guest)));
+  document.body.append(box);
+  guest.focus();
 }
 function drawPro() {
   const p = planInfo;
@@ -2726,7 +2749,15 @@ function drawPro() {
   });
   const again = h('button', { class: 'btn ghost', type: 'button', text: 'Já paguei, conferir agora' });
   again.addEventListener('click', async () => { again.disabled = true; applyPlan(await window.overlay.proRefresh()); if (planInfo.plan !== 'pro' || !planInfo.paywall) { proMsg = t('Ainda não chegou a confirmação do pagamento. O Pix costuma levar alguns segundos.'); drawPro(); } });
+  const acc = p.account
+    ? h('section', { class: 'card pad pro-acc' }, h('div', { class: 'pro-acc-row' },
+      h('div', {}, h('b', { text: tr('Conectado como {who}', { who: p.account }) }), h('p', { class: 'muted small', text: 'Seu Pro e seus PCs ficam na sua conta.' })),
+      (() => { const b = h('button', { class: 'btn ghost', type: 'button', text: 'Sair da conta' }); b.addEventListener('click', async () => { b.disabled = true; proMsg = ''; applyPlan(await window.overlay.accountLogout()); }); return b; })()))
+    : h('section', { class: 'card pad pro-acc' }, h('div', { class: 'pro-acc-row' },
+      h('div', {}, h('b', { text: 'Modo convidado' }), h('p', { class: 'muted small', text: 'O app funciona com a conta do LoL aberta neste PC. Entre com sua conta para usar o Pro em até 2 PCs.' })),
+      (() => { const b = h('button', { class: 'btn primary', type: 'button', text: 'Entrar com conta' }); b.addEventListener('click', () => accountLogin(b)); return b; })()));
   $('pro-body').replaceChildren(
+    acc,
     h('section', { class: 'card pad' }, status, why, proMsg ? h('p', { class: 'pro-msg', text: proMsg }) : null, proWaiting && !isPro ? again : null),
     p.paywall ? h('section', { class: 'card pad' }, h('h2', { text: 'O que o Pro libera' }), feats, cards,
       h('p', { class: 'muted small', text: 'Pagamento pelo Mercado Pago: Pix ou cartão. Sem assinatura: nada é cobrado de novo sozinho.' })) : null,

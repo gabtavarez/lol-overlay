@@ -19,7 +19,7 @@ const PLANS: Record<string, { days: number | null; price: number; title: string 
   life: { days: null, price: 99.9, title: "LoL Overlay Pro — vitalício" },
 };
 
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-admin", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-admin, authorization, apikey", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 const b64url = (buf: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Uint8Array(buf as ArrayBuffer))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const validInstall = (s: unknown) => typeof s === "string" && /^[A-Za-z0-9-]{16,64}$/.test(s);
@@ -67,21 +67,42 @@ function extended(current: string | null | undefined, days: number | null, had: 
   return new Date(base + days * DAY).toISOString();
 }
 
+// ---------- contas ----------
+async function userOf(req: Request) {
+  const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!jwt || jwt.split(".").length !== 3) return null;
+  const { data } = await db.auth.getUser(jwt);
+  return data && data.user ? data.user : null;
+}
+async function userOfInstall(install: string) {
+  const { data } = await db.from("pro_installs").select("user_id").eq("install", install).maybeSingle();
+  return data ? data.user_id as string : null;
+}
+async function licenseOfUser(userId: string) {
+  const { data } = await db.from("pro_licenses").select("*").eq("user_id", userId).eq("revoked", false).order("created_at", { ascending: false }).limit(10);
+  return (data || []).find(active) || null;
+}
+async function emailOf(userId: string) {
+  const { data } = await db.auth.admin.getUserById(userId);
+  return data && data.user ? data.user.email || "" : "";
+}
+const isWeb = (install: string) => install.startsWith("web-");
+
 // ---------- licença por instalação ----------
 async function licenseOfInstall(install: string) {
   const { data } = await db.from("pro_licenses").select("*").contains("devices", [install]).eq("revoked", false).order("created_at", { ascending: false }).limit(5);
   return (data || []).find(active) || null;
 }
 
-async function grantForOrder(order: { id: string; install: string; plan: string; license_id: string | null }) {
+async function grantForOrder(order: { id: string; install: string; plan: string; license_id: string | null; user_id: string | null }) {
   const plan = PLANS[order.plan];
-  const existing = await licenseOfInstall(order.install);
+  const existing = (order.user_id ? await licenseOfUser(order.user_id) : null) || (isWeb(order.install) ? null : await licenseOfInstall(order.install));
   if (existing) {
     const expires_at = extended(existing.expires_at, plan.days, true);
-    await db.from("pro_licenses").update({ expires_at, plan: plan.days == null ? "life" : existing.plan === "life" ? "life" : order.plan }).eq("id", existing.id);
+    await db.from("pro_licenses").update({ expires_at, plan: plan.days == null ? "life" : existing.plan === "life" ? "life" : order.plan, ...(order.user_id && !existing.user_id ? { user_id: order.user_id } : {}) }).eq("id", existing.id);
     return existing.id as string;
   }
-  const { data, error } = await db.from("pro_licenses").insert({ key: newKey(), plan: order.plan, expires_at: extended(null, plan.days, false), devices: [order.install], source: "payment" }).select("id").single();
+  const { data, error } = await db.from("pro_licenses").insert({ key: newKey(), plan: order.plan, expires_at: extended(null, plan.days, false), devices: isWeb(order.install) ? [] : [order.install], source: "payment", user_id: order.user_id || null }).select("id").single();
   if (error) throw new Error(error.message);
   return data.id as string;
 }
@@ -142,15 +163,19 @@ async function status() {
 }
 
 async function checkout(req: Request) {
-  const { install, plan } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const plan = body.plan;
+  const user = await userOf(req);
+  const install = user && !body.install ? `web-${user.id}` : body.install;
   if (!validInstall(install) || !PLANS[plan]) return json({ error: "pedido inválido" }, 400);
+  const user_id = user ? user.id : await userOfInstall(install);
   if (!MP_TOKEN()) return json({ error: "pagamento ainda não configurado" }, 503);
   const p = PLANS[plan];
   const view_token = b64url(crypto.getRandomValues(new Uint8Array(18)));
-  const { data: order, error } = await db.from("pro_orders").insert({ install, plan, amount: p.price, view_token }).select("id").single();
+  const { data: order, error } = await db.from("pro_orders").insert({ install, plan, amount: p.price, view_token, user_id }).select("id").single();
   if (error) return json({ error: "não consegui criar o pedido" }, 500);
   const site = String(await config("site", "") || "");
-  const back = site ? `${site}/ok.html?o=${order.id}&t=${view_token}` : undefined;
+  const back = site ? (user ? `${site}/conta.html?o=${order.id}&t=${view_token}` : `${site}/ok.html?o=${order.id}&t=${view_token}`) : undefined;
   const pref = await mp("/checkout/preferences", {
     method: "POST",
     body: JSON.stringify({
@@ -201,11 +226,96 @@ async function license(req: Request) {
   } else {
     lic = await licenseOfInstall(install);
   }
-  if (!lic) return json({ token: null, reason: "sem licença", paywall });
+  const owner = await userOfInstall(install);
+  const account = owner ? await emailOf(owner) : null;
+  if (!lic && owner) {
+    const ul = await licenseOfUser(owner);
+    if (ul) {
+      const devices: string[] = Array.isArray(ul.devices) ? ul.devices : [];
+      if (devices.length >= MAX_DEVICES) return json({ token: null, reason: `sua conta já está em ${MAX_DEVICES} computadores: libere um no site`, paywall, account });
+      await db.from("pro_licenses").update({ devices: [...devices, install] }).eq("id", ul.id);
+      lic = ul;
+    }
+  }
+  if (!lic) return json({ token: null, reason: "sem licença", paywall, account });
   const until = lic.expires_at ? new Date(lic.expires_at).getTime() : null;
   const exp = Math.min(until ?? Infinity, Date.now() + TOKEN_DAYS * DAY);
   const token = await signToken({ plan: "pro", kind: lic.plan, install, exp, until });
-  return json({ token, key: lic.key, kind: lic.plan, expires_at: lic.expires_at, paywall });
+  return json({ token, key: lic.key, kind: lic.plan, expires_at: lic.expires_at, paywall, account });
+}
+
+// ---------- entrar no app pelo navegador ----------
+async function linkStart(req: Request) {
+  const { install } = await req.json().catch(() => ({}));
+  if (!validInstall(install) || isWeb(install)) return json({ error: "instalação inválida" }, 400);
+  await db.from("pro_links").delete().lt("created_at", new Date(Date.now() - 15 * 60000).toISOString());
+  const code = b64url(crypto.getRandomValues(new Uint8Array(24)));
+  await db.from("pro_links").insert({ code, install });
+  const site = String(await config("site", "") || "");
+  return json({ code, url: `${site}/conta.html?link=${code}` });
+}
+async function linkClaim(req: Request) {
+  const user = await userOf(req);
+  if (!user) return json({ error: "entre na sua conta" }, 401);
+  const { code } = await req.json().catch(() => ({}));
+  const { data: l } = await db.from("pro_links").select("*").eq("code", String(code || "")).maybeSingle();
+  if (!l || new Date(l.created_at).getTime() < Date.now() - 15 * 60000) return json({ error: "link expirado: clique em Entrar no app de novo" }, 404);
+  await db.from("pro_links").update({ user_id: user.id }).eq("code", l.code);
+  await db.from("pro_installs").upsert({ install: l.install, user_id: user.id, linked_at: new Date().toISOString() }, { onConflict: "install" });
+  return json({ ok: true });
+}
+async function linkPoll(req: Request) {
+  const { install, code } = await req.json().catch(() => ({}));
+  const { data: l } = await db.from("pro_links").select("*").eq("code", String(code || "")).eq("install", String(install || "")).maybeSingle();
+  if (!l) return json({ done: false, expired: true });
+  if (!l.user_id) return json({ done: false });
+  await db.from("pro_links").delete().eq("code", l.code);
+  return json({ done: true, account: await emailOf(l.user_id) });
+}
+async function linkLogout(req: Request) {
+  const { install } = await req.json().catch(() => ({}));
+  if (!validInstall(install)) return json({ error: "instalação inválida" }, 400);
+  const owner = await userOfInstall(install);
+  if (owner) {
+    const ul = await licenseOfUser(owner);
+    if (ul && Array.isArray(ul.devices)) await db.from("pro_licenses").update({ devices: ul.devices.filter((d: string) => d !== install) }).eq("id", ul.id);
+    await db.from("pro_installs").delete().eq("install", install);
+  }
+  return json({ ok: true });
+}
+
+// ---------- minha conta (site) ----------
+async function me(req: Request, route: string) {
+  const user = await userOf(req);
+  if (!user) return json({ error: "entre na sua conta" }, 401);
+  const body = await req.json().catch(() => ({}));
+  if (route === "me/release") {
+    const install = String(body.install || "");
+    const ul = await licenseOfUser(user.id);
+    if (ul && Array.isArray(ul.devices)) await db.from("pro_licenses").update({ devices: ul.devices.filter((d: string) => d !== install) }).eq("id", ul.id);
+    await db.from("pro_installs").delete().eq("install", install).eq("user_id", user.id);
+    return json({ ok: true });
+  }
+  if (route === "me/claim-key") {
+    const { data: l } = await db.from("pro_licenses").select("id, user_id").eq("key", String(body.key || "").trim().toUpperCase()).maybeSingle();
+    if (!l) return json({ error: "chave não encontrada" }, 404);
+    if (l.user_id && l.user_id !== user.id) return json({ error: "essa chave já está em outra conta" }, 409);
+    await db.from("pro_licenses").update({ user_id: user.id }).eq("id", l.id);
+    return json({ ok: true });
+  }
+  const lic = await licenseOfUser(user.id);
+  const { data: installs } = await db.from("pro_installs").select("install, linked_at").eq("user_id", user.id).order("linked_at", { ascending: false });
+  const { data: orders } = await db.from("pro_orders").select("id, plan, amount, status, created_at, paid_at, mp_payment").eq("user_id", user.id).neq("status", "pending").order("created_at", { ascending: false }).limit(50);
+  const devices: string[] = lic && Array.isArray(lic.devices) ? lic.devices : [];
+  const linked = new Map((installs || []).map((i) => [i.install, i.linked_at]));
+  return json({
+    email: user.email,
+    license: lic ? { key: lic.key, kind: lic.plan, expires_at: lic.expires_at } : null,
+    devices: [...new Set([...devices, ...linked.keys()])].map((d) => ({ install: d, short: d.slice(0, 8).toUpperCase(), linked_at: linked.get(d) || null, active: devices.includes(d) })),
+    maxDevices: MAX_DEVICES,
+    orders: orders || [],
+    plans: Object.entries(PLANS).map(([id, p]) => ({ id, days: p.days, price: p.price })),
+  });
 }
 
 async function orderView(url: URL) {
@@ -276,6 +386,11 @@ Deno.serve(async (req: Request) => {
     if (route === "checkout") return await checkout(req);
     if (route === "webhook") return await webhook(req, url);
     if (route === "license") return await license(req);
+    if (route === "link/start") return await linkStart(req);
+    if (route === "link/claim") return await linkClaim(req);
+    if (route === "link/poll") return await linkPoll(req);
+    if (route === "link/logout") return await linkLogout(req);
+    if (route === "me" || route.startsWith("me/")) return await me(req, route);
     if (route.startsWith("admin/")) return await admin(req, route.slice(6));
     return json({ error: "rota desconhecida" }, 404);
   } catch (err) {

@@ -68,6 +68,17 @@ function createLicenseClient({ fetchImpl = fetch, server = SERVER, log = () => {
     async license(install, key = null) {
       try { return await post('/license', key ? { install, key } : { install }); } catch (err) { log(`licença: ${err.message}`); return { error: err.message, offline: true }; }
     },
+    /** Entrar no app pelo navegador: -> { code, url } | { error } */
+    async linkStart(install) {
+      try { return await post('/link/start', { install }); } catch (err) { return { error: err.message }; }
+    },
+    /** -> { done, account } | { done: false, expired } */
+    async linkPoll(install, code) {
+      try { return await post('/link/poll', { install, code }); } catch (err) { return { done: false, error: err.message }; }
+    },
+    async logout(install) {
+      try { return await post('/link/logout', { install }); } catch (err) { return { error: err.message }; }
+    },
     /** -> { url, order } | { error } */
     async checkout(install, plan) {
       try { return await post('/checkout', { install, plan }); } catch (err) { log(`checkout: ${err.message}`); return { error: err.message }; }

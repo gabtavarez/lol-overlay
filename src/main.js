@@ -1207,7 +1207,7 @@ function prefetchInGame(state, me, opp) {
 let licenseClient = null;
 function planInfo() {
   const st = proStore ? proStore.get() : {};
-  return { ...plan.current(), key: st.key || '', expiresAt: st.expiresAt || null, plans: PRO_PLANS, proFeatures: Object.entries(require('./plan').FEATURES).filter(([, v]) => v === 'pro').map(([k]) => k) };
+  return { ...plan.current(), key: st.key || '', expiresAt: st.expiresAt || null, account: st.account || null, asked: Boolean(st.asked), plans: PRO_PLANS, proFeatures: Object.entries(require('./plan').FEATURES).filter(([, v]) => v === 'pro').map(([k]) => k) };
 }
 /** Busca/renova a licença desta instalação (ou ativa uma chave). Sem internet, mantém a que já tem. */
 async function refreshLicense(key = null) {
@@ -1217,9 +1217,12 @@ async function refreshLicense(key = null) {
   if (!res || res.offline) return res;
   const patch = {};
   if (typeof res.paywall === 'boolean') patch.paywall = res.paywall;
+  if ('account' in res) patch.account = res.account || null;
   if (res.token) Object.assign(patch, { token: res.token, key: res.key || proStore.get().key, expiresAt: res.expires_at || null, kind: res.kind || null });
   else if (!key && !res.error) Object.assign(patch, { token: '' }); // vencida, cancelada ou sem licença
+  const accChanged = 'account' in patch && patch.account !== (proStore.get().account || null);
   proStore.set(patch);
+  if (accChanged) send('plan-updated', planInfo());
   if (JSON.stringify(plan.current()) !== before) {
     lastStateSig = '';
     send('plan-updated', planInfo());
@@ -1380,6 +1383,35 @@ function registerIpc() {
     watchPayment();
     return { ok: true };
   });
+  let linkWatch = null;
+  ipcMain.handle('account:login', async () => {
+    const install = proStore.get().install;
+    const res = await licenseClient.linkStart(install);
+    if (!res.url || !res.code) return { ok: false, error: res.error || i18n.t('não consegui falar com o servidor') };
+    let host = '';
+    try { host = new URL(res.url).hostname; } catch { /* inválida */ }
+    if (!/(^|\.)vercel\.app$|lol-?overlay/i.test(host)) return { ok: false, error: i18n.t('endereço inesperado') };
+    await shell.openExternal(res.url);
+    if (linkWatch) clearInterval(linkWatch);
+    let n = 0;
+    linkWatch = setInterval(async () => {
+      n += 1;
+      const p = await licenseClient.linkPoll(install, res.code);
+      if (p.done || p.expired || n >= 300) {
+        clearInterval(linkWatch); linkWatch = null;
+        if (p.done) { proStore.set({ account: p.account || '', asked: true }); await refreshLicense(); send('plan-updated', { ...planInfo(), justLogged: true }); }
+      }
+    }, 3000);
+    return { ok: true };
+  });
+  ipcMain.handle('account:logout', async () => {
+    await licenseClient.logout(proStore.get().install);
+    proStore.set({ account: null, key: '', token: '', expiresAt: null, kind: null });
+    await refreshLicense();
+    send('plan-updated', planInfo());
+    return planInfo();
+  });
+  ipcMain.handle('account:asked', () => { proStore.set({ asked: true }); return true; });
   ipcMain.handle('whatsnew:seen', () => { settings.update({ lastSeenVersion: app.getVersion() }); return true; });
 
   // Mudanças do patch nos seus campeões (maestria + mais jogados no OP.GG).

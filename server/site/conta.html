@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>LoL Overlay — minha conta</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="top"><nav>
+<a class="brand" href="/" style="flex:1 1 auto"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z" fill="none" stroke="#f0587c" stroke-width="1.8"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z" fill="#f0587c"/></svg>LoL Overlay</a>
+<span id="who" class="muted small hidden"></span>
+<button class="btn hidden" id="logout" type="button">Sair</button>
+</nav></header>
+
+<main class="wrap" style="padding:48px 24px 80px">
+<p class="msg" id="top-msg" role="status"></p>
+
+<section id="auth" class="hidden" style="display:flex;flex-wrap:wrap;gap:40px;align-items:center;max-width:1000px;margin:24px auto 0">
+<div style="flex:1 1 360px;display:flex;flex-direction:column;gap:14px">
+<h1 style="margin:0;font-size:40px" id="auth-title">Entrar</h1>
+<p class="muted" style="margin:0" id="auth-sub">Sua conta guarda o Pro e libera em até 2 PCs. Para usar o app de graça você não precisa de conta.</p>
+</div>
+<form id="auth-form" class="card" style="flex:1 1 380px;display:flex;flex-direction:column;gap:12px" novalidate>
+<div class="tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-mode="in">Entrar</button><button type="button" role="tab" aria-selected="false" data-mode="up">Criar conta</button></div>
+<button type="button" class="btn google" id="google"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.2c0-.7-.1-1.3-.2-1.9H12v3.6h5a4.3 4.3 0 01-1.9 2.8v2.3h3A9 9 0 0021 12.2z" fill="#4285F4"/><path d="M12 21c2.4 0 4.5-.8 6-2.2l-3-2.3c-.8.6-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H4v2.4A9 9 0 0012 21z" fill="#34A853"/><path d="M7 13.7a5.4 5.4 0 010-3.4V7.9H4a9 9 0 000 8.2z" fill="#FBBC05"/><path d="M12 6.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 004 7.9l3 2.4c.7-2.1 2.7-3.7 5-3.7z" fill="#EA4335"/></svg>Continuar com Google</button>
+<div class="or">ou com e-mail</div>
+<label for="email">E-mail</label><input id="email" type="email" autocomplete="email" required>
+<label for="pass">Senha</label><input id="pass" type="password" autocomplete="current-password" minlength="8" required>
+<button class="btn primary" type="submit" id="submit">Entrar</button>
+<button type="button" class="btn" style="border:0;color:var(--muted)" id="forgot">Esqueci a senha</button>
+<p class="msg" id="auth-msg" role="status"></p>
+</form>
+</section>
+
+<section id="account" class="hidden" style="display:flex;flex-direction:column;gap:22px">
+<div id="link-box" class="card hidden" style="border-color:var(--acc);display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between">
+<div><b style="font-size:18px">Entrar no app deste PC?</b><p class="muted small" style="margin:4px 0 0">O LoL Overlay pediu para conectar com esta conta.</p></div>
+<button class="btn primary" type="button" id="link-ok">Conectar o app</button>
+</div>
+
+<div class="card" style="border-color:var(--gold2);background:#14120d;display:flex;flex-wrap:wrap;gap:24px;align-items:center">
+<div class="champ" style="width:72px;height:72px;font-size:22px" id="avatar">?</div>
+<div style="flex:1 1 260px"><div style="display:flex;align-items:center;gap:10px"><h1 style="margin:0;font-size:26px;word-break:break-all" id="acc-email"></h1><span class="tag hidden" id="acc-pro">PRO</span></div>
+<span style="color:#c8b98f;font-size:14px" id="acc-sub"></span></div>
+<div style="text-align:right"><div class="dim small">Pro até</div><div class="mono" style="font-weight:700;font-size:22px" id="acc-until">—</div></div>
+</div>
+
+<div style="display:flex;flex-wrap:wrap;gap:20px">
+<div class="card" style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Computadores</b><span class="mono muted" id="pc-count"></span></div>
+<div id="pcs" style="display:flex;flex-direction:column;gap:10px"></div>
+<p class="muted small" style="margin:0">No app: Pro → <b>Entrar com conta</b>. O Pro libera sozinho.</p>
+<details class="small muted" id="key-box"><summary style="cursor:pointer">Prefere chave? <span class="mono" id="acc-key"></span></summary><p style="margin:8px 0 0">Cole em Pro → "Já tenho uma chave" se não quiser entrar no app.</p></details>
+<details class="small muted"><summary style="cursor:pointer">Tenho uma chave comprada antes</summary>
+<form id="claim" style="display:flex;gap:8px;margin-top:8px"><input id="claim-key" placeholder="LOP-XXXXX-XXXXX-XXXXX" maxlength="21" aria-label="Chave"><button class="btn" type="submit">Adicionar</button></form></details>
+</div>
+<div class="card" style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:12px">
+<b style="font-size:18px" id="buy-title">Comprar o Pro</b>
+<div id="buy" style="display:flex;flex-direction:column;gap:10px"></div>
+<p class="msg" id="buy-msg" role="status"></p>
+<p class="dim small" style="margin:0">Pix ou cartão pelo Mercado Pago · o tempo é somado ao que você já tem.</p>
+</div>
+</div>
+
+<div class="card"><b style="font-size:18px">Pagamentos</b>
+<div class="scroll" style="margin-top:12px"><table><thead><tr><th>Data</th><th>Plano</th><th>Valor</th><th>Status</th></tr></thead><tbody id="orders"></tbody></table></div>
+<p class="dim small" id="no-orders" style="margin:8px 0 0">Nenhum pagamento ainda.</p></div>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="conta.js"></script>
+</body>
+</html>

@@ -1,5 +1,136 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>LoL Overlay Pro</title><link rel="stylesheet" href="style.css"></head>
-<body><main><h1>LoL Overlay Pro</h1><p class="muted">A compra do Pro é feita por dentro do app: aba Pro → Comprar.</p></main></body>
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoL Overlay — build, overlay e nota pós-partida</title>
+<meta name="description" content="Build do meta importada no champ select, overlay em partida com a próxima compra e nota de S a D no fim. Grátis para Windows.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<header class="top"><nav>
+<a class="brand" href="/"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z" fill="none" stroke="#f0587c" stroke-width="1.8"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z" fill="#f0587c"/></svg>LoL Overlay</a>
+<div class="links"><a href="#jornada">Como funciona</a><a href="#builds">Builds</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a></div>
+<a class="btn" style="border-color:transparent" href="conta.html" id="nav-acc">Entrar</a>
+<a class="btn primary dl" href="#baixar">Baixar grátis</a>
+</nav></header>
+
+<main>
+<section class="wrap hero">
+<div class="row"><span class="pill"><span class="dot"></span>Dados do patch atual</span><span class="pill pink">Pro com Pix e cartão</span></div>
+<h1>Da seleção de campeões à vitória, sem abrir outra aba.</h1>
+<p>Build do meta importada quando você trava o campeão, overlay em partida com a próxima compra e uma nota de S a D no fim.</p>
+<div class="row">
+<a class="btn primary big dl" href="#baixar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Baixar para Windows</a>
+<a class="btn big" href="#jornada">Ver como funciona</a>
+</div>
+<p class="dim small" style="font-size:13px">Grátis · funciona sem conta · usa só dados públicos</p>
+</section>
+
+<section class="wrap" style="padding-bottom:90px">
+<div class="window"><div class="bar"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z" fill="#f0587c"/></svg>LoL Overlay<span style="margin-left:auto">Champ select</span></div>
+<div class="shot"><span>Print do champ select</span><img src="shots/champ-select.png" alt="Champ select com picks sugeridos e build travada" onerror="this.remove()"></div></div>
+</section>
+
+<section id="jornada" class="wrap" style="padding-bottom:100px">
+<span class="eyebrow">A PARTIDA INTEIRA</span>
+<h2 style="font-size:44px;margin:8px 0 48px;max-width:640px">Aparece na fase certa e some quando não ajuda.</h2>
+<div style="display:flex;flex-direction:column;gap:72px">
+<div class="phase"><div>
+<div style="display:flex;align-items:center;gap:12px"><span class="num">01</span><span class="dim" style="font-size:13px;letter-spacing:.1em">CHAMP SELECT</span></div>
+<h3 style="font-size:32px;margin:14px 0 10px">Picks, bans e build travada</h3>
+<p class="muted" style="font-size:17px">Sugestões pelo seu histórico e pelo meta. Quando você trava o campeão, runas e feitiços entram sozinhos no cliente.</p>
+<ul class="check"><li>10 picks e bans sugeridos</li><li>Rotas inimigas previstas</li><li>Importa runas, feitiços e itens</li></ul>
+</div><div><div class="shot r lift"><span>Print do champ select</span><img src="shots/champ-select.png" alt="Champ select" onerror="this.remove()"></div></div></div>
+
+<div class="phase rev"><div>
+<div style="display:flex;align-items:center;gap:12px"><span class="num">02</span><span class="dim" style="font-size:13px;letter-spacing:.1em">EM PARTIDA · SEGURE TAB</span></div>
+<h3 style="font-size:32px;margin:14px 0 10px">A próxima compra, com o motivo</h3>
+<p class="muted" style="font-size:17px">O overlay olha seu ouro e a partida e diz o que comprar agora e por quê.</p>
+<ul class="check"><li>Próximas compras e quanto falta</li><li>Ouro cara a cara e timers</li><li>Habilidades e recargas do oponente</li></ul>
+</div><div><div class="shot r lift"><span>Print do overlay em partida</span><img src="shots/overlay.png" alt="Overlay em partida" onerror="this.remove()"></div></div></div>
+
+<div class="phase"><div>
+<div style="display:flex;align-items:center;gap:12px"><span class="num">03</span><span class="dim" style="font-size:13px;letter-spacing:.1em">PÓS-PARTIDA</span></div>
+<h3 style="font-size:32px;margin:14px 0 10px">Uma nota honesta de S a D</h3>
+<p class="muted" style="font-size:17px">Você contra o seu oponente direto, objetivos e o que treinar na próxima.</p>
+<ul class="check"><li>Nota por área</li><li>Placar e gráfico de ouro</li><li>Foco para a próxima partida</li></ul>
+</div><div><div class="shot r lift"><span>Print do histórico</span><img src="shots/historico.png" alt="Histórico com nota" onerror="this.remove()"></div></div></div>
+</div>
+</section>
+
+<section id="builds" class="band">
+<div class="wrap" style="padding:90px 24px;display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+<div style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:16px">
+<span class="eyebrow">EXPERIMENTE</span>
+<h2 style="font-size:40px;margin:0">Caiu em outra rota? A build acompanha.</h2>
+<p class="muted" style="margin:0;font-size:17px">Troque a rota e veja runas, itens e win rate mudarem. No app é um clique no champ select.</p>
+<span class="tag" style="align-self:flex-start;font-size:12px">PRO</span>
+</div>
+<div class="card" style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between">
+<div style="display:flex;align-items:center;gap:12px"><div class="champ">Ah</div><div><b style="font-size:18px">Ahri</b><div class="dim" style="font-size:13px">Esmeralda+ · exemplo</div></div></div>
+<div class="roles" role="group" aria-label="Rota" id="roles"></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline"><b id="b-role" style="font:700 22px 'Space Grotesk'"></b><span class="mono" style="color:var(--good);font-weight:700" id="b-wr"></span><span class="dim" style="font-size:13px" id="b-games"></span></div>
+<div><div class="dim" style="font-size:12px;letter-spacing:.08em;margin-bottom:10px">CAMINHO DE COMPRAS · PASSE O MOUSE</div><div class="slots" id="b-items"></div></div>
+<div style="display:flex;flex-wrap:wrap;gap:10px" id="b-runes"></div>
+<p class="dim" style="margin:0;font-size:12px">Valores ilustrativos. No app vêm do OP.GG e do Lolalytics no patch atual.</p>
+</div>
+</div>
+</section>
+
+<section class="wrap" style="padding:90px 24px">
+<h2 style="font-size:40px;margin:0 0 32px">Feito para quem joga ranqueada</h2>
+<div class="bento">
+<div class="card lift wide" style="display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between"><b style="font-size:18px">Timers no overlay</b><span class="dim" style="font-size:12px">ao vivo</span></div>
+<div class="tiles"><div class="tile"><small>DRAGÃO</small><b data-timer="300">5:00</b></div><div class="tile"><small>ARAUTO</small><b data-timer="185">3:05</b></div><div class="tile"><small>FLASH DO ZED</small><b data-timer="134" style="color:var(--warn)">2:14</b></div></div>
+<span class="muted small">Marque o Flash inimigo com Ctrl + Shift + 1…5.</span>
+</div>
+<div class="card lift" style="display:flex;flex-direction:column;gap:10px"><b style="font-size:18px">Nota pós-partida</b>
+<div style="display:flex;gap:8px"><div class="grade"><b style="color:var(--good)">A</b><small>Farm</small></div><div class="grade"><b style="color:var(--gold)">B</b><small>Visão</small></div><div class="grade"><b style="color:var(--acc)">S</b><small>Lutas</small></div><div class="grade"><b style="color:var(--warn)">C</b><small>Mortes</small></div></div>
+<span class="muted small">Foco para a próxima partida.</span></div>
+<div class="card lift"><div style="display:flex;justify-content:space-between"><b>Laboratório de builds</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">OP.GG × Lolalytics, build por confronto e "Usar esta build".</p></div>
+<div class="card lift"><div style="display:flex;justify-content:space-between"><b>Picks e bans</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sugestões no champ select pelo seu histórico.</p></div>
+<div class="card lift"><div style="display:flex;justify-content:space-between"><b>Skins e Itens</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sua coleção, sugestões e todos os itens filtrados.</p></div>
+<div class="card lift"><b>Tier list e patch notes</b><p class="muted small" style="margin:8px 0 0">Sempre do patch atual, com o que mudou.</p></div>
+</div>
+</section>
+
+<section id="planos" class="wrap" style="padding:40px 24px 90px">
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:32px">
+<div><h2 style="font-size:44px;margin:0 0 8px">Planos</h2><p class="muted" style="margin:0;font-size:17px">Pagamento único. Nada renova sozinho.</p></div>
+<span class="muted small">Pix ou cartão · até 2 PCs por conta</span>
+</div>
+<div class="plans" id="plans">
+<button type="button" class="plan" data-id="free" aria-pressed="false"><b style="font-size:18px">Grátis</b><span class="price">R$ 0</span><span class="muted small">Build do OP.GG, Importar, overlay e tier list.</span></button>
+<button type="button" class="plan" data-id="m1" aria-pressed="false"><b style="font-size:18px">30 dias</b><span class="price">R$ 9,90</span><span class="muted small">Para testar o Pro.</span></button>
+<button type="button" class="plan" data-id="y1" aria-pressed="true"><span style="display:flex;justify-content:space-between;width:100%"><b style="font-size:18px">1 ano</b><span class="tag" style="font-size:12px">Mais escolhido</span></span><span class="price">R$ 59,90</span><span class="muted small">Menos que 12 passes de 30 dias.</span></button>
+<button type="button" class="plan" data-id="life" aria-pressed="false"><b style="font-size:18px">Vitalício</b><span class="price">R$ 99,90</span><span class="muted small">Paga uma vez, vale para sempre.</span></button>
+</div>
+<div class="card selbar"><span>Selecionado: <b id="sel-name">1 ano</b> · <span class="mono" id="sel-price">R$ 59,90</span></span><a class="btn primary" id="sel-cta" href="conta.html?buy=y1">Comprar 1 ano</a></div>
+</section>
+
+<section id="duvidas" class="wrap" style="padding:40px 24px 90px;display:flex;flex-wrap:wrap;gap:40px">
+<div style="flex:1 1 300px"><h2 style="font-size:40px;margin:0 0 10px">Dúvidas</h2><p class="muted" style="margin:0">O Pro é opcional: o app inteiro funciona sem conta.</p></div>
+<div style="flex:2 1 520px;min-width:0;display:flex;flex-direction:column;gap:10px">
+<details class="q"><summary>Isso é permitido pela Riot?</summary><p>O app só lê o que o próprio cliente do LoL expõe e dados públicos. Não altera o jogo nem automatiza jogadas.</p></details>
+<details class="q"><summary>Preciso criar conta?</summary><p>Não. Sem conta o app funciona com a conta do LoL aberta no PC. A conta serve para comprar o Pro e usar em outro computador.</p></details>
+<details class="q"><summary>Funciona em qual elo?</summary><p>Em todos. As builds usam o elo escolhido nas configurações.</p></details>
+<details class="q"><summary>Como troco de PC?</summary><p>Entre na sua conta no app do PC novo. Se já estiver em 2 PCs, libere um em Minha conta.</p></details>
+<details class="q"><summary>O Pro renova sozinho?</summary><p>Não. É pagamento único por Pix ou cartão.</p></details>
+</div>
+</section>
+
+<section id="baixar" class="wrap" style="padding-bottom:80px">
+<div class="cta-band"><div><h2 style="font-size:34px;margin:0 0 8px">Pronto para a próxima fila?</h2><p style="margin:0;color:#c8b98f">Windows 10 e 11 · atualiza sozinho · funciona sem conta</p></div>
+<a class="btn primary big" href="https://github.com/gabtavarez/lol-overlay/releases/latest" rel="noopener">Baixar LoL Overlay</a></div>
+</section>
+</main>
+
+<footer><div class="wrap"><span>LoL Overlay não é endossado pela Riot Games. League of Legends é marca da Riot Games, Inc.</span><span style="display:flex;gap:18px"><a href="conta.html">Minha conta</a></span></div></footer>
+<script src="site.js"></script>
+</body>
 </html>

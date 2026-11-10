@@ -939,3 +939,17 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .pro-key-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .pro-key { flex: 1; min-width: 220px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line2); background: var(--card2); color: var(--text); font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
 #pro-body { display: grid; gap: 14px; max-width: 860px; }
+/* Conta (Pro) */
+.pro-acc-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.pro-acc-row p { margin: 4px 0 0; }
+.pro-ask { position: fixed; inset: 0; z-index: 9999; background: rgba(8,9,12,.78); display: flex; align-items: center; justify-content: center; padding: 24px; animation: proFade .18s ease; }
+.pro-ask-card { background: var(--card, #16181d); border: 1px solid var(--line, #2a2d36); border-radius: 16px; padding: 28px; max-width: 760px; width: 100%; text-align: center; }
+.pro-ask-card h2 { margin: 0 0 6px; font-size: 26px; }
+.pro-choices { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
+.pro-choice { flex: 1 1 280px; text-align: left; font: inherit; color: inherit; cursor: pointer; background: #1d2027; border: 2px solid var(--line, #2a2d36); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 8px; transition: border-color .15s, transform .15s; }
+.pro-choice:hover, .pro-choice:focus-visible { border-color: var(--accent, #f0587c); transform: translateY(-2px); }
+.pro-choice.primary { border-color: var(--accent, #f0587c); }
+.pro-choice b { font-size: 18px; }
+.pro-choice span { color: var(--muted, #a7aab6); font-size: 14px; line-height: 1.5; }
+@keyframes proFade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pro-ask, .pro-choice { animation: none; transition: none; } }

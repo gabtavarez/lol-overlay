@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.49.0",
+    "title": "Conta e login no app",
+    "items": [
+      "Entre com sua conta (Google ou e-mail) na aba Pro: o Pro libera sozinho.",
+      "Modo convidado: sem conta, o app usa a conta do LoL aberta no PC.",
+      "Site novo com compra pelo navegador e Minha conta (PCs e pagamentos)."
+    ],
+    "en": {
+      "title": "Account and sign-in",
+      "items": [
+        "Sign in (Google or email) in the Pro tab: Pro unlocks by itself.",
+        "Guest mode: without an account, the app uses the League account open on the PC.",
+        "New website with browser checkout and My account (PCs and payments)."
+      ]
+    },
+    "es": {
+      "title": "Cuenta e inicio de sesión",
+      "items": [
+        "Inicia sesión (Google o correo) en la pestaña Pro: Pro se activa solo.",
+        "Modo invitado: sin cuenta, la app usa la cuenta de LoL abierta en el PC.",
+        "Sitio nuevo con compra por el navegador y Mi cuenta (PCs y pagos)."
+      ]
+    }
+  },
+  {
     "version": "0.48.0",
     "title": "Plano Pro (Pix e cartão)",
     "items": [

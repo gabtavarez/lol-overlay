@@ -3,6 +3,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+const safeEq = (a: Uint8Array, b: Uint8Array) => { if (a.length !== b.length) return false; let d = 0; for (let i = 0; i < a.length; i++) d |= a[i] ^ b[i]; return d === 0; };
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const MP_TOKEN = () => Deno.env.get("MP_ACCESS_TOKEN") || "";
 const MP_SECRET = () => Deno.env.get("MP_WEBHOOK_SECRET") || "";
@@ -101,7 +102,7 @@ async function validSignature(req: Request, dataId: string) {
   const manifest = `id:${dataId.toLowerCase()};request-id:${req.headers.get("x-request-id") || ""};ts:${parts.ts};`;
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const mac = [...new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(manifest)))].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return mac.length === parts.v1.length && crypto.subtle.timingSafeEqual(new TextEncoder().encode(mac), new TextEncoder().encode(parts.v1));
+  return mac.length === parts.v1.length && safeEq(new TextEncoder().encode(mac), new TextEncoder().encode(parts.v1));
 }
 
 async function processPayment(paymentId: string) {
@@ -224,7 +225,7 @@ async function admin(req: Request, route: string) {
   const got = req.headers.get("x-admin") || "";
   const a = new TextEncoder().encode(got.padEnd(128).slice(0, 128));
   const b = new TextEncoder().encode(pass.padEnd(128).slice(0, 128));
-  if (got.length !== pass.length || !crypto.subtle.timingSafeEqual(a, b)) {
+  if (got.length !== pass.length || !safeEq(a, b)) {
     await new Promise((r) => setTimeout(r, 800));
     return json({ error: "senha incorreta" }, 401);
   }

@@ -1,0 +1,74 @@
+{
+ "status": {
+  "status": 200,
+  "body": {
+   "paywall": false,
+   "ready": true,
+   "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAbTk+P/yeiQPJqG58zwxuacUodSVP8tZHoZqWezO+VHc=\n-----END PUBLIC KEY-----\n",
+   "plans": [
+    {
+     "id": "m1",
+     "days": 30,
+     "price": 9.9
+    },
+    {
+     "id": "y1",
+     "days": 365,
+     "price": 59.9
+    },
+    {
+     "id": "life",
+     "days": null,
+     "price": 99.9
+    }
+   ]
+  }
+ },
+ "licenseNone": {
+  "status": 200,
+  "body": {
+   "token": null,
+   "reason": "sem licença",
+   "paywall": false
+  }
+ },
+ "licenseBadInstall": {
+  "status": 400,
+  "body": {
+   "error": "instalação inválida",
+   "paywall": false
+  }
+ },
+ "checkout": {
+  "status": 200,
+  "body": {
+   "url": "https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=2673450775-f20a5380-aa8c-482f-b9d6-ed29b9048298",
+   "order": "eb9a6257-401c-4a08-97bf-c86f8b8cafa8"
+  }
+ },
+ "checkoutBad": {
+  "status": 400,
+  "body": {
+   "error": "pedido inválido"
+  }
+ },
+ "admin": {
+  "status": 401,
+  "body": {
+   "error": "senha incorreta"
+  }
+ },
+ "webhookNoise": {
+  "status": 200,
+  "body": {
+   "ok": true,
+   "ignored": true
+  }
+ },
+ "order": {
+  "status": 404,
+  "body": {
+   "error": "pedido não encontrado"
+  }
+ }
+}

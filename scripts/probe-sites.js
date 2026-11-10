@@ -1,20 +1,38 @@
-/** Sonda manual: roda o provider do Lolalytics de verdade (geral, elo e confronto). */
+/** Sonda manual: servidor de licenças do Pro (Supabase Edge Function). */
 const fs = require('fs');
-const { createLolalytics } = require('../src/providers/lolalytics');
+const B = 'https://wzvpedyefbmevazdxtoc.supabase.co/functions/v1/pro';
+const KEY = process.env.PROBE_KEY || '';
 (async () => {
   fs.mkdirSync('audit/probe', { recursive: true });
-  const styles = (await (await fetch('https://ddragon.leagueoflegends.com/cdn/16.22.1/data/en_US/runesReforged.json')).json()).map((st) => ({ id: st.id, slots: st.slots.map((sl) => sl.runes) }));
-  let tier = 'DIAMOND_PLUS';
-  const l = createLolalytics({ log: console.log, getStyles: () => styles, getTier: () => tier });
-  const run = (c, r, vs) => new Promise((res) => l.ensure(c, r, () => res(l.get(c, r, vs)), vs));
   const out = {};
-  const sum = (d) => d && (d.error ? { error: d.error } : { patch: d.patch, games: d.games, core: d.cores[0], boots: d.boots[0], rune: d.runes[0], skills: d.skills[0], slot4: d.slots[3] && d.slots[3][0] });
-  out.ahriDia = sum(await run('Ahri', 'middle'));
-  out.ahriVsZed = sum(await run('Ahri', 'middle', 'Zed'));
-  out.jinx = sum(await run('Jinx', 'bottom'));
-  out.wukongVsBelveth = sum(await run('MonkeyKing', 'jungle', 'Belveth'));
-  tier = 'ALL';
-  out.ahriAll = sum(await run('Ahri', 'middle'));
-  fs.writeFileSync('audit/probe/lola3.json', JSON.stringify(out, null, 1));
+  const call = async (name, path, body, headers = {}) => {
+    try {
+      const r = await fetch(B + path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) } : {});
+      out[name] = { status: r.status, body: await r.json().catch(() => null) };
+    } catch (e) { out[name] = { error: e.message }; }
+    return out[name];
+  };
+  await call('status', '/status');
+  await call('licenseNone', '/license', { install: 'probe-install-0000000001' });
+  await call('licenseBadInstall', '/license', { install: 'x' });
+  await call('checkout', '/checkout', { install: 'probe-install-0000000001', plan: 'm1' });
+  await call('checkoutBad', '/checkout', { install: 'probe-install-0000000001', plan: 'zzz' });
+  await call('admin', '/admin/list', {}, { 'x-admin': 'errada' });
+  await call('webhookNoise', '/webhook', { type: 'test' });
+  await call('order', '/order?o=00000000-0000-0000-0000-000000000000&t=x');
+  if (fs.existsSync('audit/probe-key.txt') || KEY) {
+    const key = KEY || fs.readFileSync('audit/probe-key.txt', 'utf8').trim();
+    const a = await call('licenseKey', '/license', { install: 'probe-install-0000000001', key });
+    await call('licenseAuto', '/license', { install: 'probe-install-0000000001' });
+    await call('licenseSecondPc', '/license', { install: 'probe-install-0000000002', key });
+    await call('licenseThirdPc', '/license', { install: 'probe-install-0000000003', key });
+    if (a.body && a.body.token) {
+      const { verifyLicense } = require('../src/plan');
+      const p = verifyLicense(a.body.token, out.status.body.publicKey);
+      out.verify = { ok: !!p, payload: p, tampered: verifyLicense(a.body.token.replace(/^./, (c) => (c === 'e' ? 'f' : 'e')), out.status.body.publicKey) };
+      for (const k of ['licenseKey', 'licenseAuto', 'licenseSecondPc']) if (out[k].body && out[k].body.token) out[k].body.token = out[k].body.token.slice(0, 20) + '…';
+    }
+  }
+  fs.writeFileSync('audit/probe/pro.json', JSON.stringify(out, null, 1));
   console.log(JSON.stringify(out, null, 1));
 })();

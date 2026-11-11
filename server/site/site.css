@@ -89,3 +89,5 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .scroll{overflow-x:auto}
 .hidden{display:none!important}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}.window{transform:none}}
+.avatar-mini{width:28px;height:28px;border-radius:50%;border:2px solid var(--gold);background:#2a1f33;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter,sans-serif;color:#e3d2a6}
+#nav-acc{gap:8px}

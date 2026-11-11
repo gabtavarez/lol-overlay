@@ -50,3 +50,19 @@
     if (exe) document.querySelectorAll('#baixar a.btn').forEach((a) => { a.href = exe.browser_download_url; });
   }).catch(() => {});
 })();
+
+// Topo: mostra "Minha conta" quando já há login neste navegador (sessão salva pelo Supabase)
+(() => {
+  const a = document.getElementById('nav-acc');
+  if (!a) return;
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('sb-wzvpedyefbmevazdxtoc-auth-token') || 'null'); } catch { s = null; }
+  const user = s && (s.user || (s.currentSession && s.currentSession.user));
+  if (!user || !user.email) return;
+  const ini = document.createElement('span');
+  ini.className = 'avatar-mini';
+  ini.textContent = user.email.slice(0, 2).toUpperCase();
+  ini.setAttribute('aria-hidden', 'true');
+  a.replaceChildren(ini, document.createTextNode('Minha conta'));
+  a.title = user.email;
+})();

@@ -90,3 +90,20 @@
   els.forEach((e) => io.observe(e));
 })();
 
+
+// Tour pelas telas: troca a imagem com fade e pré-carrega as próximas
+(() => {
+  const tabs = document.getElementById('tour-tabs'); if (!tabs) return;
+  const img = document.getElementById('tour-img'); const cap = document.getElementById('tour-cap');
+  const btns = [...tabs.querySelectorAll('button')];
+  const pick = (b) => {
+    btns.forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    img.classList.add('fade');
+    const next = new Image(); next.src = `shots/${b.dataset.shot}.webp`;
+    next.onload = () => { img.src = next.src; img.alt = `Tela ${b.textContent} do Nexo`; img.classList.remove('fade'); };
+    cap.textContent = b.dataset.cap + (b.dataset.pro ? ' (Pro)' : '');
+  };
+  btns.forEach((b, i) => { b.onclick = () => pick(b); b.onkeydown = (e) => { const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (d) { const n = btns[(i + d + btns.length) % btns.length]; n.focus(); pick(n); } }; });
+  const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) { btns.forEach((b) => { new Image().src = `shots/${b.dataset.shot}.webp`; }); io.disconnect(); } });
+  io.observe(tabs);
+})();

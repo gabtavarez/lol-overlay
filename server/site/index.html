@@ -13,7 +13,7 @@
 <div class="progress" aria-hidden="true"><span id="progress"></span></div>
 <header class="top"><nav>
 <a class="brand" href="/"><img src="logo.png" width="32" height="32" alt="" style="border-radius:8px">Nexo</a>
-<div class="links"><a href="#jornada">Como funciona</a><a href="#builds">Builds</a><a href="#skins">Skins</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a></div>
+<div class="links"><a href="#jornada">Como funciona</a><a href="#builds">Builds</a><a href="#tour">Telas</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a></div>
 <a class="btn" style="border-color:transparent" href="conta.html" id="nav-acc">Entrar</a>
 <a class="btn primary dl" href="https://github.com/gabtavarez/lol-overlay/releases/latest" rel="noopener">Baixar grátis</a>
 </nav></header>
@@ -101,13 +101,22 @@
 </section>
 
 
-<section id="skins" class="wrap" style="padding:90px 24px">
-<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:28px">
-<div><span class="eyebrow">SKINS</span><h2 style="font-size:40px;margin:8px 0 8px">Sua coleção e a próxima skin</h2>
-<p class="muted" style="margin:0;font-size:17px;max-width:620px">Veja todas as skins que você tem e receba sugestões pelos campeões que você mais joga.</p></div>
-<span class="tag" style="font-size:12px">PRO no app</span>
+<section id="tour" class="wrap" style="padding:20px 24px 90px">
+<span class="eyebrow">POR DENTRO DO APP</span>
+<h2 style="font-size:40px;margin:8px 0 24px">Tudo num lugar só</h2>
+<div class="tour reveal">
+<div class="tour-tabs" role="tablist" aria-label="Telas do app" id="tour-tabs">
+<button type="button" role="tab" aria-selected="true" data-shot="lab" data-cap="Builds de OP.GG e Lolalytics lado a lado, por confronto, com o win rate de cada item.">Builds</button>
+<button type="button" role="tab" aria-selected="false" data-shot="loja" data-cap="A build vai direto para a loja do jogo, em Arsenais, com o nome do campeão.">Loja no jogo</button>
+<button type="button" role="tab" aria-selected="false" data-shot="skins" data-cap="Sua coleção e as skins que valem o investimento nos campeões que você joga." data-pro="1">Skins</button>
+<button type="button" role="tab" aria-selected="false" data-shot="perfil" data-cap="Maestria em bolhas, ritmo até o próximo nível e mains esquecidos.">Perfil</button>
+<button type="button" role="tab" aria-selected="false" data-shot="tierlist" data-cap="Tier list com quem cada campeão ganha, perde e com quem combina na selva.">Tier list</button>
+<button type="button" role="tab" aria-selected="false" data-shot="itens" data-cap="Todos os itens do patch, com receita e em quais builds aparecem." data-pro="1">Itens</button>
+<button type="button" role="tab" aria-selected="false" data-shot="patch" data-cap="Patch notes oficiais, destacando o que mudou nos seus campeões.">Patch notes</button>
 </div>
-<div class="shot r reveal lift"><span>Print da aba Skins</span><img src="shots/skins.webp" alt="Aba Skins do app com a coleção e as sugestões" onerror="this.remove()"></div>
+<div class="shot r tour-frame"><img id="tour-img" src="shots/lab.webp" alt="Tela de builds do Nexo" width="1600" height="900"></div>
+<p class="muted" id="tour-cap" style="margin:14px 0 0">Builds de OP.GG e Lolalytics lado a lado, por confronto, com o win rate de cada item.</p>
+</div>
 </section>
 
 <section id="planos" class="wrap" style="padding:40px 24px 90px">

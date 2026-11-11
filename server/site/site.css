@@ -106,26 +106,3 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .loader-letter:nth-child(1){animation-delay:0s}.loader-letter:nth-child(2){animation-delay:.1s}.loader-letter:nth-child(3){animation-delay:.2s}.loader-letter:nth-child(4){animation-delay:.3s}.loader-letter:nth-child(5){animation-delay:.4s}.loader-letter:nth-child(6){animation-delay:.5s}.loader-letter:nth-child(7){animation-delay:.6s}.loader-letter:nth-child(8){animation-delay:.7s}.loader-letter:nth-child(9){animation-delay:.8s}.loader-letter:nth-child(10){animation-delay:.9s}
 @keyframes loader-letter-anim{0%,100%{opacity:.4;transform:translateY(0)}20%{opacity:1;transform:scale(1.15)}40%{opacity:.7;transform:translateY(0)}}
 
-/* Botão "Baixar grátis" — inspirado em Uiverse.io by Lakshay-art (MIT), nas cores do LoL Overlay */
-.glow-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;isolation:isolate}
-.glow-btn>span{position:absolute;inset:-4px;overflow:hidden;border-radius:12px;z-index:-1;filter:blur(3px);pointer-events:none}
-.glow-btn>span::before{content:"";position:absolute;top:50%;left:50%;width:420px;height:420px;background-repeat:no-repeat;transition:transform 2s}
-.glow-btn .g-glow{inset:-18px;filter:blur(22px);opacity:.45}
-.glow-btn .g-glow::before{transform:translate(-50%,-50%) rotate(60deg);background-image:conic-gradient(#000,#7a1fd1 5%,#000 38%,#000 50%,#f0587c 60%,#000 87%)}
-.glow-btn .g-dark::before{transform:translate(-50%,-50%) rotate(82deg);background-image:conic-gradient(transparent,#3a0f63,transparent 10%,transparent 50%,#6e1b40,transparent 60%)}
-.glow-btn .g-white{inset:-2px;border-radius:11px;filter:blur(2px)}
-.glow-btn .g-white::before{transform:translate(-50%,-50%) rotate(83deg);filter:brightness(1.4);background-image:conic-gradient(transparent 0%,#c99be0,transparent 8%,transparent 50%,#f7a3b7,transparent 58%)}
-.glow-btn .g-border{inset:-1px;border-radius:11px;filter:blur(.5px)}
-.glow-btn .g-border::before{transform:translate(-50%,-50%) rotate(70deg);filter:brightness(1.3);background-image:conic-gradient(#1c191c,#7a1fd1 5%,#1c191c 14%,#1c191c 50%,#f0587c 60%,#1c191c 64%)}
-.glow-btn:hover .g-glow::before{transform:translate(-50%,-50%) rotate(-120deg)}
-.glow-btn:hover .g-dark::before{transform:translate(-50%,-50%) rotate(-98deg)}
-.glow-btn:hover .g-white::before{transform:translate(-50%,-50%) rotate(-97deg)}
-.glow-btn:hover .g-border::before{transform:translate(-50%,-50%) rotate(-110deg)}
-.glow-btn:focus-within>span::before{transition:transform 4s}
-.glow-btn:focus-within .g-glow::before{transform:translate(-50%,-50%) rotate(420deg)}
-.glow-btn:focus-within .g-dark::before{transform:translate(-50%,-50%) rotate(442deg)}
-.glow-btn:focus-within .g-white::before{transform:translate(-50%,-50%) rotate(443deg)}
-.glow-btn:focus-within .g-border::before{transform:translate(-50%,-50%) rotate(430deg)}
-.g-inner{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:12px 20px;border-radius:10px;background:#0b0710;color:#f8e7f8;font:600 15px Inter,sans-serif;text-decoration:none}
-.g-inner:hover{color:#fff}
-.g-inner:focus{outline:none}

@@ -4,20 +4,20 @@
     "title": "Agora o app se chama Nexo",
     "items": [
       "LoL Overlay agora é Nexo: novo nome no app, no site e no pagamento.",
-      "Páginas de runas e conjuntos de itens passam a se chamar \"Nexo · Campeão\" (os antigos continuam sendo atualizados)."
+      "Runas e itens importados agora se chamam \"Nexo · Campeão\"."
     ],
     "en": {
       "title": "The app is now called Nexo",
       "items": [
         "LoL Overlay is now Nexo: new name in the app, website and checkout.",
-        "Rune pages and item sets are now named \"Nexo · Champion\" (old ones keep being updated)."
+        "Imported runes and items are now named \"Nexo · Champion\"."
       ]
     },
     "es": {
       "title": "Ahora la app se llama Nexo",
       "items": [
         "LoL Overlay ahora es Nexo: nuevo nombre en la app, el sitio y el pago.",
-        "Las páginas de runas y conjuntos de objetos ahora se llaman \"Nexo · Campeón\" (los antiguos se siguen actualizando)."
+        "Runas y objetos importados ahora se llaman \"Nexo · Campeón\"."
       ]
     }
   },

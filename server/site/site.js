@@ -35,7 +35,7 @@
   if (timers.length) setInterval(() => { t += 1; for (const x of timers) { const base = Number(x.dataset.timer); const v = base - (t % base); x.textContent = `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`; } }, 1000);
 
   // Planos
-  const PL = { free: ['Grátis', 'R$ 0', 'Baixar grátis', '#baixar'], m1: ['30 dias', 'R$ 9,90', 'Comprar 30 dias', 'conta.html?buy=m1'], y1: ['1 ano', 'R$ 59,90', 'Comprar 1 ano', 'conta.html?buy=y1'], life: ['Vitalício', 'R$ 99,90', 'Comprar vitalício', 'conta.html?buy=life'] };
+  const PL = { free: ['Grátis', 'R$ 0', 'Baixar grátis', 'https://github.com/gabtavarez/lol-overlay/releases/latest'], m1: ['30 dias', 'R$ 9,90', 'Comprar 30 dias', 'conta.html?buy=m1'], y1: ['1 ano', 'R$ 59,90', 'Comprar 1 ano', 'conta.html?buy=y1'], life: ['Vitalício', 'R$ 99,90', 'Comprar vitalício', 'conta.html?buy=life'] };
   const plans = $('#plans');
   if (plans) plans.addEventListener('click', (e) => {
     const b = e.target.closest('.plan'); if (!b) return;
@@ -47,7 +47,7 @@
   // Link de download direto ao instalador mais recente
   fetch('https://api.github.com/repos/gabtavarez/lol-overlay/releases/latest').then((r) => r.json()).then((rel) => {
     const exe = (rel.assets || []).find((a) => /\.exe$/i.test(a.name));
-    if (exe) document.querySelectorAll('#baixar a.btn').forEach((a) => { a.href = exe.browser_download_url; });
+    if (exe) document.querySelectorAll('a.dl').forEach((a) => { a.href = exe.browser_download_url; a.setAttribute('download', exe.name); a.removeAttribute('rel'); });
   }).catch(() => {});
 })();
 
@@ -65,4 +65,71 @@
   ini.setAttribute('aria-hidden', 'true');
   a.replaceChildren(ini, document.createTextNode('Minha conta'));
   a.title = user.email;
+})();
+
+// Rolagem: barra de progresso, revelar ao entrar na tela e leve paralaxe no print
+(() => {
+  const bar = document.getElementById('progress');
+  const win = document.querySelector('.window');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => {
+      const h = document.documentElement;
+      const p = h.scrollTop / Math.max(1, h.scrollHeight - h.clientHeight);
+      if (bar) bar.style.transform = `scaleX(${p})`;
+      if (win && !reduce) { const r = win.getBoundingClientRect(); const k = Math.min(1, Math.max(0, 1 - r.top / innerHeight)); win.style.transform = `perspective(1200px) rotateX(${(1 - k) * 10}deg) scale(${0.94 + k * 0.06})`; }
+      ticking = false;
+    });
+  };
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+  const els = document.querySelectorAll('.reveal');
+  if (reduce || !('IntersectionObserver' in window)) { els.forEach((e) => e.classList.add('in')); return; }
+  const io = new IntersectionObserver((ents) => { for (const e of ents) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  els.forEach((e) => io.observe(e));
+})();
+
+// Skins: galeria e recomendação (Data Dragon)
+(async () => {
+  const q = document.getElementById('sk-q'); if (!q) return;
+  const DD = 'https://ddragon.leagueoflegends.com';
+  const $ = (id) => document.getElementById(id);
+  let ver; let champs = {}; let skins = []; let idx = 0; let champId = 'Ahri';
+  try {
+    ver = (await (await fetch(`${DD}/api/versions.json`)).json())[0];
+    champs = (await (await fetch(`${DD}/cdn/${ver}/data/pt_BR/champion.json`)).json()).data;
+  } catch { $('sk-name').textContent = 'Não consegui carregar as skins agora.'; return; }
+  const byName = {}; for (const c of Object.values(champs)) byName[c.name.toLowerCase()] = c.id;
+  $('sk-list').replaceChildren(...Object.values(champs).map((c) => Object.assign(document.createElement('option'), { value: c.name })));
+  const splash = (s) => `${DD}/cdn/img/champion/splash/${champId}_${s.num}.jpg`;
+  const tile = (s, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sk-tile'; b.setAttribute('aria-label', s.name);
+    const img = new Image(); img.loading = 'lazy'; img.alt = ''; img.src = `${DD}/cdn/img/champion/loading/${champId}_${s.num}.jpg`;
+    const cap = document.createElement('span'); cap.textContent = s.name;
+    b.append(img, cap); b.onclick = () => show(i); return b;
+  };
+  function show(i) {
+    idx = (i + skins.length) % skins.length; const s = skins[idx];
+    const big = $('sk-big'); big.classList.remove('on');
+    big.onload = () => big.classList.add('on'); big.src = splash(s); big.alt = s.name;
+    $('sk-name').textContent = s.name;
+    $('sk-tag').textContent = s.chromas ? 'Tem cromas' : ''; $('sk-tag').classList.toggle('hidden', !s.chromas);
+    document.querySelectorAll('#sk-all .sk-tile').forEach((t, k) => t.setAttribute('aria-pressed', String(k === idx)));
+  }
+  async function load(id) {
+    champId = id;
+    const d = (await (await fetch(`${DD}/cdn/${ver}/data/pt_BR/champion/${id}.json`)).json()).data[id];
+    skins = d.skins.map((s) => ({ ...s, name: s.num === 0 ? `${d.name} clássica` : s.name }));
+    $('sk-count').textContent = `${skins.length}`;
+    $('sk-all').replaceChildren(...skins.map(tile));
+    const rec = skins.map((s, i) => ({ s, i })).filter((x) => x.s.num > 0).sort((a, b) => (b.s.chromas - a.s.chromas) || (b.s.num - a.s.num)).slice(0, 4);
+    $('sk-rec').replaceChildren(...rec.map(({ s, i }) => tile(s, i)));
+    show(rec.length ? rec[0].i : 0);
+  }
+  const quick = ['Ahri', 'Yasuo', 'Lux', 'Jinx', 'LeeSin', 'Akali'];
+  $('sk-quick').replaceChildren(...quick.filter((id) => champs[id]).map((id) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.style.cursor = 'pointer'; b.textContent = champs[id].name; b.onclick = () => { q.value = champs[id].name; load(id); }; return b; }));
+  q.addEventListener('change', () => { const id = byName[q.value.trim().toLowerCase()]; if (id) load(id); });
+  $('sk-prev').onclick = () => show(idx - 1); $('sk-next').onclick = () => show(idx + 1);
+  load('Ahri');
 })();

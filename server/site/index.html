@@ -7,13 +7,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <link rel="stylesheet" href="site.css">
+<link rel="icon" href="logo.png">
 </head>
 <body>
+<div class="progress" aria-hidden="true"><span id="progress"></span></div>
 <header class="top"><nav>
-<a class="brand" href="/"><svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z" fill="none" stroke="#f0587c" stroke-width="1.8"/><path d="M12 7l4.5 2.5v5L12 17l-4.5-2.5v-5z" fill="#f0587c"/></svg>LoL Overlay</a>
-<div class="links"><a href="#jornada">Como funciona</a><a href="#builds">Builds</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a></div>
+<a class="brand" href="/"><img src="logo.png" width="32" height="32" alt="" style="border-radius:8px">LoL Overlay</a>
+<div class="links"><a href="#jornada">Como funciona</a><a href="#builds">Builds</a><a href="#skins">Skins</a><a href="#planos">Planos</a><a href="#duvidas">Dúvidas</a></div>
 <a class="btn" style="border-color:transparent" href="conta.html" id="nav-acc">Entrar</a>
-<a class="btn primary dl" href="#baixar">Baixar grátis</a>
+<a class="btn primary dl" href="https://github.com/gabtavarez/lol-overlay/releases/latest" rel="noopener">Baixar grátis</a>
 </nav></header>
 
 <main>
@@ -22,14 +24,14 @@
 <h1>Da seleção de campeões à vitória, sem abrir outra aba.</h1>
 <p>Build do meta importada quando você trava o campeão, overlay em partida com a próxima compra e uma nota de S a D no fim.</p>
 <div class="row">
-<a class="btn primary big dl" href="#baixar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Baixar para Windows</a>
+<a class="btn primary big dl" href="https://github.com/gabtavarez/lol-overlay/releases/latest" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-5-5m5 5l5-5M5 20h14" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Baixar para Windows</a>
 <a class="btn big" href="#jornada">Ver como funciona</a>
 </div>
 <p class="dim small" style="font-size:13px">Grátis · funciona sem conta · usa só dados públicos</p>
 </section>
 
 <section class="wrap" style="padding-bottom:90px">
-<div class="window"><div class="bar"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z" fill="#f0587c"/></svg>LoL Overlay<span style="margin-left:auto">Champ select</span></div>
+<div class="reveal window"><div class="bar"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l9 5v10l-9 5-9-5V7z" fill="#f0587c"/></svg>LoL Overlay<span style="margin-left:auto">Champ select</span></div>
 <div class="shot"><span>Print do champ select</span><img src="shots/champ-select.webp" alt="Champ select com picks sugeridos e build travada" onerror="this.remove()"></div></div>
 </section>
 
@@ -37,21 +39,21 @@
 <span class="eyebrow">A PARTIDA INTEIRA</span>
 <h2 style="font-size:44px;margin:8px 0 48px;max-width:640px">Aparece na fase certa e some quando não ajuda.</h2>
 <div style="display:flex;flex-direction:column;gap:72px">
-<div class="phase"><div>
+<div class="reveal phase"><div>
 <div style="display:flex;align-items:center;gap:12px"><span class="num">01</span><span class="dim" style="font-size:13px;letter-spacing:.1em">CHAMP SELECT</span></div>
 <h3 style="font-size:32px;margin:14px 0 10px">Picks, bans e build travada</h3>
 <p class="muted" style="font-size:17px">Sugestões pelo seu histórico e pelo meta. Quando você trava o campeão, runas e feitiços entram sozinhos no cliente.</p>
 <ul class="check"><li>10 picks e bans sugeridos</li><li>Rotas inimigas previstas</li><li>Importa runas, feitiços e itens</li></ul>
 </div><div><div class="shot r lift"><span>Print do champ select</span><img src="shots/champ-select.webp" alt="Champ select" onerror="this.remove()"></div></div></div>
 
-<div class="phase rev"><div>
+<div class="reveal phase rev"><div>
 <div style="display:flex;align-items:center;gap:12px"><span class="num">02</span><span class="dim" style="font-size:13px;letter-spacing:.1em">EM PARTIDA · SEGURE TAB</span></div>
 <h3 style="font-size:32px;margin:14px 0 10px">A próxima compra, com o motivo</h3>
 <p class="muted" style="font-size:17px">O overlay olha seu ouro e a partida e diz o que comprar agora e por quê.</p>
 <ul class="check"><li>Próximas compras e quanto falta</li><li>Ouro cara a cara e timers</li><li>Habilidades e recargas do oponente</li></ul>
 </div><div><div class="shot r lift"><span>Print do overlay em partida</span><img src="shots/overlay.webp" alt="Overlay em partida" onerror="this.remove()"></div></div></div>
 
-<div class="phase"><div>
+<div class="reveal phase"><div>
 <div style="display:flex;align-items:center;gap:12px"><span class="num">03</span><span class="dim" style="font-size:13px;letter-spacing:.1em">PÓS-PARTIDA</span></div>
 <h3 style="font-size:32px;margin:14px 0 10px">Uma nota honesta de S a D</h3>
 <p class="muted" style="font-size:17px">Você contra o seu oponente direto, objetivos e o que treinar na próxima.</p>
@@ -84,18 +86,40 @@
 <section class="wrap" style="padding:90px 24px">
 <h2 style="font-size:40px;margin:0 0 32px">Feito para quem joga ranqueada</h2>
 <div class="bento">
-<div class="card lift wide" style="display:flex;flex-direction:column;gap:14px">
+<div class="reveal card lift wide" style="display:flex;flex-direction:column;gap:14px">
 <div style="display:flex;justify-content:space-between"><b style="font-size:18px">Timers no overlay</b><span class="dim" style="font-size:12px">ao vivo</span></div>
 <div class="tiles"><div class="tile"><small>DRAGÃO</small><b data-timer="300">5:00</b></div><div class="tile"><small>ARAUTO</small><b data-timer="185">3:05</b></div><div class="tile"><small>FLASH DO ZED</small><b data-timer="134" style="color:var(--warn)">2:14</b></div></div>
 <span class="muted small">Marque o Flash inimigo com Ctrl + Shift + 1…5.</span>
 </div>
-<div class="card lift" style="display:flex;flex-direction:column;gap:10px"><b style="font-size:18px">Nota pós-partida</b>
+<div class="reveal card lift" style="display:flex;flex-direction:column;gap:10px"><b style="font-size:18px">Nota pós-partida</b>
 <div style="display:flex;gap:8px"><div class="grade"><b style="color:var(--good)">A</b><small>Farm</small></div><div class="grade"><b style="color:var(--gold)">B</b><small>Visão</small></div><div class="grade"><b style="color:var(--acc)">S</b><small>Lutas</small></div><div class="grade"><b style="color:var(--warn)">C</b><small>Mortes</small></div></div>
 <span class="muted small">Foco para a próxima partida.</span></div>
-<div class="card lift"><div style="display:flex;justify-content:space-between"><b>Laboratório de builds</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">OP.GG × Lolalytics, build por confronto e "Usar esta build".</p></div>
-<div class="card lift"><div style="display:flex;justify-content:space-between"><b>Picks e bans</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sugestões no champ select pelo seu histórico.</p></div>
-<div class="card lift"><div style="display:flex;justify-content:space-between"><b>Skins e Itens</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sua coleção, sugestões e todos os itens filtrados.</p></div>
-<div class="card lift"><b>Tier list e patch notes</b><p class="muted small" style="margin:8px 0 0">Sempre do patch atual, com o que mudou.</p></div>
+<div class="reveal card lift"><div style="display:flex;justify-content:space-between"><b>Laboratório de builds</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">OP.GG × Lolalytics, build por confronto e "Usar esta build".</p></div>
+<div class="reveal card lift"><div style="display:flex;justify-content:space-between"><b>Picks e bans</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sugestões no champ select pelo seu histórico.</p></div>
+<div class="reveal card lift"><div style="display:flex;justify-content:space-between"><b>Skins e Itens</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sua coleção, sugestões e todos os itens filtrados.</p></div>
+<div class="reveal card lift"><b>Tier list e patch notes</b><p class="muted small" style="margin:8px 0 0">Sempre do patch atual, com o que mudou.</p></div>
+</div>
+</section>
+
+
+<section id="skins" class="wrap" style="padding:90px 24px">
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;margin-bottom:28px">
+<div><span class="eyebrow">SKINS</span><h2 style="font-size:40px;margin:8px 0 8px">Veja as skins e descubra a próxima</h2>
+<p class="muted" style="margin:0;font-size:17px;max-width:620px">Escolha um campeão para ver todas as skins em tela cheia. No app, as sugestões levam em conta a sua coleção e os campeões que você mais joga.</p></div>
+<span class="tag" style="font-size:12px">PRO no app</span>
+</div>
+<div class="card reveal" style="display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center">
+<label for="sk-q" class="hidden">Campeão</label>
+<input id="sk-q" list="sk-list" placeholder="Digite um campeão (ex.: Ahri)" autocomplete="off" style="flex:1 1 260px">
+<datalist id="sk-list"></datalist>
+<div id="sk-quick" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+</div>
+<div class="sk-stage"><img id="sk-big" alt=""><div class="sk-cap"><b id="sk-name">Carregando…</b><span id="sk-tag" class="chip hidden"></span></div>
+<button type="button" class="sk-nav prev" id="sk-prev" aria-label="Skin anterior">‹</button><button type="button" class="sk-nav next" id="sk-next" aria-label="Próxima skin">›</button></div>
+<div><div class="dim" style="font-size:12px;letter-spacing:.08em;margin-bottom:10px">RECOMENDADAS PARA ESTE CAMPEÃO</div><div class="sk-row" id="sk-rec"></div></div>
+<div><div class="dim" style="font-size:12px;letter-spacing:.08em;margin-bottom:10px">TODAS AS SKINS · <span id="sk-count"></span></div><div class="sk-row" id="sk-all"></div></div>
+<p class="dim" style="margin:0;font-size:12px">Imagens do Data Dragon da Riot Games. Recomendadas no site = linhas mais recentes e com cromas; no app, a sugestão usa a sua coleção.</p>
 </div>
 </section>
 
@@ -125,8 +149,8 @@
 </section>
 
 <section id="baixar" class="wrap" style="padding-bottom:80px">
-<div class="cta-band"><div><h2 style="font-size:34px;margin:0 0 8px">Pronto para a próxima fila?</h2><p style="margin:0;color:#c8b98f">Windows 10 e 11 · atualiza sozinho · funciona sem conta</p></div>
-<a class="btn primary big" href="https://github.com/gabtavarez/lol-overlay/releases/latest" rel="noopener">Baixar LoL Overlay</a></div>
+<div class="reveal cta-band"><div><h2 style="font-size:34px;margin:0 0 8px">Pronto para a próxima fila?</h2><p style="margin:0;color:#c8b98f">Windows 10 e 11 · atualiza sozinho · funciona sem conta</p></div>
+<a class="btn primary big dl" href="https://github.com/gabtavarez/lol-overlay/releases/latest" rel="noopener">Baixar LoL Overlay</a></div>
 </section>
 </main>
 

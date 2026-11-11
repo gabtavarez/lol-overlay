@@ -91,3 +91,22 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}.window{transform:none}}
 .avatar-mini{width:28px;height:28px;border-radius:50%;border:2px solid var(--gold);background:#2a1f33;display:inline-flex;align-items:center;justify-content:center;font:700 11px Inter,sans-serif;color:#e3d2a6}
 #nav-acc{gap:8px}
+
+.progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:20;pointer-events:none}
+.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--gold));transform:scaleX(0);transform-origin:0 50%}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.window.reveal{transform:none}
+.sk-stage{position:relative;aspect-ratio:1215/717;border-radius:14px;overflow:hidden;background:#15171d;border:1px solid var(--gold2)}
+.sk-stage img{width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.04);transition:opacity .45s,transform .9s}
+.sk-stage img.on{opacity:1;transform:none}
+.sk-cap{position:absolute;left:0;right:0;bottom:0;padding:18px 20px;background:linear-gradient(transparent,rgba(0,0,0,.8));display:flex;gap:10px;align-items:center}
+.sk-cap b{font:700 22px "Space Grotesk"}
+.sk-nav{position:absolute;top:50%;margin-top:-24px;width:48px;height:48px;border-radius:50%;border:1px solid var(--gold2);background:rgba(11,12,16,.7);color:#e3d2a6;font-size:26px;cursor:pointer;transition:background .15s}
+.sk-nav:hover{background:var(--acc);color:#fff}.sk-nav.prev{left:12px}.sk-nav.next{right:12px}
+.sk-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+.sk-tile{flex:none;width:118px;scroll-snap-align:start;border:1px solid var(--line);border-radius:10px;background:var(--card2);padding:0;overflow:hidden;cursor:pointer;color:var(--text);font:12px Inter;text-align:left;transition:transform .15s,border-color .15s}
+.sk-tile:hover{transform:translateY(-3px);border-color:var(--acc)}
+.sk-tile[aria-pressed=true]{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.sk-tile img{width:100%;aspect-ratio:308/560;object-fit:cover;display:block}
+.sk-tile span{display:block;padding:6px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

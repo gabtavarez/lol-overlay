@@ -11,6 +11,17 @@
   const pending = (k) => sessionStorage.getItem(`lo-${k}`);
   const clear = (k) => sessionStorage.removeItem(`lo-${k}`);
   const say = (id, text, kind = 'bad') => { $(id).textContent = text || ''; $(id).className = `msg ${kind}`; };
+  // Carregador (Uiverse.io by dexter-st): palavra de até 10 letras + legenda
+  function busy(word, caption) {
+    let box = document.getElementById('loading');
+    if (!word) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement('div'); box.id = 'loading'; box.className = 'loading'; box.setAttribute('role', 'status'); document.body.append(box); }
+    const w = document.createElement('div'); w.className = 'loader-wrapper';
+    for (const ch of word) { const s = document.createElement('span'); s.className = 'loader-letter'; s.textContent = ch; w.append(s); }
+    const ring = document.createElement('div'); ring.className = 'loader'; w.append(ring);
+    const cap = document.createElement('p'); cap.className = 'muted small'; cap.style.margin = '0'; cap.textContent = caption || '';
+    box.replaceChildren(w, cap);
+  }
   const brl = (n) => `R$ ${Number(n || 0).toFixed(2).replace('.', ',')}`;
   const date = (s) => (s ? new Date(s).toLocaleDateString('pt-BR') : '—');
   const PLAN = { m1: '30 dias', y1: '1 ano', life: 'Vitalício', gift: 'Presente' };
@@ -59,9 +70,12 @@
   $('logout').onclick = async () => { await sb.auth.signOut(); location.href = 'conta.html'; };
 
   // ---------- conta ----------
+  let shownOnce = false;
   async function load() {
     let d;
-    try { d = await call('me'); } catch (err) { say('top-msg', err.message); return; }
+    if (!shownOnce) busy('Carregando', 'Abrindo sua conta…');
+    try { d = await call('me'); } catch (err) { busy(); say('top-msg', err.message); return; } finally { shownOnce = true; }
+    busy();
     $('acc-email').textContent = d.email || '';
     $('avatar').textContent = (d.email || '?').slice(0, 2).toUpperCase();
     const lic = d.license;
@@ -91,12 +105,13 @@
   async function buy(plan, btn) {
     if (btn) btn.disabled = true;
     say('buy-msg', 'Abrindo o pagamento…', 'ok');
+    busy('Pagamento', 'Abrindo o Mercado Pago…');
     try {
       const d = await call('checkout', { plan });
       const host = new URL(d.url).hostname;
       if (!/(^|\.)mercadopago\.com(\.br)?$/.test(host)) throw new Error('endereço de pagamento inesperado');
       location.href = d.url;
-    } catch (err) { say('buy-msg', `Não consegui abrir o pagamento: ${err.message}`); if (btn) btn.disabled = false; }
+    } catch (err) { busy(); say('buy-msg', `Não consegui abrir o pagamento: ${err.message}`); if (btn) btn.disabled = false; }
   }
   $('claim').onsubmit = async (e) => {
     e.preventDefault();
@@ -113,12 +128,14 @@
     if (!o || !t) return;
     history.replaceState(null, '', 'conta.html');
     say('top-msg', 'Conferindo o pagamento… (o Pix costuma levar alguns segundos)', 'ok');
+    busy('Conferindo', 'Esperando a confirmação do pagamento. O Pix costuma levar alguns segundos.');
     for (let i = 0; i < 60; i += 1) {
       const d = await fetch(`${API}/order?o=${encodeURIComponent(o)}&t=${encodeURIComponent(t)}`).then((r) => r.json()).catch(() => null);
-      if (d && d.status === 'paid') { say('top-msg', 'Pagamento aprovado. Pro liberado!', 'ok'); await load(); return; }
-      if (d && (d.error || ['refunded', 'cancelled', 'charged_back'].includes(d.status))) { say('top-msg', 'Pagamento não aprovado.'); return; }
+      if (d && d.status === 'paid') { busy(); say('top-msg', 'Pagamento aprovado. Pro liberado!', 'ok'); await load(); return; }
+      if (d && (d.error || ['refunded', 'cancelled', 'charged_back'].includes(d.status))) { busy(); say('top-msg', 'Pagamento não aprovado.'); return; }
       await new Promise((r) => setTimeout(r, 5000));
     }
+    busy();
     say('top-msg', 'Ainda não chegou a confirmação. Recarregue a página em alguns minutos.');
   }
 

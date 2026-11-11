@@ -9,7 +9,7 @@
     try { d = await (await fetch(`${API}/order?o=${encodeURIComponent(o)}&t=${encodeURIComponent(t)}`)).json(); } catch { /* tenta de novo */ }
     if (d && d.status === 'paid' && d.key) {
       $('title').textContent = 'Pagamento aprovado. Pro liberado!';
-      $('sub').textContent = 'Pode voltar para o LoL Overlay.';
+      $('sub').textContent = 'Pode voltar para o Nexo.';
       $('key').textContent = d.key;
       $('until').textContent = d.expires_at ? `Válido até ${new Date(d.expires_at).toLocaleDateString('pt-BR')}.` : 'Licença vitalícia.';
       $('box').hidden = false;

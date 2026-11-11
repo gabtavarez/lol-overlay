@@ -150,7 +150,7 @@
     $('logout').classList.toggle('hidden', !logged);
     $('who').classList.toggle('hidden', !logged);
     if (!logged) {
-      if (pending('link')) $('auth-sub').textContent = 'Entre para conectar o LoL Overlay deste PC à sua conta.';
+      if (pending('link')) $('auth-sub').textContent = 'Entre para conectar o Nexo deste PC à sua conta.';
       else if (pending('buy')) $('auth-sub').textContent = 'Entre ou crie sua conta para comprar o Pro.';
       return;
     }

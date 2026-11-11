@@ -116,7 +116,7 @@ test('item set: substitui só o conjunto do mesmo campeão e envia blocos', asyn
     await importItemSet(creds, build, { key: '84', name: 'Akali' });
     assert.equal(put.url, '/lol-item-sets/v1/item-sets/55/sets');
     const titles = put.body.itemSets.map((s) => s.title);
-    assert.deepEqual(titles, ['Meu set', 'LoL Overlay · Akali']);
+    assert.deepEqual(titles, ['Meu set', 'Nexo · Akali']);
     const mine = put.body.itemSets[1];
     assert.deepEqual(mine.associatedChampions, [84]);
     assert.equal(mine.blocks[2].type, 'Core vs Zoe');

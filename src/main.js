@@ -196,7 +196,7 @@ function createMainWindow() {
     height: 780,
     minWidth: 900,
     minHeight: 600,
-    title: 'LoL Overlay',
+    title: 'Nexo',
     icon: app.isPackaged ? path.join(process.resourcesPath, 'icon.ico') : path.join(__dirname, '..', 'build', 'icon.ico'),
     backgroundColor: '#0b0309',
     frame: false, // barra de título própria (renderer/index.html #bar)
@@ -1677,7 +1677,7 @@ function registerIpc() {
 app.whenReady().then(() => {
   const userData = app.getPath('userData');
   logger = createLogger(path.join(userData, 'overlay.log'));
-  logger.log(`LoL Overlay ${app.getVersion()} iniciou (${process.platform})`);
+  logger.log(`Nexo ${app.getVersion()} iniciou (${process.platform})`);
   settings = createSettingsStore(path.join(userData, 'settings.json'));
   proStore = createProStore(path.join(userData, 'pro.json'));
   licenseClient = createLicenseClient({ fetchImpl: netFetch, log: (m) => logger.log(m) });

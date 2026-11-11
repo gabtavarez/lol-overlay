@@ -3,7 +3,7 @@ const { version } = require('../package.json');
 const log = require('../data/changelog.json');
 
 const e = log.find((x) => x.version === version);
-const lines = [`## LoL Overlay v${version}`];
+const lines = [`## Nexo v${version}`];
 if (e) {
   lines.push('', `**${e.title}**`, '', ...e.items.map((i) => `- ${i}`));
 }

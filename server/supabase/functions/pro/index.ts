@@ -1,4 +1,4 @@
-// LoL Overlay Pro — pagamentos (Mercado Pago: Pix e cartão) e licenças assinadas.
+// Nexo Pro — pagamentos (Mercado Pago: Pix e cartão) e licenças assinadas.
 // Rotas: /status /checkout /webhook /license /order /admin/*
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -14,9 +14,9 @@ const MAX_DEVICES = 2;
 const TOKEN_DAYS = 7; // a licença do app é renovada sozinha; offline vale até aqui (+ tolerância do app)
 
 const PLANS: Record<string, { days: number | null; price: number; title: string }> = {
-  m1: { days: 30, price: 9.9, title: "LoL Overlay Pro — 30 dias" },
-  y1: { days: 365, price: 59.9, title: "LoL Overlay Pro — 1 ano" },
-  life: { days: null, price: 99.9, title: "LoL Overlay Pro — vitalício" },
+  m1: { days: 30, price: 9.9, title: "Nexo Pro — 30 dias" },
+  y1: { days: 365, price: 59.9, title: "Nexo Pro — 1 ano" },
+  life: { days: null, price: 99.9, title: "Nexo Pro — vitalício" },
 };
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "content-type, x-admin, authorization, apikey", "Access-Control-Allow-Methods": "GET, POST, OPTIONS" };
@@ -182,7 +182,7 @@ async function checkout(req: Request) {
       items: [{ id: plan, title: p.title, quantity: 1, currency_id: "BRL", unit_price: p.price }],
       external_reference: order.id,
       notification_url: `${FN_URL}/webhook`,
-      statement_descriptor: "LOLOVERLAY",
+      statement_descriptor: "NEXO",
       payment_methods: { excluded_payment_types: [{ id: "ticket" }, { id: "atm" }], installments: 1 },
       ...(back ? { back_urls: { success: back, pending: back, failure: back }, auto_return: "approved" } : {}),
     }),

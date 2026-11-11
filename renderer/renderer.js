@@ -1357,7 +1357,7 @@ function buildText(d, page, role) {
   if (g.starterCounts.length) lines.push(`${t('Início')}: ${g.starterCounts.map((x) => (x.count > 1 ? `${x.name} x${x.count}` : x.name)).join(', ')}`);
   lines.push(`${t('Itens')}: ${g.fullBuild.map((x) => x.name).join(' > ')}`);
   if (g.skills.length) lines.push(`${t('Habilidades')}: ${skillPrio(g.skills).prio.join(' > ')}`);
-  lines.push(`— LoL Overlay · OP.GG`);
+  lines.push(`— Nexo · OP.GG`);
   return lines.join('\n');
 }
 

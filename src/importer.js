@@ -1,7 +1,9 @@
 const { lcuRequest, lcuGetJson } = require('./lcu');
 const { laterItems } = require('./buildPath');
 
-const PAGE_PREFIX = 'LoL Overlay';
+const PAGE_PREFIX = 'Nexo';
+const OLD_PREFIX = 'LoL Overlay'; // nome antigo: páginas e conjuntos criados antes continuam sendo reconhecidos
+const ours = (name) => { const n = String(name || ''); return n.startsWith(PAGE_PREFIX) || n.startsWith(OLD_PREFIX); };
 const ok = (res) => res.status >= 200 && res.status < 300;
 
 function validRunes(r) {
@@ -11,7 +13,7 @@ function validRunes(r) {
   );
 }
 
-/** Cria ou atualiza a página de runas "LoL Overlay · Campeão" e a seleciona. */
+/** Cria ou atualiza a página de runas "Nexo · Campeão" e a seleciona. */
 async function importRunes(creds, runes, championName) {
   if (!validRunes(runes)) throw new Error('runas inválidas');
   const name = `${PAGE_PREFIX} · ${championName}`.slice(0, 25);
@@ -20,7 +22,7 @@ async function importRunes(creds, runes, championName) {
     selectedPerkIds: runes.perks, current: true,
   };
   const pages = await lcuGetJson(creds, '/lol-perks/v1/pages');
-  const mine = pages.find((p) => String(p.name).startsWith(PAGE_PREFIX));
+  const mine = pages.find((p) => ours(p.name));
 
   let res = null;
   if (mine) {
@@ -34,7 +36,7 @@ async function importRunes(creds, runes, championName) {
     res = await lcuRequest(creds, '/lol-perks/v1/pages', { method: 'POST', json: body });
     if (!ok(res)) {
       // limite de páginas: libera uma que não seja a atual
-      const spare = pages.find((p) => p.isDeletable && !p.current && !String(p.name).startsWith(PAGE_PREFIX));
+      const spare = pages.find((p) => p.isDeletable && !p.current && !ours(p.name));
       if (!spare) throw new Error('sem espaço para uma nova página de runas');
       await lcuRequest(creds, `/lol-perks/v1/pages/${spare.id}`, { method: 'DELETE' });
       res = await lcuRequest(creds, '/lol-perks/v1/pages', { method: 'POST', json: body });
@@ -63,7 +65,7 @@ async function importSpells(creds, spells, { flashOnF = true } = {}) {
   return { spell1Id: a, spell2Id: b };
 }
 
-/** Cria/atualiza o conjunto de itens "LoL Overlay · Campeão" na loja do cliente. */
+/** Cria/atualiza o conjunto de itens "Nexo · Campeão" na loja do cliente. */
 async function importItemSet(creds, build, champ) {
   const block = (type, ids) => ({ type, items: ids.map((id) => ({ id: String(id), count: 1 })) });
   const later = laterItems(build);
@@ -79,7 +81,7 @@ async function importItemSet(creds, build, champ) {
   const me = await lcuGetJson(creds, '/lol-summoner/v1/current-summoner');
   const sets = await lcuGetJson(creds, `/lol-item-sets/v1/item-sets/${me.summonerId}/sets`);
   const title = `${PAGE_PREFIX} · ${champ.name}`;
-  const keep = (sets.itemSets || []).filter((s) => !String(s.title).startsWith(`${PAGE_PREFIX} · ${champ.name}`));
+  const keep = (sets.itemSets || []).filter((s) => !(String(s.title) === `${PAGE_PREFIX} · ${champ.name}` || String(s.title).startsWith(`${OLD_PREFIX} · ${champ.name}`) || String(s.title).startsWith(`${PAGE_PREFIX} · ${champ.name}`)));
   keep.push({
     title,
     uid: `lol-overlay-${champ.key}`,
@@ -107,7 +109,7 @@ async function clearItemSets(creds, { onlyApp = false } = {}) {
   const me = await lcuGetJson(creds, '/lol-summoner/v1/current-summoner');
   const sets = await lcuGetJson(creds, `/lol-item-sets/v1/item-sets/${me.summonerId}/sets`);
   const all = sets.itemSets || [];
-  const keep = onlyApp ? all.filter((x) => !String(x.title || '').startsWith(PAGE_PREFIX)) : [];
+  const keep = onlyApp ? all.filter((x) => !ours(x.title)) : [];
   const removed = all.length - keep.length;
   if (!removed) return { removed: 0 };
   const res = await lcuRequest(creds, `/lol-item-sets/v1/item-sets/${me.summonerId}/sets`, {

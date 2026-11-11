@@ -23,7 +23,7 @@ function rankText(rank) {
 /** Estado do app -> atividade do Discord (ou null para limpar). Pura, testável. */
 function activityFor({ live, lcu, rank, version, gameStart }) {
   const rk = rankText(rank);
-  const base = { buttons: [{ label: 'Baixar o LoL Overlay', url: DOWNLOAD }], instance: false };
+  const base = { buttons: [{ label: 'Baixar o Nexo', url: DOWNLOAD }], instance: false };
   if (live && live.phase === 'ingame' && live.me) {
     const me = live.me;
     const s = me.scores || {};
@@ -33,7 +33,7 @@ function activityFor({ live, lcu, rank, version, gameStart }) {
       details: `${me.champion}${ROLE_PT[me.position] ? ` · ${ROLE_PT[me.position]}` : ''}`,
       state: `${s.kills || 0}/${s.deaths || 0}/${s.assists || 0} · ${s.cs || 0} CS`,
       timestamps: gameStart ? { start: gameStart } : undefined,
-      assets: { large_image: champImg, large_text: me.champion, small_image: LOGO, small_text: rk || 'LoL Overlay' },
+      assets: { large_image: champImg, large_text: me.champion, small_image: LOGO, small_text: rk || 'Nexo' },
     };
   }
   if (lcu && lcu.phase === 'champselect') {
@@ -42,11 +42,11 @@ function activityFor({ live, lcu, rank, version, gameStart }) {
       ...base,
       details: `Champ select${ROLE_PT[lcu.myPosition] ? ` · ${ROLE_PT[lcu.myPosition]}` : ''}`,
       state: c ? `${lcu.me.locked ? 'Travou' : 'Escolhendo'} ${c.name}` : 'Escolhendo campeão',
-      assets: { large_image: c && version ? `${DD}/${version}/img/champion/${c.id}.png` : LOGO, large_text: c ? c.name : 'LoL Overlay', small_image: LOGO, small_text: rk || 'LoL Overlay' },
+      assets: { large_image: c && version ? `${DD}/${version}/img/champion/${c.id}.png` : LOGO, large_text: c ? c.name : 'Nexo', small_image: LOGO, small_text: rk || 'Nexo' },
     };
   }
   if (lcu && lcu.client === 'open') {
-    return { ...base, details: 'No cliente do LoL', state: rk || 'Preparando a próxima', assets: { large_image: LOGO, large_text: 'LoL Overlay' } };
+    return { ...base, details: 'No cliente do LoL', state: rk || 'Preparando a próxima', assets: { large_image: LOGO, large_text: 'Nexo' } };
   }
   return null;
 }

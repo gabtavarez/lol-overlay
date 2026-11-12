@@ -7,26 +7,45 @@
   // Demo de build por rota
   const ICON = { top: 'M4 20V4h16l-4 4H8v8l-4 4z', jungle: 'M12 3c-3 4-6 6-6 11a6 6 0 0012 0c0-5-3-7-6-11z', mid: 'M4 20L20 4M4 14v6h6M14 4h6v6', adc: 'M20 4v16H4l4-4h8V8l4-4z', sup: 'M12 3l3 6h6l-5 4 2 7-6-4-6 4 2-7-5-4h6z' };
   const B = {
-    top: { role: 'Topo', wr: '51,2%', games: '8.400', items: [['Ld', 'Lâmina da Noite', '3.000', 'abre o combo'], ['Bo', 'Botas Ionianas', '1.100', 'menos recarga'], ['Ch', 'Chama Sombria', '3.200', 'dano em lutas'], ['Za', 'Ampulheta de Zhonya', '3.250', 'contra burst'], ['Rb', 'Capuz da Morte', '3.600', 'fechamento']], runes: ['Eletrocutar', 'Golpe Repentino', 'Fluxo de Mana', 'Determinação'] },
-    jungle: { role: 'Selva', wr: '48,9%', games: '1.200', items: [['Sm', 'Companheiro da selva', '450', 'início'], ['Ld', 'Lâmina da Noite', '3.000', 'ganks'], ['Bo', 'Botas de Mercúrio', '1.100', 'contra CC'], ['Ch', 'Chama Sombria', '3.200', 'dano'], ['Za', 'Ampulheta de Zhonya', '3.250', 'sobreviver']], runes: ['Colheita Sombria', 'Gosto de Sangue', 'Caçador Incansável', 'Precisão'] },
-    mid: { role: 'Meio', wr: '52,8%', games: '41.300', items: [['Ma', 'Tomo Amplificador', '435', 'início'], ['Ld', 'Lâmina da Noite', '3.000', 'primeiro pico'], ['Bo', 'Sapatos do Feiticeiro', '1.100', 'penetração'], ['Ch', 'Chama Sombria', '3.200', 'segundo pico'], ['Rb', 'Capuz da Morte', '3.600', 'multiplica o dano']], runes: ['Eletrocutar', 'Golpe Repentino', 'Caçador Supremo', 'Feitiçaria'] },
-    adc: { role: 'Atirador', wr: '47,1%', games: '600', items: [['Ma', 'Tomo Amplificador', '435', 'início'], ['Ch', 'Chama Sombria', '3.200', 'pico'], ['Bo', 'Sapatos do Feiticeiro', '1.100', 'penetração'], ['Rb', 'Capuz da Morte', '3.600', 'dano'], ['Vd', 'Cajado do Vazio', '3.000', 'contra RM']], runes: ['Cometa Arcano', 'Fluxo de Mana', 'Transcendência', 'Inspiração'] },
-    sup: { role: 'Suporte', wr: '49,7%', games: '2.900', items: [['Sp', 'Lâmina do Ladrão Arcano', '400', 'início'], ['Bo', 'Botas Ionianas', '1.100', 'recarga'], ['Ld', 'Lâmina da Noite', '3.000', 'pick'], ['Za', 'Ampulheta de Zhonya', '3.250', 'sobreviver'], ['Ch', 'Chama Sombria', '3.200', 'dano']], runes: ['Eletrocutar', 'Golpe Repentino', 'Globos Oculares', 'Inspiração'] },
+    top: { role: 'Topo', wr: '51,2%', games: '8.400', items: [['Mv', 'Malevolência', '3.000', 'abre o combo'], ['Bo', 'Botas Ionianas da Lucidez', '1.100', 'menos recarga'], ['Ch', 'Chama Sombria', '3.200', 'dano em lutas'], ['Za', 'Ampulheta de Zhonya', '3.250', 'contra burst'], ['Rb', 'Capuz da Morte de Rabadon', '3.600', 'fechamento']], runes: ['Eletrocutar', 'Golpe Repentino', 'Fluxo de Mana', 'Determinação'] },
+    jungle: { role: 'Selva', wr: '48,9%', games: '1.200', items: [['Sm', 'Companheiro da selva', '450', 'início'], ['Mv', 'Malevolência', '3.000', 'ganks'], ['Bo', 'Passos de Mercúrio', '1.100', 'contra CC'], ['Ch', 'Chama Sombria', '3.200', 'dano'], ['Za', 'Ampulheta de Zhonya', '3.250', 'sobreviver']], runes: ['Colheita Sombria', 'Gosto de Sangue', 'Caçador Incansável', 'Precisão'] },
+    mid: { role: 'Meio', wr: '52,8%', games: '41.300', items: [['Ma', 'Tomo Amplificador', '435', 'início'], ['Mv', 'Malevolência', '3.000', 'primeiro pico'], ['Bo', 'Sapatos do Feiticeiro', '1.100', 'penetração'], ['Ch', 'Chama Sombria', '3.200', 'segundo pico'], ['Rb', 'Capuz da Morte de Rabadon', '3.600', 'multiplica o dano']], runes: ['Eletrocutar', 'Golpe Repentino', 'Caçador Supremo', 'Feitiçaria'] },
+    adc: { role: 'Atirador', wr: '47,1%', games: '600', items: [['Ma', 'Tomo Amplificador', '435', 'início'], ['Ch', 'Chama Sombria', '3.200', 'pico'], ['Bo', 'Sapatos do Feiticeiro', '1.100', 'penetração'], ['Rb', 'Capuz da Morte de Rabadon', '3.600', 'dano'], ['Vd', 'Cajado do Vazio', '3.000', 'contra RM']], runes: ['Cometa Arcano', 'Fluxo de Mana', 'Transcendência', 'Inspiração'] },
+    sup: { role: 'Suporte', wr: '49,7%', games: '2.900', items: [['Sp', 'Lâmina do Ladrão Arcano', '400', 'início'], ['Bo', 'Botas Ionianas da Lucidez', '1.100', 'recarga'], ['Mv', 'Malevolência', '3.000', 'pick'], ['Za', 'Ampulheta de Zhonya', '3.250', 'sobreviver'], ['Ch', 'Chama Sombria', '3.200', 'dano']], runes: ['Eletrocutar', 'Golpe Repentino', 'Globos Oculares', 'Inspiração'] },
   };
+  const ITEM_IMG = {};
+  const itemIcon = (n) => ITEM_IMG[String(n).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()] || null;
   const roles = $('#roles');
   if (roles) {
     const show = (k) => {
       const b = B[k];
       [...roles.children].forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.k === k)));
       $('#b-role').textContent = b.role; $('#b-wr').textContent = `${b.wr} WR`; $('#b-games').textContent = `${b.games} jogos`;
-      $('#b-items').replaceChildren(...b.items.map(([s, n, g, w]) => el('div', { class: 'slot', tabindex: '0', 'aria-label': `${n}, ${g} de ouro, ${w}` }, s, el('div', { class: 'tip' }, el('b', {}, n), el('span', { class: 'g' }, `${g} de ouro`), el('div', { class: 'muted' }, w)))));
+      $('#b-items').replaceChildren(...b.items.map(([s, n, g, w]) => { const it = itemIcon(n); return el('div', { class: 'slot', tabindex: '0', 'aria-label': `${n}, ${g} de ouro, ${w}` }, it ? el('img', { src: it, alt: '', width: '54', height: '54' }) : s, el('div', { class: 'tip' }, el('b', {}, n), el('span', { class: 'g' }, `${g} de ouro`), el('div', { class: 'muted' }, w))); }));
       $('#b-runes').replaceChildren(...b.runes.map((r) => el('span', { class: 'chip' }, r)));
     };
+    const CD = 'https://raw.communitydragon.org/latest/plugins/rcp-fe-lol-static-assets/global/default/svg';
+    const POS = { top: 'top', jungle: 'jungle', mid: 'middle', adc: 'bottom', sup: 'utility' };
     for (const k of Object.keys(ICON)) {
       const btn = el('button', { type: 'button', 'aria-label': B[k].role, 'data-k': k, 'aria-pressed': 'false' });
-      btn.append(icon(ICON[k])); btn.onclick = () => show(k); roles.append(btn);
+      const im = el('img', { src: `${CD}/position-${POS[k]}.svg`, alt: '', width: '22', height: '22' });
+      btn.append(im); btn.onclick = () => show(k); roles.append(btn);
     }
+    let cur = 'mid';
+    const show0 = show;
     show('mid');
+    roles.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) cur = b.dataset.k; });
+    // ícones reais do Data Dragon (itens pelo nome em pt_BR e o campeão)
+    const DD = 'https://ddragon.leagueoflegends.com';
+    fetch(`${DD}/api/versions.json`).then((r) => r.json()).then(async (v) => {
+      const ver = v[0];
+      const items = (await (await fetch(`${DD}/cdn/${ver}/data/pt_BR/item.json`)).json()).data;
+      const norm = (x) => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      for (const [id, it] of Object.entries(items)) if (it.maps && it.maps['11'] && it.gold && it.gold.purchasable) ITEM_IMG[norm(it.name)] = `${DD}/cdn/${ver}/img/item/${id}.png`;
+      const ch = document.querySelector('.champ');
+      if (ch) ch.replaceChildren(el('img', { src: `${DD}/cdn/${ver}/img/champion/Ahri.png`, alt: 'Ahri', width: '52', height: '52' }));
+      show0(cur);
+    }).catch(() => {});
   }
 
   // Timers ao vivo

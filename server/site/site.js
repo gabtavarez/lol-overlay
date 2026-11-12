@@ -126,3 +126,29 @@
   const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) { btns.forEach((b) => { new Image().src = `shots/${b.dataset.shot}.webp`; }); io.disconnect(); } });
   io.observe(tabs);
 })();
+
+// Prints: lupa ao passar o mouse (zoom no ponto do cursor) e clique para ver em tela cheia
+(() => {
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const frames = document.querySelectorAll('.shot');
+  const box = document.createElement('div');
+  box.className = 'lightbox'; box.hidden = true; box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-label', 'Imagem ampliada');
+  const big = document.createElement('img'); big.alt = '';
+  const close = document.createElement('button'); close.type = 'button'; close.className = 'lb-close'; close.setAttribute('aria-label', 'Fechar'); close.textContent = '×';
+  box.append(big, close); document.body.append(box);
+  const hide = () => { box.hidden = true; document.body.style.overflow = ''; };
+  box.addEventListener('click', hide);
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && !box.hidden) hide(); });
+  frames.forEach((f) => {
+    f.classList.add('zoomable'); f.tabIndex = 0; f.setAttribute('role', 'button'); f.setAttribute('aria-label', 'Ampliar imagem');
+    const img = () => f.querySelector('img');
+    if (fine && !reduce) {
+      f.addEventListener('mousemove', (e) => { const i = img(); if (!i) return; const r = f.getBoundingClientRect(); i.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`; i.style.transform = 'scale(1.9)'; });
+      f.addEventListener('mouseleave', () => { const i = img(); if (i) i.style.transform = ''; });
+    }
+    const open = () => { const i = img(); if (!i) return; big.src = i.src; big.alt = i.alt; box.hidden = false; document.body.style.overflow = 'hidden'; close.focus(); };
+    f.addEventListener('click', open);
+    f.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
+})();

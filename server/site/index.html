@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Nexo — build, overlay e nota pós-partida</title>
+<title>Nexo · build, overlay e nota pós-partida para LoL</title>
 <meta name="description" content="Build do meta importada no champ select, overlay em partida com a próxima compra e nota de S a D no fim. Grátis para Windows.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@500;700&display=swap">
@@ -20,7 +20,6 @@
 
 <main>
 <section class="wrap hero">
-<div class="row"><span class="pill"><span class="dot"></span>Dados do patch atual</span><span class="pill pink">Plano gratuito e Premium</span></div>
 <h1>Da seleção de campeões à vitória, sem abrir outra aba.</h1>
 <p>Build do meta importada assim que você escolhe o campeão, overlay em partida com a próxima compra e uma nota de desempenho no final.</p>
 <div class="row">
@@ -35,28 +34,27 @@
 </section>
 
 <section id="jornada" class="wrap" style="padding-bottom:100px">
-<span class="eyebrow">A PARTIDA INTEIRA</span>
-<h2 style="font-size:44px;margin:8px 0 48px;max-width:640px">Aparece na hora certa e sai quando não precisar.</h2>
+<h2 style="font-size:44px;margin:0 0 48px;max-width:640px">Você trava o campeão. O resto o Nexo faz.</h2>
 <div style="display:flex;flex-direction:column;gap:72px">
 <div class="reveal phase"><div>
-<div style="display:flex;align-items:center;gap:12px"><span class="num">01</span><span class="dim" style="font-size:13px;letter-spacing:.1em">CHAMPION SELECT</span></div>
+<span class="dim" style="font-size:14px">No champion select</span>
 <h3 style="font-size:32px;margin:14px 0 10px">Picks, bans e build</h3>
 <p class="muted" style="font-size:17px">Sugestões baseadas no seu histórico e no meta. Quando você escolhe o campeão, runas e feitiços são importados sozinhos no cliente.</p>
-<ul class="check"><li>10 picks e bans sugeridos</li><li>Rotas inimigas previstas</li><li>Importa runas, feitiços e itens</li></ul>
+<p class="muted" style="font-size:15px;margin:0">Também prevê a rota de cada inimigo.</p>
 </div><div><div class="shot r lift"><span>Print do champ select</span><img src="shots/champ-select.webp" alt="Champ select" onerror="this.remove()"></div></div></div>
 
 <div class="reveal phase rev"><div>
-<div style="display:flex;align-items:center;gap:12px"><span class="num">02</span><span class="dim" style="font-size:13px;letter-spacing:.1em">EM PARTIDA · SEGURE TAB</span></div>
+<span class="dim" style="font-size:14px">Em partida, segurando TAB</span>
 <h3 style="font-size:32px;margin:14px 0 10px">A próxima compra, com o motivo</h3>
 <p class="muted" style="font-size:17px">O overlay olha seu ouro e a partida e diz o que comprar agora e por quê.</p>
-<ul class="check"><li>Próximas compras e quanto falta</li><li>Ouro cara a cara e timers</li><li>Habilidades e recargas do oponente</li></ul>
+<p class="muted" style="font-size:15px;margin:0">Junto, o ouro de cada rota e os timers de dragão, arauto e Flash.</p>
 </div><div><div class="shot r lift"><span>Print do overlay em partida</span><img src="shots/overlay.webp" alt="Overlay em partida" onerror="this.remove()"></div></div></div>
 
 <div class="reveal phase"><div>
-<div style="display:flex;align-items:center;gap:12px"><span class="num">03</span><span class="dim" style="font-size:13px;letter-spacing:.1em">PÓS-PARTIDA</span></div>
+<span class="dim" style="font-size:14px">Depois da partida</span>
 <h3 style="font-size:32px;margin:14px 0 10px">Uma nota justa de D até S</h3>
 <p class="muted" style="font-size:17px">Você contra o seu oponente direto, objetivos e o que treinar na próxima.</p>
-<ul class="check"><li>Nota por área</li><li>Placar e gráfico de ouro</li><li>Foco para a próxima partida</li></ul>
+<p class="muted" style="font-size:15px;margin:0">Farm, visão, lutas, dano e objetivos, cada um com sua nota.</p>
 </div><div><div class="shot r lift"><span>Print do histórico</span><img src="shots/historico.webp" alt="Histórico com nota" onerror="this.remove()"></div></div></div>
 </div>
 </section>
@@ -64,10 +62,8 @@
 <section id="builds" class="band">
 <div class="wrap" style="padding:90px 24px;display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
 <div style="flex:1 1 340px;min-width:0;display:flex;flex-direction:column;gap:16px">
-<span class="eyebrow">EXPERIMENTE</span>
 <h2 style="font-size:40px;margin:0">A build do meta, com o porquê de cada item.</h2>
 <p class="muted" style="margin:0;font-size:17px">Runas, itens e win rate do patch atual. No app, se você cair em outra rota, a build troca com um clique na champion select.</p>
-<span class="tag" style="align-self:flex-start;font-size:12px">PRO</span>
 </div>
 <div class="card" style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px">
 <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between">
@@ -75,35 +71,18 @@
 <div class="roles hidden" role="group" aria-label="Rota" id="roles"></div><span class="chip">Meio</span>
 </div>
 <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:baseline"><b id="b-role" style="font:700 22px 'Space Grotesk'"></b><span class="mono" style="color:var(--good);font-weight:700" id="b-wr"></span><span class="dim" style="font-size:13px" id="b-games"></span></div>
-<div><div class="dim" style="font-size:12px;letter-spacing:.08em;margin-bottom:10px">CAMINHO DE COMPRAS · PASSE O MOUSE</div><div class="slots" id="b-items"></div></div>
+<div><div class="dim" style="font-size:14px;margin-bottom:10px">Caminho de compras</div><div class="slots" id="b-items"></div></div>
 <div style="display:flex;flex-wrap:wrap;gap:10px" id="b-runes"></div>
-<p class="dim" style="margin:0;font-size:12px">Valores ilustrativos. No app vêm do OP.GG e do Lolalytics no patch atual.</p>
+<p class="dim" style="margin:0;font-size:12px">Exemplo. No app, os números vêm do OP.GG e do Lolalytics.</p>
 </div>
 </div>
 </section>
 
-<section class="wrap" style="padding:90px 24px">
-<h2 style="font-size:40px;margin:0 0 32px">Feito para quem joga ranked e casual</h2>
-<div class="bento">
-<div class="reveal card lift wide" style="display:flex;flex-direction:column;gap:14px">
-<div style="display:flex;justify-content:space-between"><b style="font-size:18px">Timers no overlay</b><span class="dim" style="font-size:12px">ao vivo</span></div>
-<div class="tiles"><div class="tile"><small>DRAGÃO</small><b data-timer="300">5:00</b></div><div class="tile"><small>ARAUTO</small><b data-timer="185">3:05</b></div><div class="tile"><small>FLASH DO ZED</small><b data-timer="134" style="color:var(--warn)">2:14</b></div></div>
-<span class="muted small">Marque o Flash inimigo com Ctrl + Shift + 1…5.</span>
-</div>
-<div class="reveal card lift" style="display:flex;flex-direction:column;gap:10px"><b style="font-size:18px">Nota pós-partida</b>
-<div style="display:flex;gap:8px"><div class="grade"><b style="color:var(--good)">A</b><small>Farm</small></div><div class="grade"><b style="color:var(--gold)">B</b><small>Visão</small></div><div class="grade"><b style="color:var(--acc)">S</b><small>Lutas</small></div><div class="grade"><b style="color:var(--warn)">C</b><small>Mortes</small></div></div>
-<span class="muted small">Foco para a próxima partida.</span></div>
-<div class="reveal card lift"><div style="display:flex;justify-content:space-between"><b>Laboratório de builds</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">OP.GG × Lolalytics, build por confronto e "Usar esta build".</p></div>
-<div class="reveal card lift"><div style="display:flex;justify-content:space-between"><b>Picks e bans</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sugestões no champ select pelo seu histórico.</p></div>
-<div class="reveal card lift"><div style="display:flex;justify-content:space-between"><b>Skins e Itens</b><span class="tag">PRO</span></div><p class="muted small" style="margin:8px 0 0">Sua coleção, sugestões e todos os itens filtrados.</p></div>
-<div class="reveal card lift"><b>Tier list e patch notes</b><p class="muted small" style="margin:8px 0 0">Sempre do patch atual, com o que mudou.</p></div>
-</div>
-</section>
+
 
 
 <section id="tour" class="wrap" style="padding:20px 24px 90px">
-<span class="eyebrow">POR DENTRO DO APP</span>
-<h2 style="font-size:40px;margin:8px 0 24px">Tudo num lugar só</h2>
+<h2 style="font-size:40px;margin:0 0 24px">Outras telas do app</h2>
 <div class="tour reveal">
 <div class="tour-tabs" role="tablist" aria-label="Telas do app" id="tour-tabs">
 <button type="button" role="tab" aria-selected="true" data-shot="lab" data-cap="Builds de OP.GG e Lolalytics lado a lado, por confronto, com o win rate de cada item.">Builds</button>

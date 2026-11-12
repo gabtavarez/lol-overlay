@@ -144,8 +144,15 @@
     f.classList.add('zoomable'); f.tabIndex = 0; f.setAttribute('role', 'button'); f.setAttribute('aria-label', 'Ampliar imagem');
     const img = () => f.querySelector('img');
     if (fine && !reduce) {
-      f.addEventListener('mousemove', (e) => { const i = img(); if (!i) return; const r = f.getBoundingClientRect(); i.style.transformOrigin = `${((e.clientX - r.left) / r.width) * 100}% ${((e.clientY - r.top) / r.height) * 100}%`; i.style.transform = 'scale(1.9)'; });
-      f.addEventListener('mouseleave', () => { const i = img(); if (i) i.style.transform = ''; });
+      const glare = document.createElement('span'); glare.className = 'glare'; glare.setAttribute('aria-hidden', 'true');
+      const hint = document.createElement('span'); hint.className = 'zoom-hint'; hint.setAttribute('aria-hidden', 'true'); hint.textContent = 'Clique para ampliar';
+      f.append(glare, hint);
+      f.addEventListener('mousemove', (e) => {
+        const r = f.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width; const y = (e.clientY - r.top) / r.height;
+        f.style.transform = `perspective(1100px) rotateX(${(0.5 - y) * 5}deg) rotateY(${(x - 0.5) * 7}deg) translateY(-4px)`;
+        glare.style.background = `radial-gradient(circle at ${x * 100}% ${y * 100}%, rgba(255,255,255,.14), transparent 45%)`;
+      });
+      f.addEventListener('mouseleave', () => { f.style.transform = ''; });
     }
     const open = () => { const i = img(); if (!i) return; big.src = i.src; big.alt = i.alt; box.hidden = false; document.body.style.overflow = 'hidden'; close.focus(); };
     f.addEventListener('click', open);

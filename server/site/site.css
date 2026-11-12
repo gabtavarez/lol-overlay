@@ -123,7 +123,12 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .slot:first-child .tip{left:0;margin-left:0}
 .slot:last-child .tip{left:auto;right:0;margin-left:0}
 .shot.zoomable{overflow:hidden;cursor:zoom-in}
-.shot.zoomable img{transition:transform .25s ease}
+.shot.zoomable{transition:transform .2s ease-out,box-shadow .2s;will-change:transform}
+.shot.zoomable:hover{box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 0 1px rgba(227,76,113,.35)}
+.shot .glare{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s}
+.shot.zoomable:hover .glare{opacity:1}
+.zoom-hint{position:absolute;right:14px;bottom:14px;padding:7px 12px;border-radius:999px;background:rgba(11,12,16,.8);border:1px solid var(--line2);color:var(--text);font:500 13px Inter,sans-serif;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s}
+.shot.zoomable:hover .zoom-hint{opacity:1;transform:none}
 .shot.zoomable:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
 .lightbox{position:fixed;inset:0;z-index:60;background:rgba(5,6,8,.92);display:flex;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;animation:lbIn .18s ease}
 .lightbox[hidden]{display:none}

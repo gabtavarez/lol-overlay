@@ -41,7 +41,7 @@
       const ver = v[0];
       const items = (await (await fetch(`${DD}/cdn/${ver}/data/pt_BR/item.json`)).json()).data;
       const norm = (x) => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-      for (const [id, it] of Object.entries(items)) if (it.maps && it.maps['11'] && it.gold && it.gold.purchasable) ITEM_IMG[norm(it.name)] = `${DD}/cdn/${ver}/img/item/${id}.png`;
+      for (const [id, it] of Object.entries(items)) if (it.maps && it.maps['11'] && it.gold && it.gold.purchasable) { ITEM_IMG[norm(it.name)] = `${DD}/cdn/${ver}/img/item/${id}.png`; if ((it.tags || []).includes('Jungle') && !ITEM_IMG['companheiro da selva'] && it.gold.total <= 500) ITEM_IMG['companheiro da selva'] = ITEM_IMG[norm(it.name)]; }
       const ch = document.querySelector('.champ');
       if (ch) ch.replaceChildren(el('img', { src: `${DD}/cdn/${ver}/img/champion/Ahri.png`, alt: 'Ahri', width: '52', height: '52' }));
       show0(cur);

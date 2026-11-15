@@ -1042,3 +1042,38 @@ h2 { font-size: 14.5px; }
 .lab-row:hover { border-color: transparent; background: #1c171a; }
 .lab-row.on { border-color: transparent; background: #241c21; }
 .lab-row.on > :first-child { color: var(--acc); font-weight: 700; }
+
+/* =====================================================================
+   Identidade Nexo (pacote 2): topo com a arte do campeão, perfil e carregamento
+   ===================================================================== */
+.page-head.hero { position: relative; overflow: hidden; isolation: isolate; min-height: 176px; align-items: flex-end; padding: 28px 28px 24px; border-radius: 14px; background: var(--card); }
+.hero-splash { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; pointer-events: none; animation: heroIn .5s ease-out both; }
+.page-head.hero::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(15,12,14,.94) 0%, rgba(15,12,14,.78) 38%, rgba(15,12,14,.25) 100%), linear-gradient(0deg, rgba(15,12,14,.75) 0%, rgba(15,12,14,0) 55%); }
+.page-head.hero h1 { font-size: 44px; line-height: 1; }
+.page-head.hero h1::after { width: 170px; height: 12px; margin-top: 8px; }
+.page-head.hero .eyebrow { color: #d9cfc9; font-size: 13px; }
+.page-head.hero .dp img, .page-head.hero .dp .ph { width: 42px; height: 42px; border-radius: 10px; }
+.page-head.hero .dp { width: 42px; }
+.page-head.hero .chips .btn.ghost { background: rgba(15,12,14,.55); }
+@keyframes heroIn { from { opacity: 0; transform: scale(1.03); } to { opacity: .55; transform: none; } }
+.hero-splash { opacity: .55; }
+
+/* perfil: números grandes soltos, sem caixa */
+.pf-stats { border-color: transparent; background: none; gap: 8px 48px; }
+.pf-stat { border-right: 0; padding: 4px 0; min-width: 0; }
+.pf-stat b { font-family: var(--f-display); font-size: 34px; letter-spacing: -.01em; }
+.pf-stat.main b { font-size: 20px; }
+.pf-stat.main .ic { width: 48px; height: 48px; border-radius: 12px; }
+/* bolhas: sem anel cinza; a escolhida ganha o anel rosa, sem brilho */
+.pf-bub { border-color: transparent; }
+.pf-bub:hover { border-color: rgba(241,233,228,.6); }
+.pf-bub.sel { border-color: var(--acc); box-shadow: 0 0 0 3px #0f0c0e, 0 0 0 5px rgba(227,76,113,.35); }
+.pf-lv { border: 0; border-radius: 6px; background: #0f0c0e; font-family: var(--f-mono); font-size: 11px; padding: 1px 6px; }
+.pf-bub.sel .pf-lv { color: var(--acc); }
+.pf-grade { border-color: transparent; background: #241d21; font-family: var(--f-mono); }
+
+/* carregando: o traço do N sendo pintado */
+.brush-load { width: 140px; height: 12px; margin: 18px auto 0; background: url("img/brush.svg") no-repeat left center / 140px 12px; animation: brushPaint 1.3s cubic-bezier(.6,0,.3,1) infinite; }
+@keyframes brushPaint { 0% { clip-path: inset(0 100% 0 0); } 55% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(0 0 0 100%); } }
+@media (prefers-reduced-motion: reduce) { .brush-load { animation: none; } .hero-splash { animation: none; } }

@@ -175,6 +175,7 @@ window.LOCALES.es = {
   "Campeões por nível": "Campeones por nivel",
   "Campeões que jogo": "Campeones que juego",
   "Cancela o combo de {champs}": "Anula el combo de {champs}",
+  "Carregando": "Cargando",
   "Carregando a build do OP.GG…": "Cargando la build de OP.GG…",
   "Carregando a partida no OP.GG…": "Cargando la partida en OP.GG…",
   "Carregando a tier list do OP.GG…": "Cargando la tier list de OP.GG…",

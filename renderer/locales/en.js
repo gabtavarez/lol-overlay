@@ -175,6 +175,7 @@ window.LOCALES.en = {
   "Campeões por nível": "Champions by level",
   "Campeões que jogo": "Champions I play",
   "Cancela o combo de {champs}": "Cancels {champs}'s combo",
+  "Carregando": "Loading",
   "Carregando a build do OP.GG…": "Loading the OP.GG build…",
   "Carregando a partida no OP.GG…": "Loading the match from OP.GG…",
   "Carregando a tier list do OP.GG…": "Loading the OP.GG tier list…",

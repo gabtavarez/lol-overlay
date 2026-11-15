@@ -97,6 +97,27 @@ async function hoverInClient(id, name, kind) {
   els.impMsg.textContent = res.ok ? (kind === 'ban' ? tr('{name} marcado no cliente para banir (falta travar).', { name }) : tr('{name} marcado no cliente (falta travar).', { name })) : tr('Não consegui marcar {name} no cliente: {err}', { name, err: res.error });
 }
 
+/** Topo com a arte (splash) do campeão atrás do título; sem campeão volta ao topo simples. */
+function setHero(head, champId) {
+  if (!head) return;
+  let img = head.querySelector('.hero-splash');
+  if (!champId) { head.classList.remove('hero'); if (img) img.remove(); return; }
+  head.classList.add('hero');
+  const src = splashUrl(champId, 0);
+  if (!img) {
+    img = h('img', { class: 'hero-splash', alt: '' });
+    img.addEventListener('error', () => { img.hidden = true; });
+    img.addEventListener('load', () => { img.hidden = false; });
+    head.prepend(img);
+  }
+  if (img.dataset.src !== src) { img.dataset.src = src; img.hidden = true; img.src = src; }
+}
+
+/** Carregando: o traço do N sendo pintado. */
+function brushLoader() {
+  return h('div', { class: 'brush-load', role: 'progressbar', 'aria-label': t('Carregando') });
+}
+
 /** Vitória só ganha cor quando foge do normal: acima de 53% ou abaixo de 47%. */
 function wrTone(wr) { return wr == null ? '' : wr >= 0.53 ? 'up' : wr < 0.47 ? 'down' : ''; }
 
@@ -498,6 +519,11 @@ function renderSelect(state) {
   const selectedId = chosenId || (state.me && state.me.champion && state.me.champion.id) || (picks.candidates[0] && picks.candidates[0].id);
   els.picks.replaceChildren(...(picks.locked ? [proLock('picks')] : picks.candidates.map((c, i) => pickCard(c, c.id === selectedId, i))));
   els.pickNotes.replaceChildren(...picks.notes.map((n) => h('p', { text: n })));
+
+  // topo: a arte do campeão que você está mostrando/travou, com o nome grande
+  const focus = state.me && state.me.champion;
+  $('sel-title').textContent = focus ? focus.name : t('Champ select');
+  setHero($('sel-head'), focus && focus.id);
 
   els.team.replaceChildren(...[state.me, ...state.allies].filter(Boolean).map((p) => slot(p)));
   els.selEnemies.replaceChildren(...state.enemies.map((p) => slot(p)));
@@ -2001,9 +2027,10 @@ function drawProfile() {
   const body = $('pf-body');
   const d = pf.data;
   const s = d && d.summoner;
+  setHero($('pf-head'), d && d.mastery && d.mastery.main && d.mastery.main.id);
   $('pf-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : t('Seu perfil');
   $('pf-title').textContent = t({ mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: 'Sua coleção' }[pf.tab]);
-  if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
+  if (!d || pf.loading) { body.replaceChildren(pfCard(null, brushLoader(), h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
   if (!d.mastery) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver o perfil.' }))); return; }
   // anima só quando troca de aba ou chegam dados novos (clicar numa bolha não repete a animação)
   const animKey = `${pf.tab}:${pf.cls}:${d.version}:${d.mastery.total}`;

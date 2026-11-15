@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.52.0",
+    "title": "Arte do campeão no topo",
+    "items": [
+      "Champ select: a arte do campeão que você escolheu aparece no topo, com o nome grande.",
+      "Perfil: arte do seu main no topo e números maiores, sem caixas.",
+      "Bolhas de maestria mais limpas; a escolhida ganha o anel rosa.",
+      "Carregamento com o traço do N sendo pintado."
+    ],
+    "en": {
+      "title": "Champion art on top",
+      "items": [
+        "Champ select: the art of the champion you picked shows on top, with a big name.",
+        "Profile: your main's art on top and bigger numbers, without boxes.",
+        "Cleaner mastery bubbles; the selected one gets the pink ring.",
+        "Loading shows the N brush stroke being painted."
+      ]
+    },
+    "es": {
+      "title": "Arte del campeón arriba",
+      "items": [
+        "Selección: la arte del campeón que elegiste aparece arriba, con el nombre grande.",
+        "Perfil: arte de tu main arriba y números más grandes, sin cajas.",
+        "Burbujas de maestría más limpias; la elegida tiene el anillo rosa.",
+        "La carga muestra el trazo de la N pintándose."
+      ]
+    }
+  },
+  {
     "version": "0.51.0",
     "title": "Nova cara do Nexo",
     "items": [

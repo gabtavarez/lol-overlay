@@ -1,7 +1,7 @@
 {
   "name": "lol-overlay",
-  "version": "0.49.2",
-  "description": "Overlay de itemização ao vivo para League of Legends",
+  "version": "0.50.0",
+  "description": "Nexo: build, overlay e nota pós-partida para League of Legends",
   "author": "Gabriel",
   "main": "src/main.js",
   "scripts": {
@@ -20,7 +20,7 @@
   "license": "MIT",
   "build": {
     "appId": "com.gabriel.loloverlay",
-    "productName": "LoL Overlay",
+    "productName": "Nexo",
     "compression": "maximum",
     "electronLanguages": [
       "pt-BR",
@@ -65,11 +65,11 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "LoL Overlay",
+      "shortcutName": "Nexo",
       "perMachine": false,
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": true,
-      "artifactName": "LoL-Overlay-Setup-${version}.${ext}"
+      "artifactName": "Nexo-Setup-${version}.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"

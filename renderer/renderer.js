@@ -1,3 +1,7 @@
+// Relatório de erro anônimo (só sai do PC se ativado nas configurações).
+window.addEventListener('error', (e) => { try { window.overlay.reportError('renderer', e.message, e.error && e.error.stack); } catch { /* sem ponte */ } });
+window.addEventListener('unhandledrejection', (e) => { try { const r = e.reason || {}; window.overlay.reportError('renderer', r.message || String(r), r.stack); } catch { /* sem ponte */ } });
+
 translateDom(document.body); // textos fixos do HTML no idioma escolhido
 const WEIGHTS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 const STAT_SHARD = { 5001: 'Vida', 5002: 'Armadura', 5003: 'RM', 5005: 'Vel. ataque', 5007: 'Redução de recarga', 5008: 'Força adaptativa', 5010: 'Vel. movimento', 5011: 'Vida', 5013: 'Tenacidade' };
@@ -952,6 +956,7 @@ function fillSettings() {
   $('set-remote').checked = settings.remoteData.enabled;
   $('set-accept').checked = settings.autoAccept === true;
   $('set-update').checked = settings.autoUpdate !== false;
+  $('set-errors').checked = settings.errorReports === true;
   $('set-import').checked = settings.autoImport !== false;
   $('set-tier').value = settings.buildTier || 'EMERALD_PLUS';
   $('set-riotid').value = settings.myRiotId || '';
@@ -991,6 +996,7 @@ async function saveSettings() {
     remoteData: { enabled: $('set-remote').checked },
     autoAccept: $('set-accept').checked,
     autoUpdate: $('set-update').checked,
+    errorReports: $('set-errors').checked,
     autoImport: $('set-import').checked,
     buildTier: $('set-tier').value,
     myRiotId: $('set-riotid').value.trim(),
@@ -1736,7 +1742,7 @@ async function showWhatsNew(force = false) {
 }
 $('wn-ok').addEventListener('click', () => { $('whatsnew').hidden = true; window.overlay.seenWhatsNew(); });
 $('whatsnew').addEventListener('click', (e) => { if (e.target.id === 'whatsnew') $('wn-ok').click(); });
-setTimeout(() => showWhatsNew(false), 1200);
+setTimeout(async () => { if (!(await maybeOnboard())) showWhatsNew(false); }, 1200);
 
 /* ---------- patch nos seus campeões ---------- */
 
@@ -2699,8 +2705,64 @@ async function accountLogin(btn) {
   if (!$('pro').hidden) drawPro(); else goPage('pro');
 }
 let askedShown = false;
+let onboarding = false;
+/* ---------- primeira abertura: 3 telas (TAB, importação, Pro/conta) ---------- */
+async function maybeOnboard() {
+  const s = await window.overlay.getSettings().catch(() => null);
+  if (!s || s.onboarded) return false;
+  if (s.lastSeenVersion) { window.overlay.setSettings({ onboarded: true }); return false; } // já usava o app antes do tour
+  onboarding = true; askedShown = true;
+  const steps = [
+    { art: h('div', { class: 'ob-art' }, h('kbd', { class: 'ob-key', text: 'TAB' })),
+      title: 'Segure TAB durante a partida', text: 'O overlay aparece por cima do jogo com a próxima compra, o ouro de cada rota e os timers. Solte o TAB e ele some. Dá para trocar o modo em Configurações.' },
+    { art: h('div', { class: 'ob-art' }, h('div', { class: 'ob-flow' }, h('span', { text: 'Champ select' }), h('b', { text: '→' }), h('span', { text: 'Runas + feitiços + itens' }))),
+      title: 'Trave o campeão, o resto vem sozinho', text: 'Quando você trava o campeão, o Nexo importa runas, feitiços e o conjunto de itens no cliente. Os itens aparecem na loja do jogo, em Arsenais, como "Nexo · Campeão".' },
+    { art: h('div', { class: 'ob-art' }, h('img', { src: 'logo.png', alt: '', class: 'ob-logo' })),
+      title: 'Grátis, com Pro opcional', text: 'Build, importação, overlay e tier list são grátis e funcionam sem conta. O Pro libera o laboratório de builds, a troca de rota, picks e bans, Skins e Itens. Entre com uma conta para usar o Pro em até 2 PCs.', last: true },
+  ];
+  let i = 0;
+  const body = h('div', { class: 'ob-body' });
+  const dots = h('div', { class: 'ob-dots', 'aria-hidden': 'true' });
+  const back = h('button', { class: 'btn ghost', type: 'button', text: 'Voltar' });
+  const next = h('button', { class: 'btn primary', type: 'button', text: 'Próximo' });
+  const skip = h('button', { class: 'ob-skip', type: 'button', text: 'Pular' });
+  const actions = h('div', { class: 'ob-actions' }, back, next);
+  const card = h('div', { class: 'pro-ask-card ob-card' }, skip, body, dots, actions);
+  const box = h('div', { class: 'pro-ask', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Boas-vindas ao Nexo') }, card);
+  const finish = (login) => {
+    window.overlay.setSettings({ onboarded: true });
+    window.overlay.accountAsked();
+    window.overlay.seenWhatsNew();
+    box.remove(); onboarding = false;
+    if (login) accountLogin(null);
+  };
+  const draw = () => {
+    const st = steps[i];
+    body.replaceChildren(st.art, h('h2', { text: st.title }), h('p', { class: 'muted', text: st.text }));
+    dots.replaceChildren(...steps.map((_, k) => h('span', { class: k === i ? 'on' : '' })));
+    back.hidden = i === 0;
+    if (st.last) {
+      const login = h('button', { class: 'btn primary', type: 'button', text: 'Entrar com conta' });
+      const guest = h('button', { class: 'btn ghost', type: 'button', text: 'Continuar como convidado' });
+      login.addEventListener('click', () => finish(true));
+      guest.addEventListener('click', () => finish(false));
+      actions.replaceChildren(back, guest, login);
+      login.focus();
+    } else {
+      actions.replaceChildren(back, next);
+      next.focus();
+    }
+  };
+  back.addEventListener('click', () => { if (i > 0) { i -= 1; draw(); } });
+  next.addEventListener('click', () => { if (i < steps.length - 1) { i += 1; draw(); } });
+  skip.addEventListener('click', () => finish(false));
+  box.addEventListener('keydown', (e) => { if (e.key === 'Escape') finish(false); if (e.key === 'ArrowRight' && !steps[i].last) next.click(); if (e.key === 'ArrowLeft') back.click(); });
+  document.body.append(box);
+  draw();
+  return true;
+}
 function maybeAskAccount() {
-  if (askedShown || planInfo.asked || planInfo.account || planInfo.asked === undefined) return;
+  if (askedShown || onboarding || planInfo.asked || planInfo.account || planInfo.asked === undefined) return;
   askedShown = true;
   const close = () => { window.overlay.accountAsked(); box.remove(); };
   const login = h('button', { class: 'pro-choice primary', type: 'button' }, h('b', { text: 'Entrar com conta' }), h('span', { text: 'Seu Pro libera sozinho e vale em até 2 PCs. Google ou e-mail.' }));

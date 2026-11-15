@@ -284,6 +284,26 @@ async function linkLogout(req: Request) {
   return json({ ok: true });
 }
 
+// ---------- relatório de erro anônimo (só quando o usuário ativa nas configurações) ----------
+async function report(req: Request) {
+  const raw = await req.text();
+  if (raw.length > 12000) return json({ error: "grande demais" }, 413);
+  let b: Record<string, unknown> = {};
+  try { b = JSON.parse(raw); } catch { return json({ error: "inválido" }, 400); }
+  const clip = (v: unknown, n: number) => String(v ?? "").slice(0, n);
+  const kind = clip(b.kind, 40) || "erro";
+  const message = clip(b.message, 500);
+  if (!message) return json({ error: "sem mensagem" }, 400);
+  // tira caminhos do PC (nome de usuário do Windows) antes de guardar
+  const scrub = (t: string) => t.replace(/[A-Z]:\\[^\s)]*?\\(app\.asar|resources|src|renderer)\\/gi, "$1/").replace(/[A-Z]:\\Users\\[^\\\s]+/gi, "C:/Users/~");
+  const stack = scrub(clip(b.stack, 4000));
+  const msg = scrub(message);
+  const top = (stack.split("\n").find((l) => /at /.test(l)) || "").trim();
+  const fp = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${kind}|${msg.replace(/\d+/g, "#")}|${top.replace(/:\d+:\d+/g, "")}`))).slice(0, 32);
+  const { error } = await db.rpc("app_error_hit", { p_fp: fp, p_kind: kind, p_msg: msg, p_stack: stack, p_ver: clip(b.version, 20), p_plat: clip(b.platform, 40) });
+  return error ? json({ error: "falha" }, 500) : json({ ok: true });
+}
+
 // ---------- minha conta (site) ----------
 async function me(req: Request, route: string) {
   const user = await userOf(req);
@@ -348,6 +368,10 @@ async function admin(req: Request, route: string) {
     ]);
     return json({ paywall: (await config("paywall", false)) === true, ready: !!MP_TOKEN(), webhookSigned: !!MP_SECRET(), licenses, orders, payments });
   }
+  if (route === "errors") {
+    const { data } = await db.from("app_errors").select("*").order("last_at", { ascending: false }).limit(200);
+    return json({ errors: data || [] });
+  }
   if (route === "grant") {
     const days = body.days == null || body.days === "" ? null : Math.max(1, Math.min(36500, Number(body.days) || 0));
     const { data, error } = await db.from("pro_licenses").insert({ key: newKey(), plan: days == null ? "life" : "gift", expires_at: extended(null, days, false), source: "gift", note: String(body.note || "").slice(0, 200) }).select("*").single();
@@ -386,6 +410,7 @@ Deno.serve(async (req: Request) => {
     if (route === "checkout") return await checkout(req);
     if (route === "webhook") return await webhook(req, url);
     if (route === "license") return await license(req);
+    if (route === "report") return await report(req);
     if (route === "link/start") return await linkStart(req);
     if (route === "link/claim") return await linkClaim(req);
     if (route === "link/poll") return await linkPoll(req);

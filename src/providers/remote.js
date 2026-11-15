@@ -24,6 +24,8 @@ function readJson(file) {
 const PRUNE_MS = 7 * 24 * 3600 * 1000;
 const SAVE_DELAY_MS = 1500;
 
+const RETRY_EMPTY_MS = 1500;
+
 function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = createMcpClient({ fetchImpl: netFetch }), getTier = () => null }) {
   const file = path.join(cacheDir, 'opgg-cache.json');
   const cache = readJson(file) || {};
@@ -79,8 +81,19 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
 
     const job = (async () => {
       try {
-        const data = await fetcher();
-        if (!data || (typeof data === 'object' && !Object.keys(data).length)) throw new Error('resposta vazia');
+        const isEmpty = (d) => !d || (typeof d === 'object' && !Object.keys(d).length);
+        let data;
+        // Uma resposta vazia costuma ser instabilidade momentânea do OP.GG: tenta mais uma vez antes de desistir.
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            data = await fetcher();
+            if (!isEmpty(data)) break;
+          } catch (e) {
+            if (attempt === 1 || /invalid position|champion specified/i.test(e.message)) throw e;
+          }
+          if (attempt === 0) await new Promise((r) => setTimeout(r, RETRY_EMPTY_MS));
+        }
+        if (isEmpty(data)) throw Object.assign(new Error('resposta vazia'), { quiet: true });
         cache[bucket][key] = { at: Date.now(), data };
         failures.delete(id);
         save();
@@ -89,7 +102,8 @@ function createRemoteData({ cacheDir, isEnabled, onStatus = () => {}, client = c
         retryAfter.set(id, Date.now() + RETRY_MS);
         failures.set(id, err.message);
         // "Invalid position or champion" = o OP.GG não tem dados desse campeão nessa rota: não é erro do app.
-        if (!/invalid position|champion specified/i.test(err.message)) {
+        // Vazio de novo = sem dados desse campeão/rota agora; o app já usa o cache ou outra fonte, sem alarme na barra.
+        if (!err.quiet && !/invalid position|champion specified/i.test(err.message)) {
           onStatus(`OP.GG: ${err.message}${cache[bucket][key] ? tr(' (usando cache antigo)') : ''}`, 'warn');
         }
       } finally {

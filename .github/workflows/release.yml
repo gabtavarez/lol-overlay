@@ -14,6 +14,8 @@ jobs:
         shell: bash
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Token com acesso de escrita ao repositório público gabtavarez/nexo-releases (opcional).
+      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Versão
@@ -41,3 +43,10 @@ jobs:
       - name: Publica
         if: steps.v.outputs.skip != '1'
         run: gh release edit "${{ steps.v.outputs.tag }}" --draft=false --latest
+      - name: Espelha o instalador no repositório público (nexo-releases)
+        if: steps.v.outputs.skip != '1' && env.RELEASES_TOKEN != ''
+        run: |
+          T="${{ steps.v.outputs.tag }}"
+          FILES=$(ls dist/*.exe dist/*.blockmap dist/latest.yml 2>/dev/null)
+          GH_TOKEN="$RELEASES_TOKEN" gh release view "$T" --repo gabtavarez/nexo-releases >/dev/null 2>&1 \
+            || GH_TOKEN="$RELEASES_TOKEN" gh release create "$T" $FILES --repo gabtavarez/nexo-releases --title "$T" --notes-file notes.md --latest

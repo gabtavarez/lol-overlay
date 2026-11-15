@@ -25,7 +25,8 @@ const { createRecorder } = require('./postgame');
 const { phaseCompare } = require('./power');
 const { laneCoach } = require('./coach');
 const { damageComp } = require('./damageComp');
-const { createPlan, createLicenseClient, PLANS: PRO_PLANS } = require('./plan');
+const { createPlan, createLicenseClient, PLANS: PRO_PLANS, SERVER: PRO_SERVER } = require('./plan');
+const { createErrorReporter } = require('./errorReport');
 const { createProStore } = require('./proStore');
 // Coach de rota ao vivo: desligado por enquanto (código mantido; true reativa painel, atalho e configuração)
 const COACH_ON = false;
@@ -1131,7 +1132,15 @@ function scoutTargets(state) {
   if (state.laneOpponent) out.push({ who: 'Rota', p: state.laneOpponent });
   const jg = (state.enemies || []).find((e) => (e.spells || []).includes('SummonerSmite') && e !== state.laneOpponent);
   if (jg) out.push({ who: 'Selva', p: jg });
-  return out.map((x) => ({ ...x, riotId: riotIdOf(x.p) }));
+  // Bots não têm perfil no OP.GG: nada a buscar.
+  return out.filter((x) => !x.p.isBot).map((x) => ({ ...x, riotId: riotIdOf(x.p) }));
+}
+/** Erro do OP.GG no scouting em linguagem de gente (o servidor responde em inglês). */
+function scoutErrorText(msg) {
+  if (!msg) return null;
+  if (/summoner not found|not found|404/i.test(msg)) return i18n.t('Perfil não encontrado no OP.GG (conta nova ou nome alterado)');
+  if (/resposta vazia/i.test(msg)) return i18n.t('Sem partidas recentes no OP.GG');
+  return i18n.t('Não consegui buscar o perfil agora');
 }
 
 /** Habilidades do campeão (nome + recarga por nível): Meraki, ou Data Dragon se o Meraki ainda não tiver o campeão. */
@@ -1173,7 +1182,7 @@ function decorateLive(state) {
   state.advice.scout = scoutTargets(state).map(({ who, p, riotId }) => {
     const prof = riotId ? remote.getScout(riotId, region) : null;
     const onChamp = prof && prof.champs.find((c) => c.name.toLowerCase() === String(p.champion).toLowerCase());
-    const error = !riotId ? (enemyIdsGame ? i18n.t('Nome oculto pela Riot nesta partida') : i18n.t('Buscando o nome no cliente…')) : !prof ? remote.scoutError(riotId, region) : null;
+    const error = !riotId ? (enemyIdsGame ? i18n.t('Nome oculto pela Riot nesta partida') : i18n.t('Buscando o nome no cliente…')) : !prof ? scoutErrorText(remote.scoutError(riotId, region)) : null;
     return { who, champion: p.champion, championId: p.championId, riotId: riotId || 'nome oculto', profile: prof, onChamp: onChamp || null, error };
   });
   const meC = dd && dd.champions[state.me.championId];
@@ -1674,12 +1683,29 @@ function registerIpc() {
   });
 }
 
+// O app se chamava "LoL Overlay": mantém a mesma pasta de dados (configurações, Pro, histórico) depois da troca de nome.
+try {
+  const legacy = path.join(app.getPath('appData'), 'LoL Overlay');
+  app.setPath('userData', legacy);
+} catch { /* fica na pasta padrão */ }
+
+let errorReporter = { report: () => false };
+const RELEASES_OWNER = 'gabtavarez';
+const RELEASES_REPO = 'nexo-releases';
+
 app.whenReady().then(() => {
   const userData = app.getPath('userData');
   logger = createLogger(path.join(userData, 'overlay.log'));
   logger.log(`Nexo ${app.getVersion()} iniciou (${process.platform})`);
   settings = createSettingsStore(path.join(userData, 'settings.json'));
   proStore = createProStore(path.join(userData, 'pro.json'));
+  errorReporter = createErrorReporter({
+    fetchImpl: netFetch, server: PRO_SERVER, version: app.getVersion(), platform: `${process.platform} ${require('os').release()}`,
+    isEnabled: () => Boolean(settings.get().errorReports) && app.isPackaged, log: (m) => logger.log(m),
+  });
+  process.on('uncaughtException', (err) => { logger.log(`erro: ${err && err.stack ? err.stack : err}`); errorReporter.report('main', err); });
+  process.on('unhandledRejection', (err) => { logger.log(`promessa rejeitada: ${err && err.stack ? err.stack : err}`); errorReporter.report('promise', err instanceof Error ? err : new Error(String(err))); });
+  ipcMain.on('error:report', (e, x) => { if (x && typeof x === 'object') errorReporter.report(x.kind === 'overlay' ? 'overlay' : 'renderer', { message: String(x.message || ''), stack: String(x.stack || '') }); });
   licenseClient = createLicenseClient({ fetchImpl: netFetch, log: (m) => logger.log(m) });
   refreshLicense(); // em segundo plano: descobre se a cobrança está ligada e renova a licença
   i18n.setLang(appLang()); // textos gerados no main (coach, compras, notas) no idioma do app
@@ -1752,6 +1778,15 @@ app.whenReady().then(() => {
   if (app.isPackaged && !USE_MOCK) {
     try {
       const { autoUpdater } = require('electron-updater');
+      // Instaladores públicos em gabtavarez/nexo-releases (o código pode ficar privado). Enquanto esse repositório
+      // não tiver versões, continua no lol-overlay.
+      netFetch(`https://api.github.com/repos/${RELEASES_OWNER}/${RELEASES_REPO}/releases/latest`, { headers: { 'User-Agent': 'nexo' } })
+        .then((r) => {
+          if (!r.ok) return;
+          autoUpdater.setFeedURL({ provider: 'github', owner: RELEASES_OWNER, repo: RELEASES_REPO });
+          logger.log(`atualizações via ${RELEASES_OWNER}/${RELEASES_REPO}`);
+        })
+        .catch(() => {});
       updater = createUpdater({
         autoUpdater,
         send: (s) => send('update', s),

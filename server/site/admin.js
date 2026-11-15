@@ -44,7 +44,16 @@
       el('td', { textContent: date(p.created_at) }), el('td', { className: 'k', textContent: p.mp_id }),
       el('td', { className: p.status === 'approved' ? 'ok' : 'bad', textContent: p.status }), el('td', { textContent: brl(p.amount) }), el('td', { textContent: p.method || '' }))));
   }
+  async function loadErrors() {
+    const d = await call('errors').catch(() => ({ errors: [] }));
+    $('errs').replaceChildren(...d.errors.map((x) => {
+      const row = el('tr', {}, el('td', { textContent: new Date(x.last_at).toLocaleString('pt-BR') }), el('td', { textContent: String(x.count) }), el('td', { textContent: x.version || '' }), el('td', { textContent: x.kind }), el('td', { textContent: x.message, title: x.stack || '' }));
+      row.style.cursor = 'help';
+      return row;
+    }));
+  }
   async function load() {
+    loadErrors();
     data = await call('list');
     $('login').hidden = true; $('panel').hidden = false;
     draw();

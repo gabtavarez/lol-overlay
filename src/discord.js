@@ -11,7 +11,7 @@ const ROLE_PT = { top: 'Topo', jungle: 'Selva', middle: 'Meio', bottom: 'Atirado
 const TIER_PT = { IRON: 'Ferro', BRONZE: 'Bronze', SILVER: 'Prata', GOLD: 'Ouro', PLATINUM: 'Platina', EMERALD: 'Esmeralda', DIAMOND: 'Diamante', MASTER: 'Mestre', GRANDMASTER: 'Grão-Mestre', CHALLENGER: 'Desafiante' };
 const DD = 'https://ddragon.leagueoflegends.com/cdn';
 const LOGO = 'https://raw.githubusercontent.com/gabtavarez/lol-overlay/main/build/icon.png';
-const DOWNLOAD = 'https://github.com/gabtavarez/lol-overlay/releases/latest';
+const DOWNLOAD = 'https://lol-overlay-pro.vercel.app/';
 
 function rankText(rank) {
   if (!rank || !rank.tier) return null;

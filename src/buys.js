@@ -540,8 +540,12 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     .slice(0, 3);
 
   let recall = null;
+  // Ferramenta de Treino: ouro "infinito" e sem por que voltar à base. Só diz o que comprar.
+  const practice = String(state.gameMode || '').toUpperCase() === 'PRACTICETOOL' || me.gold >= 50000;
   const buyable = items.filter((i) => i.canBuy && i.cost >= 900).sort((a, b) => b.score - a.score)[0];
-  if (buyable && me.gold >= 1300) {
+  if (practice) {
+    recall = buyable ? tr('Modo treino: compre {item} para testar a build.', { item: buyable.name }) : null;
+  } else if (buyable && me.gold >= 1300) {
     recall = tr('Você tem {g} g: volte e feche {item}.', { g: me.gold, item: buyable.name });
   } else if (me.gold >= 1300 && items[0]) {
     // >= 1300 g: o componente épico mais caro que cabe no bolso, rumo ao item principal

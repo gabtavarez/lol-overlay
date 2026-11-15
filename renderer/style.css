@@ -953,3 +953,19 @@ input[type=range], input[type=checkbox] { accent-color: var(--acc); }
 .pro-choice span { color: var(--muted, #a7aab6); font-size: 14px; line-height: 1.5; }
 @keyframes proFade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .pro-ask, .pro-choice { animation: none; transition: none; } }
+/* Primeira abertura */
+.ob-card { position: relative; max-width: 560px; text-align: center; padding-top: 48px !important; }
+.ob-body h2 { margin: 18px 0 8px; font-size: 24px; }
+.ob-body p { margin: 0 auto; max-width: 440px; line-height: 1.55; }
+.ob-art { height: 120px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #101217; border: 1px solid var(--line, #2a2d36); }
+.ob-key { font: 700 26px var(--mono, ui-monospace, monospace); padding: 14px 26px; border-radius: 10px; border: 1px solid #3a3d48; border-bottom-width: 4px; background: #1d2027; color: #fff; }
+.ob-flow { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.ob-flow span { padding: 8px 12px; border-radius: 8px; background: #1d2027; border: 1px solid #2a2d36; }
+.ob-flow b { color: var(--accent, #e34c71); font-size: 20px; }
+.ob-logo { width: 72px; height: 72px; border-radius: 16px; }
+.ob-dots { display: flex; justify-content: center; gap: 6px; margin: 18px 0 14px; }
+.ob-dots span { width: 8px; height: 8px; border-radius: 50%; background: #3a3d48; transition: background .2s, width .2s; }
+.ob-dots span.on { width: 22px; border-radius: 4px; background: var(--accent, #e34c71); }
+.ob-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.ob-skip { position: absolute; top: 12px; right: 14px; background: none; border: 0; color: var(--muted, #a7aab6); cursor: pointer; font: inherit; padding: 8px; }
+.ob-skip:hover { color: #fff; }

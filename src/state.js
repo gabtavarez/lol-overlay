@@ -50,6 +50,7 @@ function mapPlayer(p, dd) {
     },
     items: list(p.items).filter((it) => it && it.itemID).map((it) => mapItem(it, dd)),
     riotId: p.riotId || '',
+    isBot: Boolean(p.isBot) || / bot$/i.test(String(p.riotIdGameName || p.summonerName || '')),
     wards: scores.wardScore || 0,
     spells: [p.summonerSpells && p.summonerSpells.summonerSpellOne, p.summonerSpells && p.summonerSpells.summonerSpellTwo]
       .map((s) => spellKey(s)).filter(Boolean),

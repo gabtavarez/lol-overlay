@@ -52,5 +52,7 @@
   "lastSeenVersion": "",
   "discordRpc": false,
   "discordClientId": "",
-  "language": "pt"
+  "language": "pt",
+  "errorReports": false,
+  "onboarded": false
 }

@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.50.0",
+    "title": "Tour inicial e correções",
+    "items": [
+      "Tour de boas-vindas na primeira abertura: TAB, importação e Pro.",
+      "Relatório de erro anônimo opcional em Configurações.",
+      "Correções no overlay contra bots, no modo treino e no OP.GG.",
+      "O instalador e o atalho agora se chamam Nexo."
+    ],
+    "en": {
+      "title": "Welcome tour and fixes",
+      "items": [
+        "Welcome tour on first launch: TAB, import and Pro.",
+        "Optional anonymous error reports in Settings.",
+        "Overlay fixes for bots, practice tool and OP.GG.",
+        "The installer and shortcut are now called Nexo."
+      ]
+    },
+    "es": {
+      "title": "Tour inicial y correcciones",
+      "items": [
+        "Tour de bienvenida al abrir por primera vez: TAB, importación y Pro.",
+        "Informes de error anónimos opcionales en Configuración.",
+        "Correcciones del overlay con bots, modo práctica y OP.GG.",
+        "El instalador y el acceso directo ahora se llaman Nexo."
+      ]
+    }
+  },
+  {
     "version": "0.49.2",
     "title": "Logo novo",
     "items": [

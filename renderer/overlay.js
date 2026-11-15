@@ -1,3 +1,7 @@
+// Relatório de erro anônimo (só sai do PC se ativado nas configurações).
+window.addEventListener('error', (e) => { try { window.overlay.reportError('overlay', e.message, e.error && e.error.stack); } catch { /* sem ponte */ } });
+window.addEventListener('unhandledrejection', (e) => { try { const r = e.reason || {}; window.overlay.reportError('overlay', r.message || String(r), r.stack); } catch { /* sem ponte */ } });
+
 const $ = (id) => document.getElementById(id);
 translateDom(document.body); // títulos fixos dos painéis no idioma escolhido
 

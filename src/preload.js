@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('overlay', {
   getPatchNote: (version) => ipcRenderer.invoke('patches:note', version),
   openPatch: (version) => ipcRenderer.invoke('patches:open', version),
   getPlan: () => ipcRenderer.invoke('plan:get'),
+  reportError: (kind, message, stack) => ipcRenderer.send('error:report', { kind, message: String(message || '').slice(0, 500), stack: String(stack || '').slice(0, 4000) }),
   proRefresh: () => ipcRenderer.invoke('pro:refresh'),
   proActivate: (key) => ipcRenderer.invoke('pro:activate', key),
   proCheckout: (planId) => ipcRenderer.invoke('pro:checkout', planId),

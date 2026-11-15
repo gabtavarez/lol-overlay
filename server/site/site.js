@@ -64,7 +64,8 @@
   });
 
   // Link de download direto ao instalador mais recente
-  fetch('https://api.github.com/repos/gabtavarez/lol-overlay/releases/latest').then((r) => r.json()).then((rel) => {
+  const latest = (repo) => fetch(`https://api.github.com/repos/gabtavarez/${repo}/releases/latest`).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))));
+  latest('nexo-releases').catch(() => latest('lol-overlay')).then((rel) => {
     const exe = (rel.assets || []).find((a) => /\.exe$/i.test(a.name));
     if (exe) document.querySelectorAll('a.dl').forEach((a) => { a.href = exe.browser_download_url; a.setAttribute('download', exe.name); a.removeAttribute('rel'); });
   }).catch(() => {});

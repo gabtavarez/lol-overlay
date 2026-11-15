@@ -214,6 +214,7 @@ window.LOCALES.en = {
   "Composição (AD/AP)": "Composition (AD/AP)",
   "Composição de dano": "Damage composition",
   "Comprar": "Buy",
+  "Compras": "Buys",
   "Compras · IA": "Buys · AI",
   "Comum": "Common",
   "Concluir": "Done",

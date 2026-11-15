@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.51.0",
+    "title": "Nova cara do Nexo",
+    "items": [
+      "Cores do logo, fundo mais quente e o traço do N nos títulos e no menu.",
+      "Títulos em Space Grotesk e números alinhados em fonte mono.",
+      "Menos ruído: sem bordas nos cards e sem rótulos em caixa alta.",
+      "Vitória só ganha cor acima de 53% ou abaixo de 47%."
+    ],
+    "en": {
+      "title": "Nexo's new look",
+      "items": [
+        "Logo colors, a warmer background and the N brush stroke on titles and menu.",
+        "Titles in Space Grotesk and aligned numbers in a mono font.",
+        "Less noise: no card borders and no all-caps labels.",
+        "Win rate only gets color above 53% or below 47%."
+      ]
+    },
+    "es": {
+      "title": "Nuevo aspecto de Nexo",
+      "items": [
+        "Colores del logo, fondo más cálido y el trazo de la N en títulos y menú.",
+        "Títulos en Space Grotesk y números alineados en fuente mono.",
+        "Menos ruido: sin bordes en tarjetas ni etiquetas en mayúsculas.",
+        "La tasa de victoria solo se colorea arriba de 53% o abajo de 47%."
+      ]
+    }
+  },
+  {
     "version": "0.50.1",
     "title": "Atualizações pelo Nexo",
     "items": [

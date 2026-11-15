@@ -214,6 +214,7 @@ window.LOCALES.es = {
   "Composição (AD/AP)": "Composición (AD/AP)",
   "Composição de dano": "Composición de daño",
   "Comprar": "Comprar",
+  "Compras": "Compras",
   "Compras · IA": "Compras · IA",
   "Comum": "Común",
   "Concluir": "Listo",

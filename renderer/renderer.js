@@ -97,13 +97,16 @@ async function hoverInClient(id, name, kind) {
   els.impMsg.textContent = res.ok ? (kind === 'ban' ? tr('{name} marcado no cliente para banir (falta travar).', { name }) : tr('{name} marcado no cliente (falta travar).', { name })) : tr('Não consegui marcar {name} no cliente: {err}', { name, err: res.error });
 }
 
+/** Vitória só ganha cor quando foge do normal: acima de 53% ou abaixo de 47%. */
+function wrTone(wr) { return wr == null ? '' : wr >= 0.53 ? 'up' : wr < 0.47 ? 'down' : ''; }
+
 function pickCard(c, selected, i = 0) {
   const card = listRow({ rank: String(i + 1), id: c.id, name: c.name, why: c.reasons.slice(0, 2).join(' · ') || 'Pelos seus dados', score: String(c.score), selected, onIcon: () => goChamp(c.id, lastState && lastState.myPosition) });
   card.title = `${c.blind ? `${c.blind.text}\n` : ''}${c.reasons.join(' · ')}\n${tr('Clique para marcar no cliente')}`;
-  if (c.blind && c.blind.level !== 'ok') {
-    // selo de pick às cegas ao lado do nome
+  if (c.blind && c.blind.level === 'safe') {
+    // selo só para a exceção boa (seguro às cegas); o risco fica na dica ao passar o mouse
     const nm = card.querySelector('.nm');
-    if (nm) nm.append(h('span', { class: `blind-tag ${c.blind.level}`, text: c.blind.level === 'safe' ? 'Seguro às cegas' : 'Arriscado às cegas' }));
+    if (nm) nm.append(h('span', { class: 'blind-tag safe', text: 'Seguro às cegas' }));
   }
   card.addEventListener('click', () => {
     chosenId = c.id;
@@ -1163,7 +1166,7 @@ function tlRoleButtons() {
   if (tlElo !== 'EMERALD_PLUS' && tlRole === 'all') tlRole = (lastState && lastState.home && lastState.home.mainRole) || 'middle';
   $('tl-roles').replaceChildren(...TL_ROLES.filter(([k]) => k !== 'all' || tlElo === 'EMERALD_PLUS').map(([k, label]) => {
     const b = h('button', { class: `seg-btn${k === tlRole ? ' on' : ''}`, type: 'button', title: label });
-    b.append(k === 'all' ? svgIcon('spark') : roleImg(k, 'seg-role'), h('span', { text: label }));
+    b.append(k === 'all' ? svgIcon('list') : roleImg(k, 'seg-role'), h('span', { text: label }));
     b.addEventListener('click', () => { tlRole = k; tlRoleButtons(); if (tlElo === 'EMERALD_PLUS') drawTierList(); else { tl = null; drawTierList(); loadTierList(); } });
     return b;
   }));
@@ -1178,7 +1181,7 @@ function tlTile(r, showRole) {
       showRole ? roleImg(r.role, 'tl-role') : null),
     h('div', { class: 'tl-info' },
       h('div', { class: 'tl-name', text: r.name }),
-      h('div', { class: 'tl-wr', text: pc(r.winRate) }),
+      h('div', { class: `tl-wr ${wrTone(r.winRate)}`, text: pc(r.winRate) }),
       h('div', { class: 'tl-sub', text: `Pick ${pc(r.pickRate)} · Ban ${pc(r.banRate)}` })),
     delta ? h('span', { class: `tl-delta ${delta > 0 ? 'up' : 'down'}`, text: `${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}` }) : null);
   tile.title = tr('{champ} · #{rank} na rota · {n} partidas · KDA {kda} · clique para ver build, counters e sinergias', { champ: r.name, rank: r.rank, n: r.games.toLocaleString(), kda: r.kda });
@@ -1567,9 +1570,9 @@ function scoreChart(timeline) {
   svg.setAttribute('preserveAspectRatio', 'none');
   const p = document.createElementNS(ns, 'path');
   p.setAttribute('d', timeline.map(([t, v], i) => `${i ? 'L' : 'M'}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join(' '));
-  p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#f0587c'); p.setAttribute('stroke-width', '2'); p.setAttribute('vector-effect', 'non-scaling-stroke');
+  p.setAttribute('fill', 'none'); p.setAttribute('stroke', '#e34c71'); p.setAttribute('stroke-width', '2'); p.setAttribute('vector-effect', 'non-scaling-stroke');
   svg.append(p);
-  return h('div', {}, svg, h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:#f0587c' }), document.createTextNode('OP Score ao longo da partida')),
+  return h('div', {}, svg, h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'background:#e34c71' }), document.createTextNode('OP Score ao longo da partida')),
     h('span', { text: `de ${vals[0]} a ${vals[vals.length - 1]}` })));
 }
 
@@ -1673,12 +1676,12 @@ function goldChart(samples) {
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.setAttribute('preserveAspectRatio', 'none');
   const line = (d, color, w = 2, dash = '') => { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); p.setAttribute('fill', 'none'); p.setAttribute('stroke', color); p.setAttribute('stroke-width', w); if (dash) p.setAttribute('stroke-dasharray', dash); p.setAttribute('vector-effect', 'non-scaling-stroke'); svg.append(p); };
-  line(`M0,${H / 2} L${W},${H / 2}`, '#2e3038', 1, '4 4');
-  line(path('team'), '#f0587c', 2);
-  line(path('lane'), '#8b8d98', 1.5);
+  line(`M0,${H / 2} L${W},${H / 2}`, '#30282d', 1, '4 4');
+  line(path('team'), '#e34c71', 2);
+  line(path('lane'), '#a3969c', 1.5);
   return h('div', {}, svg, h('div', { class: 'legend' },
-    h('span', {}, h('i', { style: 'background:#f0587c' }), document.createTextNode('Ouro do time (itens)')),
-    h('span', {}, h('i', { style: 'background:#8b8d98' }), document.createTextNode('Sua rota')),
+    h('span', {}, h('i', { style: 'background:#e34c71' }), document.createTextNode('Ouro do time (itens)')),
+    h('span', {}, h('i', { style: 'background:#a3969c' }), document.createTextNode('Sua rota')),
     h('span', { text: tr('escala ±{v}', { v: fmtK(maxV) }) })));
 }
 
@@ -1791,7 +1794,7 @@ async function loadPatchCard(state) {
 const pn = { versions: [], version: null, note: null, mine: [], filter: 'all', error: null, loading: false };
 const PN_FILTERS = [['all', 'Tudo'], ['mine', 'Seus campeões'], ['champions', 'Campeões'], ['items', 'Itens'], ['other', 'Modos e outros']];
 const PN_VERD = { buff: ['Buff', 'up'], nerf: ['Nerf', 'down'], ajuste: ['Ajuste', null] };
-const PN_SEC_ICON = { champions: 'user', items: 'sword', bugfixes: 'check', skins: 'spark', other: 'list' };
+const PN_SEC_ICON = { champions: 'user', items: 'sword', bugfixes: 'check', skins: 'essence', other: 'list' };
 
 async function loadPatches(force = false) {
   if (!pn.versions.length || force) {
@@ -2446,7 +2449,7 @@ function drawLab(a) {
         return im;
       })),
       h('span', { class: 'lab-names small', text: b.items.map((it) => it.name).join(' › ') }),
-      h('span', { class: `lab-wr ${b.wr >= 0.52 ? 'up' : b.wr < 0.48 ? 'down' : ''}`, text: pctTxt(b.wr) }),
+      h('span', { class: `lab-wr ${wrTone(b.wr)}`, text: pctTxt(b.wr) }),
       h('span', { class: `muted small lab-g${b.play < Math.max(minG, 100) ? ' small-sample' : ''}`, text: gamesTxt(b.play), title: b.play < Math.max(minG, 100) ? t('Amostra pequena: win rate menos confiável') : '' }));
     r.addEventListener('click', () => { st.sel = i; st.pick.slots = {}; drawLab(a); });
     return r;
@@ -2496,7 +2499,7 @@ function drawLab(a) {
     ...list.slice(0, 4).map((o, i) => {
       const stats = o.wr == null
         ? [h('span', { class: 'muted small', text: tr('{p}% escolhem', { p: Math.round((o.pick || 0) * (o.pick <= 1 ? 100 : 1)) }) })]
-        : [h('b', { class: o.wr >= 0.52 ? 'up' : o.wr < 0.48 ? 'down' : '', text: pctTxt(o.wr) }), h('span', { class: `muted small${o.play < 100 ? ' small-sample' : ''}`, text: o.play.toLocaleString('pt-BR'), title: o.play < 100 ? t('Amostra pequena: win rate menos confiável') : '' })];
+        : [h('b', { class: wrTone(o.wr), text: pctTxt(o.wr) }), h('span', { class: `muted small${o.play < 100 ? ' small-sample' : ''}`, text: o.play.toLocaleString('pt-BR'), title: o.play < 100 ? t('Amostra pequena: win rate menos confiável') : '' })];
       const c = h(onPick ? 'button' : 'span', { class: `lab-opt${onPick ? ' click' : ''}${i === selIdx ? ' on' : ''}`, type: onPick ? 'button' : undefined }, ...fmt(o, i), ...stats);
       if (onPick) c.addEventListener('click', () => onPick(o, i));
       return c;

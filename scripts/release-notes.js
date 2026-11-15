@@ -7,5 +7,5 @@ const lines = [`## Nexo v${version}`];
 if (e) {
   lines.push('', `**${e.title}**`, '', ...e.items.map((i) => `- ${i}`));
 }
-lines.push('', 'Baixe o `LoL-Overlay-Setup` abaixo. Quem já tem o app recebe a atualização automaticamente.');
+lines.push('', 'Baixe o `Nexo-Setup` abaixo. Quem já tem o app recebe a atualização automaticamente.');
 process.stdout.write(`${lines.join('\n')}\n`);

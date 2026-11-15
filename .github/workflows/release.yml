@@ -48,5 +48,10 @@ jobs:
         run: |
           T="${{ steps.v.outputs.tag }}"
           FILES=$(ls dist/*.exe dist/*.blockmap dist/latest.yml 2>/dev/null)
+          # repositório vazio não aceita release: cria o primeiro commit (README)
+          if ! GH_TOKEN="$RELEASES_TOKEN" gh api repos/gabtavarez/nexo-releases/commits?per_page=1 >/dev/null 2>&1; then
+            B64=$(printf '# Nexo\n\nInstaladores do Nexo para Windows. Baixe a versão mais recente em Releases.\n' | base64 -w0)
+            GH_TOKEN="$RELEASES_TOKEN" gh api -X PUT repos/gabtavarez/nexo-releases/contents/README.md -f message="Primeiro commit" -f content="$B64"
+          fi
           GH_TOKEN="$RELEASES_TOKEN" gh release view "$T" --repo gabtavarez/nexo-releases >/dev/null 2>&1 \
             || GH_TOKEN="$RELEASES_TOKEN" gh release create "$T" $FILES --repo gabtavarez/nexo-releases --title "$T" --notes-file notes.md --latest

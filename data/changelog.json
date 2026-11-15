@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.50.1",
+    "title": "Atualizações pelo Nexo",
+    "items": [
+      "As atualizações agora vêm do repositório público do Nexo."
+    ],
+    "en": {
+      "title": "Updates via Nexo",
+      "items": [
+        "Updates now come from Nexo's public repository."
+      ]
+    },
+    "es": {
+      "title": "Actualizaciones por Nexo",
+      "items": [
+        "Las actualizaciones ahora vienen del repositorio público de Nexo."
+      ]
+    }
+  },
+  {
     "version": "0.50.0",
     "title": "Tour inicial e correções",
     "items": [

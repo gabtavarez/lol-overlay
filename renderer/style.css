@@ -1077,3 +1077,25 @@ h2 { font-size: 14.5px; }
 .brush-load { width: 140px; height: 12px; margin: 18px auto 0; background: url("img/brush.svg") no-repeat left center / 140px 12px; animation: brushPaint 1.3s cubic-bezier(.6,0,.3,1) infinite; }
 @keyframes brushPaint { 0% { clip-path: inset(0 100% 0 0); } 55% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(0 0 0 100%); } }
 @media (prefers-reduced-motion: reduce) { .brush-load { animation: none; } .hero-splash { animation: none; } }
+
+/* aviso de tela cheia (o overlay fica desligado na partida) */
+.fs-warn { display: flex; align-items: center; gap: 14px; margin: 20px 28px 0; padding: 14px 16px; border-radius: 14px; background: #2a1d16; color: var(--text); }
+.fs-warn[hidden] { display: none; }
+.fs-warn .ico { color: var(--warn); flex: none; width: 20px; height: 20px; }
+.fs-txt { flex: 1 1 auto; min-width: 0; line-height: 1.45; font-size: 13px; }
+.fs-txt span { color: #d9cfc9; }
+.fs-msg { display: block; margin-top: 4px; color: var(--warn) !important; font-weight: 600; }
+.fs-msg:empty { display: none; }
+.fs-warn .btn { flex: none; }
+
+/* Flash no D ou no F: ícone do Flash + dois botões */
+.flash-pick { display: inline-flex; align-items: center; gap: 8px; padding: 4px 4px 4px 6px; border-radius: 10px; background: #0c090b; width: max-content; }
+.fp-ico { width: 26px; height: 26px; border-radius: 6px; }
+.fp-lbl { color: var(--muted); font-size: 12.5px; margin-right: 2px; }
+.fp-k { min-width: 34px; height: 30px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: 700 13px var(--f-mono); cursor: pointer; }
+.fp-k:hover { color: var(--text); background: #1d171b; }
+.fp-k.on { background: var(--acc); color: #1a0910; }
+.flash-pick.sm { gap: 6px; padding: 3px 3px 3px 5px; }
+.flash-pick.sm .fp-ico { width: 22px; height: 22px; }
+.flash-pick.sm .fp-k { min-width: 28px; height: 26px; font-size: 12px; }
+.spells-wrap { display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }

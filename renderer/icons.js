@@ -23,6 +23,7 @@ const ICONS = {
   essence: '<path d="M12 2.8 19 9l-7 12.2L5 9z"/><path d="M5 9h14M9.2 9 12 21.2 14.8 9M9.2 9 12 2.8 14.8 9"/>',
   gacha: '<path d="M12 2.5l2.2 6.3 6.3 2.2-6.3 2.2L12 19.5l-2.2-6.3L3.5 11l6.3-2.2z"/><circle cx="19" cy="19" r="1.6"/><circle cx="5" cy="4.5" r="1.2"/>',
   lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  alert: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.5h.01"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   min: '<path d="M5 12h14"/>',
   max: '<rect x="5" y="5" width="14" height="14" rx="1.5"/>',

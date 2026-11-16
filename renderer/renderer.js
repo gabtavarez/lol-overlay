@@ -300,9 +300,9 @@ function drawSpells(g) {
   const spell = (s, key) => h('div', { class: 'sp' },
     s && s.key ? icon(ddVerImg(`spell/${s.key}.png`), 'sp-icon', s.name) : h('span', { class: 'sp-icon miss', text: '?' }),
     h('span', { class: 'kbd', text: key }));
-  const swap = h('button', { class: 'swap', title: 'Trocar a tecla do Flash (D/F)', text: '⇄' });
-  swap.addEventListener('click', toggleFlashKey);
-  return h('div', { class: 'spells' }, spell(d, 'D'), swap, spell(f, 'F'));
+  const pick = h('div', { class: 'flash-pick sm', role: 'group', 'aria-label': t('Tecla do Flash') });
+  drawFlashPick(pick, flashD ? 'D' : 'F', (k) => setFlashKey(k));
+  return h('div', { class: 'spells-wrap' }, h('div', { class: 'spells' }, spell(d, 'D'), spell(f, 'F')), pick);
 }
 
 function drawBuild(g) {
@@ -734,6 +734,7 @@ function render(state) {
     lastPhase = state.phase;
   }
   lastState = state;
+  $('fs-warn').hidden = state.windowMode !== 'fullscreen';
   if (state.phase === 'ingame') return renderGame(state);
   if (state.phase === 'champselect') return renderSelect(state);
   chosenId = null;
@@ -934,7 +935,7 @@ function fillRoleFields() {
 }
 
 const OVERLAYS = [
-  ['buys', 'Compras · IA', 'As 3 próximas compras com o motivo, o ouro que falta e o aviso de voltar à base.'],
+  ['buys', 'Compras', 'As 3 próximas compras com o motivo, o ouro que falta e o aviso de voltar à base.'],
   ['info', 'Rota', 'Quem é mais forte em cada fase, scouting do oponente e do caçador, dica do matchup e alertas de itens inimigos.'],
   ['gold', 'Ouro cara a cara', 'Diferença de ouro (valor dos itens) de cada rota e do time.'],
   ['timers', 'Timers', 'Dragão, arauto e barão; clique nos feitiços inimigos (ou Ctrl+Shift+1…5) para cronometrar o Flash.'],
@@ -989,7 +990,8 @@ function fillSettings() {
   $('set-import').checked = settings.autoImport !== false;
   $('set-tier').value = settings.buildTier || 'EMERALD_PLUS';
   $('set-riotid').value = settings.myRiotId || '';
-  $('set-flash').value = settings.flashKey || 'F';
+  drawFlashPick($('set-flash'), settings.flashKey || 'F', (k) => { $('set-flash').dataset.k = k; });
+  $('set-startup').checked = settings.startWithWindows === true;
   $('set-lang').value = settings.language || 'pt';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
   $('set-discord').checked = settings.discordRpc === true;
@@ -1029,7 +1031,8 @@ async function saveSettings() {
     autoImport: $('set-import').checked,
     buildTier: $('set-tier').value,
     myRiotId: $('set-riotid').value.trim(),
-    flashKey: $('set-flash').value,
+    flashKey: $('set-flash').dataset.k || settings.flashKey || 'F',
+    startWithWindows: $('set-startup').checked,
     discordRpc: $('set-discord').checked,
     discordClientId: $('set-discord-id').value.trim(),
     overlay: { mode: $('set-overlay-mode').value },
@@ -1048,14 +1051,36 @@ function showFlashKey() {
   if (guide) drawGuide();
   if (champView && champView.data) drawChamp();
 }
-async function toggleFlashKey() {
+/** Escolha visual da tecla do Flash: ícone do Flash + botões D e F. */
+function drawFlashPick(el, key, onPick) {
+  el.dataset.k = key;
+  const img = version ? h('img', { class: 'fp-ico', src: ddVerImg('spell/SummonerFlash.png'), alt: '' }) : null;
+  const btn = (k) => {
+    const b = h('button', { type: 'button', class: `fp-k${k === key ? ' on' : ''}`, 'aria-pressed': String(k === key), title: tr('Flash no {k}', { k }), text: k });
+    b.addEventListener('click', () => { if (el.dataset.k === k) return; drawFlashPick(el, k, onPick); onPick(k); });
+    return b;
+  };
+  el.replaceChildren(...[img, h('span', { class: 'fp-lbl', text: t('Flash no') }), btn('D'), btn('F')].filter(Boolean));
+}
+async function setFlashKey(k) {
   settings = settings || (await window.overlay.getSettings());
-  settings = await window.overlay.setSettings({ flashKey: settings.flashKey === 'D' ? 'F' : 'D' });
+  if (settings.flashKey === k) return;
+  settings = await window.overlay.setSettings({ flashKey: k });
   imported.spells = false;
   showFlashKey();
   els.impMsg.textContent = tr('Flash agora no {k}. Clique em Importar no Invocador para aplicar.', { k: settings.flashKey });
 }
 window.overlay.getSettings().then((s) => { settings = s; showFlashKey(); });
+
+$('fs-fix').addEventListener('click', async () => {
+  const btn = $('fs-fix');
+  btn.disabled = true;
+  const r = await window.overlay.setBorderless().catch((e) => ({ ok: false, error: e.message }));
+  btn.disabled = false;
+  $('fs-msg').textContent = r.ok
+    ? t('Pronto: vale a partir da próxima partida.')
+    : t('Não deu pelo app. No jogo: Esc → Vídeo → Modo de janela → Sem bordas.');
+});
 
 $('set-test').addEventListener('click', () => window.overlay.previewOverlay());
 

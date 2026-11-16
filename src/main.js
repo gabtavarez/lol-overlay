@@ -5,6 +5,7 @@ const { DataDragon } = require('./ddragon');
 const { createEngine } = require('./engine');
 const { createLcuEngine } = require('./lcuEngine');
 const { discoverCredentials, lcuGetJson } = require('./lcu');
+const { readWindowMode, setBorderless } = require('./windowMode');
 const { createSettingsStore } = require('./settings');
 const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
@@ -95,6 +96,25 @@ const chosenBuilds = new Map(); // `${champId}:${role}` -> { patch, source, labe
 
 let liveState = { phase: 'waiting' };
 let lcuState = { phase: 'idle', client: 'closed' };
+// Modo de tela do jogo (tela cheia / janela / sem bordas): em tela cheia o overlay fica desligado na partida.
+let windowMode = null;
+let windowModeAt = 0;
+let windowModePhase = null;
+let fullscreenLogged = false;
+
+/** Relê o modo de tela pelo cliente quando a fase muda (lobby, champ select, partida), no máximo a cada 15 s. */
+function refreshWindowMode(force = false) {
+  const creds = lcuEngine && lcuEngine.getCreds();
+  if (!creds || (!force && Date.now() - windowModeAt < 15000)) return;
+  windowModeAt = Date.now();
+  readWindowMode(creds).then((m) => {
+    if (m === windowMode) return;
+    windowMode = m;
+    fullscreenLogged = false;
+    logger.log(`modo de tela do jogo: ${m || 'desconhecido'}`);
+    publish();
+  }).catch(() => { /* cliente sem essa rota agora: tenta na próxima fase */ });
+}
 let lastState = { phase: 'waiting', client: 'closed' };
 let lastStateSig = '';
 let lastStatus = { text: 'Carregando dados do jogo…', level: 'info' }; // traduzido no renderer
@@ -125,7 +145,9 @@ function publish() {
     if (roleOverride && lcuState.sessionId && roleOverride.session !== lcuState.sessionId) roleOverride = null; // novo champ select
     lastRole = (!lcuState.mode && roleOverride && roleOverride.role) || lcuState.mode || lcuState.myPosition || (MODE_ROLES.includes(lastRole) ? '' : lastRole);
   }
-  if (lastState) { lastState.myRole = lastRole || ''; lastState.roleOverride = roleOverride ? roleOverride.role : null; }
+  if (lastState) { lastState.myRole = lastRole || ''; lastState.roleOverride = roleOverride ? roleOverride.role : null; lastState.windowMode = windowMode; }
+  const wmPhase = `${lcuState.phase}|${liveState.phase}`;
+  if (wmPhase !== windowModePhase && lcuEngine && lcuEngine.getCreds()) { windowModePhase = wmPhase; refreshWindowMode(true); }
   // Só manda para as janelas quando o estado mudou de fato: evita reconstruir a tela inteira
   // a cada ciclo do cliente/Live API sem nada novo.
   let sig = '';
@@ -191,8 +213,19 @@ function lockDownWindow(win) {
   wc.setVisualZoomLevelLimits(1, 1);
 }
 
+/** Iniciar com o Windows: abre minimizado na barra de tarefas (argumento --hidden). */
+function applyLoginItem(on) {
+  if (!app.isPackaged || process.platform !== 'win32') return;
+  try {
+    app.setLoginItemSettings({ openAtLogin: Boolean(on), args: ['--hidden'] });
+    logger.log(`iniciar com o Windows: ${on ? 'ligado' : 'desligado'}`);
+  } catch (err) { logger.log(`iniciar com o Windows: ${err.message}`); }
+}
+const START_HIDDEN = process.argv.includes('--hidden');
+
 function createMainWindow() {
   mainWin = new BrowserWindow({
+    show: !START_HIDDEN,
     width: 1180,
     height: 780,
     minWidth: 900,
@@ -206,6 +239,7 @@ function createMainWindow() {
   });
   lockDownWindow(mainWin);
   mainWin.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'), { query: { lang: appLang() } });
+  if (START_HIDDEN) mainWin.once('ready-to-show', () => mainWin.minimize());
   mainWin.on('closed', () => app.quit());
   const sendMax = () => send('win:maximized', mainWin.isMaximized());
   mainWin.on('maximize', sendMax);
@@ -241,8 +275,11 @@ function updateOverlayVisibility() {
   const ov = settings.get().overlay;
   // coach de rota fica sempre na tela em partida; os outros painéis só com TAB (ou modo sempre)
   const coachPinned = COACH_ON && inGame && (ov.enabled || {}).coach !== false && ov.coachPinned !== false;
-  const full = moveMode || previewing || (inGame && (tabDown || always));
-  const show = full || coachPinned;
+  // tela cheia exclusiva: nada fica por cima do jogo e mostrar o overlay só minimiza o LoL
+  const fullscreen = inGame && windowMode === 'fullscreen' && !moveMode && !previewing;
+  if (fullscreen && !fullscreenLogged) { fullscreenLogged = true; logger.log('overlay: desligado na partida (jogo em tela cheia)'); }
+  const full = !fullscreen && (moveMode || previewing || (inGame && (tabDown || always)));
+  const show = full || (!fullscreen && coachPinned);
   if (full !== lastFull) { lastFull = full; send('overlay-full', full); }
   const visible = overlayWin.isVisible();
   if (show && !visible) {
@@ -1669,6 +1706,7 @@ function registerIpc() {
   ipcMain.handle('settings:set', (_e, patch) => {
     const before = appLang();
     const next = settings.update(patch);
+    if (patch && 'startWithWindows' in patch) applyLoginItem(next.startWithWindows);
     // idioma novo: reinicia para recarregar telas e os dados da Riot no idioma escolhido
     if (next.language !== before) { setTimeout(() => { app.relaunch(); app.exit(0); }, 300); return next; }
     send('settings-changed', next);
@@ -1676,6 +1714,19 @@ function registerIpc() {
     configurePresence();
     if (lcuEngine) lcuEngine.tick();
     return next;
+  });
+  ipcMain.handle('game:borderless', async () => {
+    try {
+      await setBorderless(lcuEngine && lcuEngine.getCreds());
+      windowMode = 'borderless';
+      fullscreenLogged = false;
+      logger.log('modo de tela do jogo trocado para sem bordas');
+      publish();
+      return { ok: true };
+    } catch (err) {
+      logger.log(`não consegui trocar o modo de tela: ${err.message}`);
+      return { ok: false, error: err.message };
+    }
   });
   ipcMain.handle('open-data-folder', async () => {
     await shell.openPath(app.getPath('userData'));
@@ -1773,6 +1824,7 @@ app.whenReady().then(() => {
 
   liveEngine.start();
   lcuEngine.start();
+  if (settings.get().startWithWindows) applyLoginItem(true);
   loadDataDragon();
 
   if (app.isPackaged && !USE_MOCK) {

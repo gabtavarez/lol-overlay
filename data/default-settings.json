@@ -54,5 +54,6 @@
   "discordClientId": "",
   "language": "pt",
   "errorReports": false,
+  "startWithWindows": false,
   "onboarded": false
 }

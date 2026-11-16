@@ -51,6 +51,11 @@
   </div>
 
   <div id="content">
+    <div id="fs-warn" class="fs-warn" role="status" hidden>
+      <i data-ico="alert"></i>
+      <div class="fs-txt"><b>Seu LoL está em tela cheia.</b> <span>Nesse modo nada aparece por cima do jogo (o overlay só faria o LoL minimizar), então ele fica desligado na partida. Use o modo Sem bordas para ter o overlay.</span> <span id="fs-msg" class="fs-msg"></span></div>
+      <button id="fs-fix" class="btn primary" type="button">Mudar para Sem bordas</button>
+    </div>
     <!-- Início -->
     <main id="waiting" class="view">
       <div class="page-head">
@@ -421,9 +426,9 @@
           <label class="field">Idioma
             <select id="set-lang"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select>
           </label>
-          <label class="field">Flash ao importar feitiços
-            <select id="set-flash"><option value="F">Tecla F</option><option value="D">Tecla D</option></select>
-          </label>
+          <div class="field">Flash ao importar feitiços
+            <div id="set-flash" class="flash-pick" role="group" aria-label="Tecla do Flash"></div>
+          </div>
           <label class="field">Overlay em partida
             <select id="set-overlay-mode">
               <option value="tab">Só enquanto seguro TAB</option>
@@ -431,6 +436,7 @@
             </select>
           </label>
           <label class="check"><input type="checkbox" id="set-import"> Importar runas, feitiços e itens ao travar o campeão</label>
+          <label class="check"><input type="checkbox" id="set-startup"> Iniciar com o Windows <span class="muted small">(abre minimizado)</span></label>
           <label class="check"><input type="checkbox" id="set-update"> Atualizar o app automaticamente</label>
           <label class="check"><input type="checkbox" id="set-errors"> Enviar relatório de erro anônimo <span class="muted small">(só a mensagem do erro, sem nome, Riot ID ou arquivos)</span></label>
           <label class="check"><input type="checkbox" id="set-accept"> Aceitar a partida automaticamente</label>

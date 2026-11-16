@@ -50,6 +50,7 @@ function sanitize(input, base) {
   if ('autoImport' in input) out.autoImport = input.autoImport !== false;
   if ('autoUpdate' in input) out.autoUpdate = input.autoUpdate !== false;
   if ('errorReports' in input) out.errorReports = input.errorReports === true;
+  if ('startWithWindows' in input) out.startWithWindows = input.startWithWindows === true;
   if ('onboarded' in input) out.onboarded = input.onboarded === true;
   if ('license' in input) out.license = typeof input.license === 'string' && input.license.length <= 4000 ? input.license.trim() : '';
   if ('language' in input) out.language = ['pt', 'en', 'es'].includes(input.language) ? input.language : 'pt';

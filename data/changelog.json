@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.53.0",
+    "title": "Tela cheia, iniciar com o PC e Flash",
+    "items": [
+      "Tela cheia: o overlay se desliga na partida em vez de minimizar o jogo.",
+      "Aviso no app com botão para mudar o LoL para Sem bordas.",
+      "Nova opção: iniciar com o Windows (abre minimizado).",
+      "Flash no D ou no F: escolha com o ícone do Flash nos Feitiços."
+    ],
+    "en": {
+      "title": "Fullscreen, start with PC and Flash",
+      "items": [
+        "Fullscreen: the overlay turns off in the match instead of minimizing the game.",
+        "In-app warning with a button to switch LoL to Borderless.",
+        "New option: start with Windows (opens minimized).",
+        "Flash on D or F: pick it with the Flash icon under Spells."
+      ]
+    },
+    "es": {
+      "title": "Pantalla completa, iniciar con la PC y Flash",
+      "items": [
+        "Pantalla completa: el overlay se apaga en la partida en vez de minimizar el juego.",
+        "Aviso en la app con botón para cambiar LoL a Sin bordes.",
+        "Nueva opción: iniciar con Windows (se abre minimizado).",
+        "Flash en D o F: elígelo con el ícono del Flash en Hechizos."
+      ]
+    }
+  },
+  {
     "version": "0.52.0",
     "title": "Arte do campeão no topo",
     "items": [

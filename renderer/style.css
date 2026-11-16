@@ -1099,3 +1099,14 @@ h2 { font-size: 14.5px; }
 .flash-pick.sm .fp-ico { width: 22px; height: 22px; }
 .flash-pick.sm .fp-k { min-width: 28px; height: 26px; font-size: 12px; }
 .spells-wrap { display: flex; flex-direction: column; gap: 22px; align-items: flex-start; }
+
+/* matchup contra: escolha pelo ícone do campeão */
+.mu-pick { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.mu-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 9px; border: 1px solid transparent; border-radius: 10px; background: #1f191d; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.mu-chip:has(img) { padding-left: 3px; }
+.mu-chip:has(img):not(:has(span)) { padding: 3px; }
+.mu-chip img { width: 24px; height: 24px; border-radius: 6px; display: block; }
+.mu-chip:hover { color: var(--text); border-color: var(--line2); }
+.mu-chip.on { color: var(--text); border-color: var(--acc); background: var(--acc-soft); }
+#guide-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.tab-ic { width: 18px; height: 18px; border-radius: 5px; }

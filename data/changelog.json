@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.53.1",
+    "title": "Matchup com ícones",
+    "items": [
+      "Matchup contra: escolha o oponente pelo ícone do campeão, não mais por uma lista de nomes.",
+      "A aba \"Contra\" da build mostra o ícone do oponente."
+    ],
+    "en": {
+      "title": "Matchup with icons",
+      "items": [
+        "Matchup against: pick the opponent by champion icon instead of a list of names.",
+        "The build's \"Against\" tab shows the opponent's icon."
+      ]
+    },
+    "es": {
+      "title": "Matchup con íconos",
+      "items": [
+        "Matchup contra: elige al oponente por el ícono del campeón, no por una lista de nombres.",
+        "La pestaña \"Contra\" de la build muestra el ícono del oponente."
+      ]
+    }
+  },
+  {
     "version": "0.53.0",
     "title": "Tela cheia, iniciar com o PC e Flash",
     "items": [

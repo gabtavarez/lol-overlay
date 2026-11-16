@@ -572,7 +572,7 @@ function buildVariants(champ, role) {
   }) : [];
   if (t && changes.length) {
     const label = opp ? i18n.t('Contra {champ}', { champ: opp.name }) : i18n.t('Contra a comp');
-    out.push({ label, sub: i18n.t(changes.length === 1 ? '1 ajuste para o matchup' : '{n} ajustes para o matchup', { n: changes.length }), build: t.build, changes });
+    out.push({ label, vsId: opp ? opp.id : null, sub: i18n.t(changes.length === 1 ? '1 ajuste para o matchup' : '{n} ajustes para o matchup', { n: changes.length }), build: t.build, changes });
   } else {
     const later = laterItems(base);
     if (base.core.length >= 2 && later.length >= 2) {
@@ -674,7 +674,7 @@ async function guideFor(championId) {
   const skills = await dd.championSkills(champ.id).catch(() => null);
   const enemyChamps = (lcuState.enemies || []).filter((x) => x.champion).map((x) => dd.champions[x.champion.id] || x.champion);
   const variants = buildVariants(champ, role).map((v) => ({
-    label: v.label, sub: v.sub,
+    label: v.label, sub: v.sub, vsId: v.vsId || null,
     guide: { ...buildGuide({ champ, role, build: v.build, dd, runeIndex, runeStyles, skills }), situational: situationalItems({ champ, build: v.build, enemies: enemyChamps, dd, role }),
       changes: v.changes || [], runesForMatchup: (v.changes || []).some((c) => c.kind === 'runes' || c.kind === 'shards') },
   }));
@@ -691,7 +691,7 @@ async function guideFor(championId) {
   const oppKit = opp ? abilityCard(dd.champions[opp.id] || opp, 1) : null;
   const runePages = build.chosen && chosenFor(champ, role).patch.runes ? [] : runePagesFor(champ, role, build);
   const augments = null; // win rate de augments removido (regras de desenvolvedor da Riot)
-  return { ...variants[0].guide, variants, runePages, roleNote, role, roleOverride: roleOverride ? roleOverride.role : null, chosen: build.chosen || null, opponents, augments, matchupMode: mode, opponent: opp ? opp.name : null, pending, oppKit };
+  return { ...variants[0].guide, variants, runePages, roleNote, role, roleOverride: roleOverride ? roleOverride.role : null, chosen: build.chosen || null, opponents, augments, matchupMode: mode, opponent: opp ? opp.name : null, opponentId: opp ? opp.id : null, pending, oppKit };
 }
 
 let skinCatalog = async () => null;

@@ -365,7 +365,8 @@ function drawGuide() {
   }
   // abas: build geral x matchup (ou itens alternativos)
   $('guide-tabs').replaceChildren(...((root.variants || []).length > 1 ? root.variants.map((v, i) => {
-    const b = h('button', { class: i === variant ? 'on' : '', type: 'button', text: v.label });
+    const b = h('button', { class: i === variant ? 'on' : '', type: 'button' },
+      v.vsId && version ? h('img', { class: 'tab-ic', src: champIcon(version, v.vsId), alt: '' }) : null, h('span', { text: v.label }));
     b.title = v.sub || '';
     b.addEventListener('click', () => { variant = i; imported.runes = false; imported.spells = false; drawGuide(); });
     return b;
@@ -375,18 +376,27 @@ function drawGuide() {
   const sub = [];
   if (root.variants && root.variants[variant] && root.variants[variant].sub) sub.push(h('span', { text: root.variants[variant].sub }));
   if (root.opponents && root.opponents.length) {
-    const sel = h('select', {},
-      h('option', { value: 'auto', text: root.opponent && root.matchupMode === 'auto' ? `${tr('Automático')} (${root.opponent})` : 'Automático' }),
-      ...root.opponents.map((o) => h('option', { value: o.id, text: o.name })),
-      h('option', { value: 'none', text: 'Nenhum' }));
-    sel.value = root.matchupMode || 'auto';
-    sel.addEventListener('change', async () => {
-      await window.overlay.setMatchup(sel.value);
-      variant = sel.value === 'none' ? 0 : 1;
+    // escolha do oponente do matchup com o ícone de cada campeão (no lugar da lista só com nomes)
+    const cur = root.matchupMode || 'auto';
+    const pickMu = async (value) => {
+      if (value === cur) return;
+      await window.overlay.setMatchup(value);
+      variant = value === 'none' ? 0 : 1;
       guide = await window.overlay.getGuide(shownId);
       drawGuide();
-    });
-    sub.push(h('span', { class: 'spacer' }), h('span', { text: 'Matchup contra' }), sel);
+    };
+    const icon = (id) => (id && version ? h('img', { src: champIcon(version, id), alt: '' }) : null);
+    const chip = (value, label, id, title) => {
+      const b = h('button', { type: 'button', class: `mu-chip${value === cur ? ' on' : ''}`, 'aria-pressed': String(value === cur), title: title || label }, icon(id), label ? h('span', { text: label }) : null);
+      b.addEventListener('click', () => pickMu(value));
+      return b;
+    };
+    const autoId = cur === 'auto' ? root.opponentId : null;
+    const picker = h('div', { class: 'mu-pick', role: 'group', 'aria-label': t('Matchup contra') },
+      chip('auto', t('Automático'), autoId, root.opponent ? `${t('Automático')} (${root.opponent})` : t('Automático')),
+      ...root.opponents.map((o) => chip(o.id, '', o.id, o.name)),
+      chip('none', t('Nenhum'), null));
+    sub.push(h('span', { class: 'spacer' }), h('span', { text: 'Matchup contra' }), picker);
     if (root.pending) sub.push(h('span', { text: root.pending }));
   }
   if (lastState && lastState.phase === 'champselect' && !lastState.mode) sub.unshift(rolePicker(root));

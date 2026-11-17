@@ -1182,3 +1182,26 @@ h2 { font-size: 14.5px; }
 .ov-toggle:hover { filter: brightness(1.15); }
 .ov-reset { flex: none; min-height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: #2a2226; color: #d9cfc9; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .ov-reset:hover { background: #33292e; color: var(--text); }
+
+/* campo de campeões com busca (pool, nunca sugerir) */
+.cp { position: relative; }
+.cp-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 40px; padding: 5px 6px; border-radius: 10px; background: #0f0c0e; border: 1px solid var(--line2); cursor: text; }
+.cp-chips:focus-within { border-color: var(--acc); }
+.cp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 3px; border-radius: 8px; background: #241c21; font-size: 12.5px; color: var(--text); }
+.cp-chip img { width: 22px; height: 22px; border-radius: 6px; }
+.cp-x { width: 20px; height: 20px; border: 0; border-radius: 6px; background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; }
+.cp-x:hover { background: #33292e; color: var(--text); }
+.cp-input { flex: 1 1 120px; min-width: 120px; border: 0 !important; background: none !important; padding: 4px 6px !important; color: var(--text); font: inherit; font-size: 13px; outline: none; box-shadow: none !important; }
+.cp-menu { position: absolute; z-index: 50; left: 0; right: 0; top: calc(100% + 6px); max-height: 300px; overflow-y: auto; padding: 6px; border-radius: 12px; background: #1c1619; box-shadow: 0 12px 30px rgba(0,0,0,.5); }
+.cp-menu[hidden] { display: none; }
+.cp-opt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: 8px; background: none; color: #d9cfc9; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.cp-opt img { width: 28px; height: 28px; border-radius: 7px; }
+.cp-opt.on, .cp-opt:hover { background: #2a2226; color: var(--text); }
+.cp-none { padding: 10px; color: var(--muted); font-size: 12.5px; }
+
+/* tutorial: passos com formulário */
+.ob-art.ob-art-form { height: auto; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 12px; padding: 14px; text-align: left; overflow: visible; }
+.ob-hint { margin: 0; color: var(--muted); font-size: 12.5px; }
+.ob-quick .ob-q { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ob-ql { color: var(--muted); font-size: 13px; }
+.ob-quick .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #d9cfc9; }

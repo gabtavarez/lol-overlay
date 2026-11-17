@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('overlay', {
   getProfile: (force) => ipcRenderer.invoke('profile:get', Boolean(force)),
   setBorderless: () => ipcRenderer.invoke('game:borderless'),
   getTip: (kind, key) => ipcRenderer.invoke('tip:get', kind, key),
+  getChampionList: () => ipcRenderer.invoke('champions:list'),
   listPatches: (force) => ipcRenderer.invoke('patches:list', force),
   getPatchNote: (version) => ipcRenderer.invoke('patches:note', version),
   openPatch: (version) => ipcRenderer.invoke('patches:open', version),

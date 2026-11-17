@@ -132,6 +132,7 @@
         <div class="card-f">
           <button id="home-test" class="btn"><i data-ico="play"></i>Testar overlay</button>
           <button id="home-settings" class="btn ghost">Configurações</button>
+          <button id="home-tour" class="btn ghost">Tutorial</button>
         </div>
       </section>
     </main>
@@ -401,12 +402,14 @@
               <option value="utility">Suporte</option>
             </select>
           </label>
-          <label class="field">Meu pool nesta rota
-            <input type="text" id="set-pool" placeholder="Jinx, Kai'Sa, Ezreal" maxlength="400">
-          </label>
-          <label class="field">Nunca sugerir
-            <input type="text" id="set-blacklist" placeholder="Yasuo, Teemo" maxlength="400">
-          </label>
+          <div class="field">Meu pool nesta rota
+            <input type="hidden" id="set-pool">
+            <div id="set-pool-pick"></div>
+          </div>
+          <div class="field">Nunca sugerir
+            <input type="hidden" id="set-blacklist">
+            <div id="set-blacklist-pick"></div>
+          </div>
         </section>
         <section class="card pad-all">
           <h2>Builds e app</h2>
@@ -482,6 +485,7 @@
             <button id="set-net" class="btn ghost">Testar conexões</button>
             <button id="set-folder" class="btn ghost">Pasta de dados</button>
             <button id="set-whatsnew" class="btn ghost">Novidades</button>
+            <button id="set-tour" class="btn ghost">Tutorial rápido</button>
           </div>
           <div class="row">
             <button id="set-clear-app" class="btn ghost">Apagar conjuntos de itens do app</button>

@@ -1005,8 +1005,12 @@ $('imp-items').addEventListener('click', () => doImport('items'));
 
 const splitList = (text) => text.split(',').map((s) => s.trim()).filter(Boolean);
 
+let poolPicker = null;
+let blacklistPicker = null;
 function fillRoleFields() {
   els.setPool.value = (settings.picker.pool[els.setRole.value] || []).join(', ');
+  if (!poolPicker) poolPicker = bindChampPicker(els.setPool, $('set-pool-pick'));
+  poolPicker.refresh();
 }
 
 const OVERLAYS = [
@@ -1074,6 +1078,8 @@ function fillSettings() {
   }
   els.setRole.value = currentRole || els.setRole.value || 'middle';
   els.setBlacklist.value = settings.picker.blacklist.join(', ');
+  if (!blacklistPicker) blacklistPicker = bindChampPicker(els.setBlacklist, $('set-blacklist-pick'));
+  blacklistPicker.refresh();
   $('set-remote').checked = settings.remoteData.enabled;
   $('set-accept').checked = settings.autoAccept === true;
   $('set-update').checked = settings.autoUpdate !== false;
@@ -1281,6 +1287,8 @@ els.gear.addEventListener('click', () => (settingsOpen ? closeSettings() : openS
 $('set-close').addEventListener('click', closeSettings);
 $('set-save').addEventListener('click', saveSettings);
 $('set-whatsnew').addEventListener('click', () => showWhatsNew(true));
+$('set-tour').addEventListener('click', () => maybeOnboard(true));
+$('home-tour').addEventListener('click', () => maybeOnboard(true));
 $('set-move').addEventListener('click', () => window.overlay.toggleMoveMode());
 $('set-folder').addEventListener('click', () => window.overlay.openDataFolder());
 els.setRole.addEventListener('change', fillRoleFields);
@@ -2855,69 +2863,197 @@ async function accountLogin(btn) {
 }
 let askedShown = false;
 let onboarding = false;
-/* ---------- primeira abertura: 3 telas (TAB, importação, Pro/conta) ---------- */
-async function maybeOnboard() {
+
+/* ---------- escolha de campeões com busca (pool, nunca sugerir) ---------- */
+let champListCache = null;
+async function championList() {
+  if (!champListCache || !champListCache.length) champListCache = await window.overlay.getChampionList().catch(() => []);
+  return champListCache || [];
+}
+const cpNorm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+/**
+ * Campo de campeões: fichas com ícone + busca com lista. value/onChange usam os NOMES (formato salvo nas configurações).
+ * Setas ↑↓ andam na lista, Enter adiciona, Backspace no campo vazio tira o último.
+ */
+function champPicker({ value = [], onChange = () => {}, placeholder = 'Buscar campeão…', max = 40 } = {}) {
+  let names = [...value];
+  let list = [];
+  let hi = 0;
+  const root = h('div', { class: 'cp' });
+  const chips = h('div', { class: 'cp-chips' });
+  const input = h('input', { type: 'text', class: 'cp-input', placeholder: t(placeholder), 'aria-label': t(placeholder), autocomplete: 'off', spellcheck: 'false' });
+  const menu = h('div', { class: 'cp-menu', role: 'listbox', hidden: true });
+  const byName = (n) => list.find((c) => cpNorm(c.name) === cpNorm(n) || cpNorm(c.id) === cpNorm(n));
+  const icon = (c) => (c && version ? h('img', { src: champIcon(version, c.id), alt: '' }) : null);
+  const emit = () => { onChange([...names]); };
+  const drawChips = () => {
+    chips.replaceChildren(...names.map((n) => {
+      const c = byName(n);
+      const x = h('button', { type: 'button', class: 'cp-x', 'aria-label': tr('Tirar {champ}', { champ: c ? c.name : n }), text: '×' });
+      x.addEventListener('click', () => { names = names.filter((y) => y !== n); drawChips(); emit(); });
+      return h('span', { class: 'cp-chip' }, icon(c), h('span', { text: c ? c.name : n }), x);
+    }), input);
+  };
+  const matches = () => {
+    const q = cpNorm(input.value);
+    const taken = new Set(names.map(cpNorm));
+    return list.filter((c) => !taken.has(cpNorm(c.name)) && (!q || cpNorm(c.name).includes(q))).slice(0, 8);
+  };
+  const add = (c) => {
+    if (!c || names.length >= max) return;
+    names.push(c.name); input.value = ''; drawChips(); emit(); drawMenu(); input.focus();
+  };
+  const drawMenu = () => {
+    const m = matches();
+    if (!input.value && document.activeElement !== input) { menu.hidden = true; return; }
+    hi = Math.min(hi, Math.max(0, m.length - 1));
+    menu.replaceChildren(...(m.length ? m.map((c, k) => {
+      const o = h('button', { type: 'button', class: `cp-opt${k === hi ? ' on' : ''}`, role: 'option', 'aria-selected': String(k === hi) }, icon(c), h('span', { text: c.name }));
+      o.addEventListener('mousedown', (e) => { e.preventDefault(); add(c); });
+      return o;
+    }) : [h('div', { class: 'cp-none', text: t('Nenhum campeão encontrado') })]));
+    menu.hidden = false;
+  };
+  input.addEventListener('input', () => { hi = 0; drawMenu(); });
+  input.addEventListener('focus', drawMenu);
+  input.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== input) menu.hidden = true; }, 120));
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation(); // não deixa as setas trocarem a tela do tutorial
+    const m = matches();
+    if (e.key === 'ArrowDown') { e.preventDefault(); hi = Math.min(hi + 1, m.length - 1); drawMenu(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(hi - 1, 0); drawMenu(); }
+    else if (e.key === 'Enter') { e.preventDefault(); add(m[hi]); }
+    else if (e.key === 'Escape') { menu.hidden = true; input.blur(); }
+    else if (e.key === 'Backspace' && !input.value && names.length) { names.pop(); drawChips(); emit(); }
+  });
+  root.addEventListener('click', (e) => { if (e.target === root || e.target === chips) input.focus(); });
+  root.append(chips, menu);
+  drawChips();
+  championList().then((l) => { list = l; drawChips(); });
+  root.setValue = (v) => { names = [...v]; drawChips(); };
+  return root;
+}
+/** Liga um campo escondido (texto separado por vírgula, o formato antigo) ao campo com busca. */
+function bindChampPicker(hidden, mount) {
+  const read = () => splitList(hidden.value);
+  const picker = champPicker({ value: read(), onChange: (v) => { hidden.value = v.join(', '); } });
+  mount.replaceChildren(picker);
+  return { refresh: () => picker.setValue(read()) };
+}
+
+/* ---------- tutorial rápido (abre sozinho na 1ª vez; depois pelo botão "Tutorial") ---------- */
+async function maybeOnboard(force = false) {
   const s = await window.overlay.getSettings().catch(() => null);
-  if (!s || s.onboarded) return false;
-  if (s.lastSeenVersion) { window.overlay.setSettings({ onboarded: true }); return false; } // já usava o app antes do tour
+  if (!s || onboarding) return false;
+  if (!force) {
+    if (s.onboarded) return false;
+    if (s.lastSeenVersion) { window.overlay.setSettings({ onboarded: true }); return false; } // já usava o app antes do tour
+  }
   onboarding = true; askedShown = true;
+  const cfg = {
+    role: s.mainRole || '',
+    flash: s.flashKey === 'D' ? 'D' : 'F',
+    mode: (s.overlay && s.overlay.mode) || 'tab',
+    autoImport: s.autoImport !== false,
+    startup: s.startWithWindows === true,
+    pool: null,
+  };
+  const poolRole = () => cfg.role || (lastState && lastState.home && lastState.home.mainRole) || 'middle';
+  const poolOf = (r) => ((s.picker && s.picker.pool && s.picker.pool[r]) || []);
   const steps = [
-    { art: h('div', { class: 'ob-art' }, h('kbd', { class: 'ob-key', text: 'TAB' })),
-      title: 'Segure TAB durante a partida', text: 'O overlay aparece por cima do jogo com a próxima compra, o ouro de cada rota e os timers. Solte o TAB e ele some. Dá para trocar o modo em Configurações.' },
-    { art: h('div', { class: 'ob-art' }, h('div', { class: 'ob-flow' }, h('span', { text: 'Champ select' }), h('b', { text: '→' }), h('span', { text: 'Runas + feitiços + itens' }))),
+    { art: () => h('div', { class: 'ob-art' }, h('kbd', { class: 'ob-key', text: 'TAB' })),
+      title: 'Segure TAB durante a partida', text: 'O overlay aparece por cima do jogo com a próxima compra, o ouro de cada rota e os timers. Solte o TAB e ele some.' },
+    { art: () => h('div', { class: 'ob-art' }, h('div', { class: 'ob-flow' }, h('span', { text: 'Champ select' }), h('b', { text: '→' }), h('span', { text: 'Runas + feitiços + itens' }))),
       title: 'Trave o campeão, o resto vem sozinho', text: 'Quando você trava o campeão, o Nexo importa runas, feitiços e o conjunto de itens no cliente. Os itens aparecem na loja do jogo, em Arsenais, como "Nexo · Campeão".' },
-    { role: true, title: 'Qual é a sua rota principal?', text: 'Ela vira o padrão da tier list e das sugestões quando o jogo não define a sua rota. Seus mains vêm da sua maestria, sozinhos. Dá para mudar em Configurações.' },
-    { art: h('div', { class: 'ob-art' }, h('img', { src: 'logo.png', alt: '', class: 'ob-logo' })),
+    { art: () => roleArt(), title: 'Qual é a sua rota principal?', text: 'Ela vira o padrão da tier list e das sugestões quando o jogo não define a sua rota.' },
+    { art: () => poolArt(), title: 'Seus campeões favoritos', text: '' },
+    { art: () => quickArt(), title: 'Ajustes rápidos', text: 'Tudo isso fica em Configurações para mudar depois.' },
+    { art: () => h('div', { class: 'ob-art' }, h('img', { src: 'logo.png', alt: '', class: 'ob-logo' })),
       title: 'Grátis, com Pro opcional', text: 'Build, importação, overlay e tier list são grátis e funcionam sem conta. O Pro libera o laboratório de builds, a troca de rota, picks e bans, Skins e Itens. Entre com uma conta para usar o Pro em até 2 PCs.', last: true },
   ];
   let i = 0;
-  let pickedRole = s.mainRole || '';
   const roleArt = () => {
     const opts = [['', t('Automática')], ...['top', 'jungle', 'middle', 'bottom', 'utility'].map((r) => [r, t(ROLE_LABEL[r])])];
     const grid = h('div', { class: 'ob-roles', role: 'radiogroup', 'aria-label': t('Rota principal') }, ...opts.map(([r, label]) => {
-      const b = h('button', { type: 'button', class: `ob-role${r === pickedRole ? ' on' : ''}`, role: 'radio', 'aria-checked': String(r === pickedRole) },
+      const b = h('button', { type: 'button', class: `ob-role${r === cfg.role ? ' on' : ''}`, role: 'radio', 'aria-checked': String(r === cfg.role) },
         r ? h('img', { src: roleIconUrl(r), alt: '' }) : h('span', { class: 'ob-role-auto', text: 'A' }), h('span', { text: label }));
-      b.addEventListener('click', () => { pickedRole = r; draw(); });
+      b.addEventListener('click', () => { if (cfg.role !== r) cfg.pool = null; cfg.role = r; draw(); });
       return b;
     }));
     return h('div', { class: 'ob-art ob-art-roles' }, grid);
+  };
+  const poolArt = () => {
+    const r = poolRole();
+    if (!cfg.pool) cfg.pool = [...poolOf(r)];
+    const picker = champPicker({ value: cfg.pool, onChange: (v) => { cfg.pool = v; } });
+    return h('div', { class: 'ob-art ob-art-form' },
+      h('p', { class: 'ob-hint', text: tr('Os que você mais joga no {role} ganham prioridade nas sugestões de pick.', { role: t(ROLE_LABEL[r]) }) }), picker);
+  };
+  const quickArt = () => {
+    const flash = h('div', { class: 'flash-pick', role: 'group', 'aria-label': t('Tecla do Flash') });
+    drawFlashPick(flash, cfg.flash, (k) => { cfg.flash = k; });
+    const seg = h('div', { class: 'seg' }, ...[['tab', 'Só com TAB'], ['always', 'Sempre visível']].map(([k, label]) => {
+      const b = h('button', { type: 'button', class: `seg-btn${cfg.mode === k ? ' on' : ''}`, text: t(label) });
+      b.addEventListener('click', () => { cfg.mode = k; draw(); });
+      return b;
+    }));
+    const check = (key, label) => {
+      const cb = h('input', { type: 'checkbox' });
+      cb.checked = cfg[key];
+      cb.addEventListener('change', () => { cfg[key] = cb.checked; });
+      return h('label', { class: 'check' }, cb, h('span', { text: t(label) }));
+    };
+    return h('div', { class: 'ob-art ob-art-form ob-quick' },
+      h('div', { class: 'ob-q' }, h('span', { class: 'ob-ql', text: t('Flash') }), flash),
+      h('div', { class: 'ob-q' }, h('span', { class: 'ob-ql', text: t('Overlay') }), seg),
+      check('autoImport', 'Importar runas, feitiços e itens ao travar o campeão'),
+      check('startup', 'Iniciar com o Windows (abre minimizado)'));
   };
   const body = h('div', { class: 'ob-body' });
   const dots = h('div', { class: 'ob-dots', 'aria-hidden': 'true' });
   const back = h('button', { class: 'btn ghost', type: 'button', text: 'Voltar' });
   const next = h('button', { class: 'btn primary', type: 'button', text: 'Próximo' });
-  const skip = h('button', { class: 'ob-skip', type: 'button', text: 'Pular' });
+  const skip = h('button', { class: 'ob-skip', type: 'button', text: force ? 'Fechar' : 'Pular' });
   const actions = h('div', { class: 'ob-actions' }, back, next);
   const card = h('div', { class: 'pro-ask-card ob-card' }, skip, body, dots, actions);
-  const box = h('div', { class: 'pro-ask', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Boas-vindas ao Nexo') }, card);
-  const finish = (login) => {
-    window.overlay.setSettings({ onboarded: true, mainRole: pickedRole });
+  const box = h('div', { class: 'pro-ask', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Tutorial rápido do Nexo') }, card);
+  const finish = async (login) => {
+    const patch = { onboarded: true, mainRole: cfg.role, flashKey: cfg.flash, autoImport: cfg.autoImport, startWithWindows: cfg.startup, overlay: { mode: cfg.mode } };
+    if (cfg.pool) patch.picker = { pool: { [poolRole()]: cfg.pool } };
+    settings = await window.overlay.setSettings(patch).catch(() => settings);
     window.overlay.accountAsked();
     window.overlay.seenWhatsNew();
     box.remove(); onboarding = false;
+    if (settings && !$('settings').hidden) fillSettings();
+    showFlashKey();
     if (login) accountLogin(null);
   };
   const draw = () => {
     const st = steps[i];
-    body.replaceChildren(st.role ? roleArt() : st.art, h('h2', { text: st.title }), h('p', { class: 'muted', text: st.text }));
+    body.replaceChildren(st.art(), h('h2', { text: t(st.title) }), st.text ? h('p', { class: 'muted', text: t(st.text) }) : '');
     dots.replaceChildren(...steps.map((_, k) => h('span', { class: k === i ? 'on' : '' })));
     back.hidden = i === 0;
     if (st.last) {
-      const login = h('button', { class: 'btn primary', type: 'button', text: 'Entrar com conta' });
+      const login = h('button', { class: 'btn primary', type: 'button', text: planInfo.account ? 'Concluir' : 'Entrar com conta' });
       const guest = h('button', { class: 'btn ghost', type: 'button', text: 'Continuar como convidado' });
-      login.addEventListener('click', () => finish(true));
+      login.addEventListener('click', () => finish(!planInfo.account));
       guest.addEventListener('click', () => finish(false));
-      actions.replaceChildren(back, guest, login);
+      actions.replaceChildren(...(planInfo.account ? [back, login] : [back, guest, login]));
       login.focus();
     } else {
       actions.replaceChildren(back, next);
-      next.focus();
+      if (!body.querySelector('input')) next.focus();
     }
   };
   back.addEventListener('click', () => { if (i > 0) { i -= 1; draw(); } });
   next.addEventListener('click', () => { if (i < steps.length - 1) { i += 1; draw(); } });
   skip.addEventListener('click', () => finish(false));
-  box.addEventListener('keydown', (e) => { if (e.key === 'Escape') finish(false); if (e.key === 'ArrowRight' && !steps[i].last) next.click(); if (e.key === 'ArrowLeft') back.click(); });
+  box.addEventListener('keydown', (e) => {
+    if (e.target && e.target.tagName === 'INPUT') return;
+    if (e.key === 'Escape') finish(false);
+    if (e.key === 'ArrowRight' && !steps[i].last) next.click();
+    if (e.key === 'ArrowLeft') back.click();
+  });
   document.body.append(box);
   draw();
   return true;

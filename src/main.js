@@ -1761,6 +1761,7 @@ function registerIpc() {
     if (lcuEngine) lcuEngine.tick();
     return next;
   });
+  ipcMain.handle('champions:list', () => (dd ? Object.values(dd.champions).map((c) => ({ id: c.id, name: c.name })).sort((a, b) => a.name.localeCompare(b.name, 'pt')) : []));
   ipcMain.handle('tip:get', (_e, kind, key) => { try { return tipFor(String(kind), key); } catch { return null; } });
   ipcMain.handle('game:borderless', async () => {
     try {

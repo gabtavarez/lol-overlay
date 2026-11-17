@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.55.0",
+    "title": "Tutorial com configuração",
+    "items": [
+      "Botão Tutorial (Início e Configurações) abre o passo a passo quando quiser.",
+      "O tutorial configura rota, campeões favoritos, Flash D/F, overlay e importação.",
+      "Pool e \"Nunca sugerir\" agora têm busca de campeão com ícone."
+    ],
+    "en": {
+      "title": "Tutorial with setup",
+      "items": [
+        "Tutorial button (Home and Settings) opens the walkthrough anytime.",
+        "The tutorial sets your role, favorite champions, Flash D/F, overlay and import.",
+        "Pool and \"Never suggest\" now have a champion search with icons."
+      ]
+    },
+    "es": {
+      "title": "Tutorial con configuración",
+      "items": [
+        "Botón Tutorial (Inicio y Configuración) abre el paso a paso cuando quieras.",
+        "El tutorial configura rol, campeones favoritos, Flash D/F, overlay e importación.",
+        "Pool y \"Nunca sugerir\" ahora tienen búsqueda de campeón con ícono."
+      ]
+    }
+  },
+  {
     "version": "0.54.3",
     "title": "Overlays em cartões",
     "items": [

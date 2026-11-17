@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.54.3",
+    "title": "Overlays em cartões",
+    "items": [
+      "Configurações: cada overlay virou um cartão com prévia sobre o mapa e botão Ativado/Desativado."
+    ],
+    "en": {
+      "title": "Overlay cards",
+      "items": [
+        "Settings: each overlay is now a card with a preview over the map and an Enabled/Disabled button."
+      ]
+    },
+    "es": {
+      "title": "Overlays en tarjetas",
+      "items": [
+        "Configuración: cada overlay es una tarjeta con vista previa sobre el mapa y botón Activado."
+      ]
+    }
+  },
+  {
     "version": "0.54.2",
     "title": "Contagem de campeões",
     "items": [

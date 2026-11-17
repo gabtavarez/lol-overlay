@@ -1032,20 +1032,36 @@ function previewObserver() {
   }
   return prevObs;
 }
+// recorte do mapa atrás de cada prévia (posição no mapa, em %), como as capas do Blitz
+const OV_SCENE = { buys: '16% 82%', info: '50% 48%', gold: '30% 22%', timers: '64% 66%', kit: '34% 60%', goals: '84% 18%', coach: '50% 50%' };
 function fillOverlayList() {
   const en = (settings.overlay && settings.overlay.enabled) || {};
   $('ov-list').replaceChildren(...OVERLAYS.map(([key, name, desc]) => {
-    const cb = h('input', { type: 'checkbox' });
-    cb.checked = en[key] !== false;
-    cb.addEventListener('change', async () => { settings = await window.overlay.setSettings({ overlay: { enabled: { [key]: cb.checked } } }); });
-    const reset = h('button', { class: 'link', type: 'button', text: 'posição padrão' });
+    let on = en[key] !== false;
+    const card = h('div', { class: `ov-item${on ? '' : ' off'}` });
+    const toggle = h('button', { type: 'button', class: 'ov-toggle' });
+    const paint = () => {
+      card.classList.toggle('off', !on);
+      toggle.classList.toggle('on', on);
+      toggle.setAttribute('aria-pressed', String(on));
+      toggle.textContent = on ? t('Ativado') : t('Desativado');
+    };
+    toggle.addEventListener('click', async () => {
+      on = !on; paint();
+      settings = await window.overlay.setSettings({ overlay: { enabled: { [key]: on } } });
+    });
+    paint();
+    const reset = h('button', { class: 'ov-reset', type: 'button', text: 'Posição padrão', title: t('Volta o painel para o lugar e o tamanho originais') });
     reset.addEventListener('click', async () => { settings = await window.overlay.setSettings({ overlay: { panels: { [key]: null } } }); els.setMsg.textContent = tr('{name}: posição restaurada.', { name: t(name) }); });
     // prévia só carrega quando aparece na tela (antes eram 7 páginas carregadas ao abrir o app)
     const prev = h('iframe', { class: 'ov-prev', tabindex: '-1', title: name });
     prev.dataset.src = `overlay.html?preview=${key}&v=${encodeURIComponent(version || '')}`;
     previewObserver().observe(prev);
-    return h('div', { class: 'ov-item' }, h('div', { class: 'ov-prev-wrap' }, prev),
-      h('label', { class: 'ov-text' }, cb, h('div', {}, h('div', { class: 'strong', text: name }), h('div', { class: 'muted small', text: desc }))), reset);
+    const scene = h('div', { class: 'ov-prev-wrap', style: `background-position: ${OV_SCENE[key] || '50% 50%'}` }, prev);
+    card.append(scene,
+      h('div', { class: 'ov-body' }, h('h3', { class: 'ov-name', text: name }), h('p', { class: 'ov-desc', text: desc })),
+      h('div', { class: 'ov-foot' }, toggle, reset));
+    return card;
   }));
 }
 

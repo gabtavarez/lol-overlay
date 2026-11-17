@@ -76,9 +76,11 @@ async function loadInventory(creds, summonerId) {
       skins = new Set((list || []).filter((s) => s.ownership && s.ownership.owned && !s.isBase).map((s) => Number(s.id)));
     } catch { /* sem skins */ }
   }
-  try { champions = ids(await lcuGetJson(creds, '/lol-inventory/v2/inventory/CHAMPION')); } catch { /* tenta o outro */ }
+  // só campeões comprados de verdade: o inventário também traz os da rotação grátis e alugados
+  const owned = (list) => (Array.isArray(list) ? list : []).filter((x) => !x.ownershipType || ['OWNED', 'LOYALTY'].includes(String(x.ownershipType).toUpperCase()));
+  try { champions = ids(owned(await lcuGetJson(creds, '/lol-inventory/v2/inventory/CHAMPION'))); } catch { /* tenta o outro */ }
   if (!champions || !champions.size) {
-    try { champions = new Set((await lcuGetJson(creds, '/lol-champions/v1/owned-champions-minimal') || []).map((c) => Number(c.id))); } catch { /* sem campeões */ }
+    try { champions = new Set((await lcuGetJson(creds, '/lol-champions/v1/owned-champions-minimal') || []).filter((c) => !c.ownership || (c.ownership.owned && !(c.ownership.rental && c.ownership.rental.rented) && !c.freeToPlay)).map((c) => Number(c.id))); } catch { /* sem campeões */ }
   }
   let score = null;
   try { score = await lcuGetJson(creds, '/lol-champion-mastery/v1/local-player/champion-mastery-score'); } catch { /* soma os níveis */ }
@@ -203,7 +205,8 @@ function buildCollection({ inv, catalog, dd }) {
   const most = [...per].filter(([, r]) => r.owned).sort((a, b) => b[1].owned - a[1].owned).slice(0, 8)
     .map(([k, r]) => { const c = dd.championByKey(k); return c ? { id: c.id, name: c.name, ...r } : null; }).filter(Boolean);
   return {
-    champions: { owned: inv.champions.size, total: Object.keys(dd.champions).length },
+    // conta só ids de campeões que existem no patch (o inventário pode trazer ids de outros modos e duplicados)
+    champions: { owned: Math.min([...inv.champions].filter((k) => dd.championByKey(k)).length, Object.keys(dd.champions).length), total: Object.keys(dd.champions).length },
     skins: { owned: ownedSkins.length, total: skins.length },
     chromas: ownedChromas, legacy: ownedSkins.filter((s) => s.legacy).length,
     byRarity, jewels, most,

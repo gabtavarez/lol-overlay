@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.54.2",
+    "title": "Contagem de campeões",
+    "items": [
+      "Skins: a contagem de campeões não soma mais os da rotação grátis nem passa de 100%."
+    ],
+    "en": {
+      "title": "Champion count",
+      "items": [
+        "Skins: the champion count no longer includes free rotation ones or goes past 100%."
+      ]
+    },
+    "es": {
+      "title": "Conteo de campeones",
+      "items": [
+        "Aspectos: el conteo de campeones ya no suma los de rotación gratis ni pasa de 100%."
+      ]
+    }
+  },
+  {
     "version": "0.54.1",
     "title": "Sem aviso de novidades",
     "items": [

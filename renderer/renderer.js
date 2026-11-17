@@ -1874,7 +1874,7 @@ async function showWhatsNew(force = false) {
 }
 $('wn-ok').addEventListener('click', () => { $('whatsnew').hidden = true; window.overlay.seenWhatsNew(); });
 $('whatsnew').addEventListener('click', (e) => { if (e.target.id === 'whatsnew') $('wn-ok').click(); });
-setTimeout(async () => { if (!(await maybeOnboard())) showWhatsNew(false); }, 1200);
+setTimeout(async () => { if (!(await maybeOnboard())) window.overlay.seenWhatsNew(); }, 1200); // sem o aviso de novidades ao abrir; elas ficam em Configurações → Novidades
 
 /* ---------- patch nos seus campeões ---------- */
 

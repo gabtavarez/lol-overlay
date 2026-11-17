@@ -151,7 +151,6 @@
     $('who').classList.toggle('hidden', !logged);
     if (!logged) {
       if (pending('link')) $('auth-sub').textContent = 'Entre para conectar o Nexo deste PC à sua conta.';
-      else if (pending('buy')) $('auth-sub').textContent = 'Entre ou crie sua conta para comprar o Pro.';
       return;
     }
     $('who').textContent = session.user.email;
@@ -159,7 +158,7 @@
     await load();
     watchOrder();
     const b = pending('buy');
-    if (b) { clear('buy'); if (['m1', 'y1', 'life'].includes(b)) buy(b); }
+    if (b) clear('buy'); // compra pelo site pausada enquanto os preços são reformulados
   }
   if (q.get('reset')) {
     const p = prompt('Nova senha (mínimo 8 caracteres):');

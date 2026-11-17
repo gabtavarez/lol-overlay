@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.54.1",
+    "title": "Sem aviso de novidades",
+    "items": [
+      "O app não abre mais o aviso de novidades; elas ficam em Configurações → Novidades."
+    ],
+    "en": {
+      "title": "No what's new popup",
+      "items": [
+        "The app no longer opens the what's new popup; it's in Settings → What's new."
+      ]
+    },
+    "es": {
+      "title": "Sin aviso de novedades",
+      "items": [
+        "La app ya no abre el aviso de novedades; están en Configuración → Novedades."
+      ]
+    }
+  },
+  {
     "version": "0.54.0",
     "title": "Seu elo e compras espertas",
     "items": [

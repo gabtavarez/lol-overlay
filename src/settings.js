@@ -6,7 +6,7 @@ const { clamp } = require('./util');
 
 const ROLES = ['top', 'jungle', 'middle', 'bottom', 'utility'];
 const PANELS = ['buys', 'info', 'gold', 'timers', 'kit', 'goals', 'coach'];
-const BUILD_TIERS = ['ALL', 'GOLD', 'PLATINUM_PLUS', 'EMERALD_PLUS', 'DIAMOND_PLUS', 'MASTER_PLUS', 'CHALLENGER'];
+const BUILD_TIERS = ['AUTO', 'ALL', 'GOLD', 'PLATINUM_PLUS', 'EMERALD_PLUS', 'DIAMOND_PLUS', 'MASTER_PLUS', 'CHALLENGER'];
 const WEIGHT_KEYS = ['mastery', 'meta', 'counter', 'comp', 'synergy'];
 
 function cleanList(value) {
@@ -51,6 +51,8 @@ function sanitize(input, base) {
   if ('autoUpdate' in input) out.autoUpdate = input.autoUpdate !== false;
   if ('errorReports' in input) out.errorReports = input.errorReports === true;
   if ('startWithWindows' in input) out.startWithWindows = input.startWithWindows === true;
+  if ('tierMigrated' in input) out.tierMigrated = input.tierMigrated === true;
+  if ('mainRole' in input) out.mainRole = ['top', 'jungle', 'middle', 'bottom', 'utility'].includes(input.mainRole) ? input.mainRole : '';
   if ('onboarded' in input) out.onboarded = input.onboarded === true;
   if ('license' in input) out.license = typeof input.license === 'string' && input.license.length <= 4000 ? input.license.trim() : '';
   if ('language' in input) out.language = ['pt', 'en', 'es'].includes(input.language) ? input.language : 'pt';
@@ -65,6 +67,7 @@ function sanitize(input, base) {
   const ov = input.overlay;
   if (ov && typeof ov === 'object') {
     if ('mode' in ov) out.overlay.mode = ov.mode === 'always' ? 'always' : 'tab';
+    if ('size' in ov) out.overlay.size = ov.size === 'auto' ? 'auto' : clamp(Number(ov.size) || 1, 0.7, 2);
     if (ov.enabled && typeof ov.enabled === 'object') {
       out.overlay.enabled = { ...(out.overlay.enabled || {}) };
       for (const name of PANELS) if (name in ov.enabled) out.overlay.enabled[name] = ov.enabled[name] !== false;

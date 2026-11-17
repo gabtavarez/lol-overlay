@@ -9,6 +9,7 @@
   "flashKey": "F",
   "overlay": {
     "mode": "tab",
+    "size": "auto",
     "panels": {
       "buys": null,
       "info": null,
@@ -48,12 +49,13 @@
     "minGamesForRole": 1,
     "maxResults": 10
   },
-  "buildTier": "EMERALD_PLUS",
+  "buildTier": "AUTO",
   "lastSeenVersion": "",
   "discordRpc": false,
   "discordClientId": "",
   "language": "pt",
   "errorReports": false,
   "startWithWindows": false,
+  "mainRole": "",
   "onboarded": false
 }

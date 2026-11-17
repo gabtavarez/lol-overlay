@@ -104,6 +104,39 @@ function bestComponent(dd, id, owned, gold) {
   return best;
 }
 
+/**
+ * Componente da receita que cabe no ouro, escolhido pela situação da partida:
+ * need 'mr' | 'armor' | 'hp' (perdendo a rota: o que segura o oponente) ou 'dmg' (ganhando: o que aumenta o dano).
+ * Sem nada que combine, fica o mais caro que cabe (como antes).
+ */
+function situationalComponent(dd, id, owned, gold, need) {
+  const have = new Set(owned);
+  const list = [];
+  const walk = (itemId) => {
+    const it = dd.item(itemId);
+    if (!it) return;
+    for (const part of it.from || []) {
+      const p = dd.item(part);
+      if (!p || have.has(Number(part))) continue;
+      const cost = (p.gold && p.gold.total) || 0;
+      if (cost <= gold && cost >= 300) list.push({ id: Number(part), name: p.name, cost, stats: p.stats || {} });
+      walk(part);
+    }
+  };
+  walk(id);
+  if (!list.length) return null;
+  const fits = (c) => {
+    const st = c.stats;
+    if (need === 'mr') return (st.FlatSpellBlockMod || 0) > 0;
+    if (need === 'armor') return (st.FlatArmorMod || 0) > 0;
+    if (need === 'hp') return (st.FlatHPPoolMod || 0) > 0 || (st.FlatArmorMod || 0) > 0 || (st.FlatSpellBlockMod || 0) > 0;
+    if (need === 'dmg') return (st.FlatMagicDamageMod || 0) + (st.FlatPhysicalDamageMod || 0) + (st.PercentAttackSpeedMod || 0) * 100 + (st.FlatCritChanceMod || 0) * 100 > 0;
+    return false;
+  };
+  const best = [...list].sort((a, b) => (fits(b) - fits(a)) || b.cost - a.cost)[0];
+  return { id: best.id, name: best.name, cost: best.cost, fits: fits(best) };
+}
+
 function firstAvailable(ids, dd, ownedSet) {
   return (ids || []).find((id) => dd.item(id) && !ownedSet.has(id)) || null;
 }
@@ -321,6 +354,10 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   }
 
   // Anti-cura: curandeiros nativos ou 2+ inimigos com roubo de vida. Começa pelo componente de 800 g.
+  let healUrgent = false;
+  let healComp = null;
+  let healWho = '';
+  const legendariesNow = owned.filter((id) => ((dd.item(id) || {}).gold || {}).total >= 2200).length;
   const healers = t.filter((x) => flags.healers.includes(x.e.championId));
   // Roubo de vida só conta com item LENDÁRIO de cura (ex.: Sedenta por Sangue); Lâmina de Doran e afins não.
   const healIds = new Set((reactive.lifestealItems && reactive.lifestealItems.ids) || []);
@@ -330,7 +367,24 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     const all = [...healers, ...(lifesteal.length >= 2 ? lifesteal : [])];
     const hw = all.reduce((s, x) => s + x.w, 0);
     const why = all.map((x) => (healers.includes(x) ? x.e.champion : `${x.e.champion} (${healItem(x.e).meta.name})`)).slice(0, 3).join(', ');
-    react('antiheal', Math.min(92, (healers.length ? 62 : 54) + hw * 12), tr('Anti-cura contra {champs} · o componente de 800 g já resolve', { champs: why }), ids(all));
+    // Momento certo: cura forte (curandeiro fed, na sua rota ou 2+ curandeiros) pede o componente de 800 g já;
+    // cura fraca espera o 1º item; com o componente na mão, a versão completa entra no fim do jogo.
+    healUrgent = all.some((x) => x.fed || x.lane) || healers.length >= 2;
+    const ahList = (reactive.antiheal || {})[cls] || [];
+    const hasComp = ahList.length && ownedSet.has(ahList[0]);
+    const base = Math.min(92, (healers.length ? 62 : 54) + hw * 12);
+    if (!hasComp) {
+      const wait = legendariesNow === 0 && (state.gameTime || 0) < 600; // começo de jogo, cura fraca: 1º item antes
+      const score = healUrgent ? Math.max(base, 82) : wait ? Math.min(base, 58) : base;
+      react('antiheal', score,
+        healUrgent ? tr('Anticura agora: {champs} cura demais · o componente de 800 g já corta a cura', { champs: why })
+          : wait ? tr('Anticura contra {champs} · depois do 1º item, o componente de 800 g resolve', { champs: why })
+            : tr('Anti-cura contra {champs} · o componente de 800 g já resolve', { champs: why }), ids(all));
+    } else if (legendariesNow >= 2 && ahList[1] && !ownedSet.has(ahList[1])) {
+      add(ahList[1], Math.min(80, 58 + hw * 10), tr('Feche a anticura: a cura de {champs} cresce no fim do jogo', { champs: why }), 'antiheal', ids(all));
+    }
+    if (healUrgent) healComp = !hasComp ? firstAvailable(ahList, dd, ownedSet) : null;
+    healWho = why;
   }
 
   // Burst AP explosivo vivo (Veigar, Syndra, Fizz, LeBlanc…): Zhonya / Malmortius / Bordo da Noite.
@@ -543,16 +597,24 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
   // Ferramenta de Treino: ouro "infinito" e sem por que voltar à base. Só diz o que comprar.
   const practice = String(state.gameMode || '').toUpperCase() === 'PRACTICETOOL' || me.gold >= 50000;
   const buyable = items.filter((i) => i.canBuy && i.cost >= 900).sort((a, b) => b.score - a.score)[0];
+  const healGold = healComp ? goldOf(dd, healComp) : 0;
+  // componente pela situação: perdendo a rota segura o oponente; ganhando, mais dano
+  const need = laneState === 'losing' ? (opp ? (opp.d.ap >= 0.6 ? 'mr' : opp.d.ad >= 0.6 ? 'armor' : 'hp') : 'hp') : laneState === 'winning' ? 'dmg' : null;
   if (practice) {
     recall = buyable ? tr('Modo treino: compre {item} para testar a build.', { item: buyable.name }) : null;
+  } else if (healComp && healGold && me.gold >= healGold && (state.gameTime || 0) >= 300) {
+    recall = tr('Você tem {g} g: volte e compre {item} agora · corta a cura de {champs}.', { g: me.gold, item: (dd.item(healComp) || {}).name || '', champs: healWho });
   } else if (buyable && me.gold >= 1300) {
     recall = tr('Você tem {g} g: volte e feche {item}.', { g: me.gold, item: buyable.name });
-  } else if (me.gold >= 1300 && items[0]) {
-    // >= 1300 g: o componente épico mais caro que cabe no bolso, rumo ao item principal
-    const comp = bestComponent(dd, items[0].id, owned, me.gold);
-    recall = comp
-      ? tr('Você tem {g} g: volte e compre {item} ({cost} g) rumo a {target}.', { g: me.gold, item: comp.name, cost: comp.cost, target: items[0].name })
-      : tr('{g} g parados: vale voltar à base.', { g: me.gold });
+  } else if (me.gold >= (need && need !== 'dmg' ? 900 : 1300) && items[0]) {
+    // componente rumo ao item principal: o que a situação pede (defesa perdendo, dano ganhando), senão o mais caro
+    const sit = need ? situationalComponent(dd, items[0].id, owned, me.gold, need) : null;
+    const comp = sit && sit.fits ? sit : bestComponent(dd, items[0].id, owned, me.gold);
+    const args = { g: me.gold, item: comp && comp.name, cost: comp && comp.cost, target: items[0].name, champ: opp ? opp.e.champion : tr('o oponente') };
+    recall = !comp ? (me.gold >= 1300 ? tr('{g} g parados: vale voltar à base.', { g: me.gold }) : null)
+      : sit && sit.fits && need === 'dmg' ? tr('Você tem {g} g: volte e compre {item} ({cost} g) rumo a {target} · mais dano para aproveitar a vantagem.', args)
+        : sit && sit.fits ? tr('Você tem {g} g: volte e compre {item} ({cost} g) rumo a {target} · segura melhor a rota contra {champ}.', args)
+          : tr('Você tem {g} g: volte e compre {item} ({cost} g) rumo a {target}.', args);
   } else if (me.gold >= 800 && !hasBoots && state.gameTime < 900) {
     recall = tr('{g} g: bota básica + componentes menores se for voltar.', { g: me.gold });
   }
@@ -570,4 +632,4 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 }
 
 module.exports = {
-  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory };
+  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory, situationalComponent };

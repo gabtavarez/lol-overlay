@@ -179,12 +179,19 @@ function defaults() {
   return { buys: { x: 18, y, scale: 1 }, info: { x: 18, y: y + 420, scale: 1 }, gold: { x: window.innerWidth - 300, y, scale: 1 }, timers: { x: window.innerWidth - 300, y: Math.max(10, y - 250), scale: 1 }, kit: { x: 362, y: Math.max(10, y - 170), scale: 1 }, goals: { x: 362, y: y + 10, scale: 1 }, coach: { x: Math.round(window.innerWidth / 2 - 160), y: 12, scale: 1 } };
 }
 
+/** Tamanho geral do overlay: "auto" acompanha a resolução (1080p = 100%, 1440p ≈ 133%), ou o valor escolhido. */
+let sizeSetting = 'auto';
+function globalScale() {
+  if (sizeSetting !== 'auto') return Number(sizeSetting) || 1;
+  return Math.min(1.6, Math.max(0.9, (window.screen && window.screen.height ? window.screen.height : window.innerHeight) / 1080));
+}
+
 function apply(name) {
   const p = panels[name] || defaults()[name];
   const el = boxes[name];
   el.style.left = `${p.x}px`;
   el.style.top = `${p.y}px`;
-  el.style.transform = `scale(${p.scale})`;
+  el.style.transform = `scale(${(p.scale * globalScale()).toFixed(3)})`;
 }
 
 function draw() {
@@ -312,6 +319,8 @@ window.overlay.onState((state) => { if (PREVIEW_ONLY) return; lastState = state;
 window.overlay.onSettings((s) => {
   if (PREVIEW_ONLY) return;
   enabled = (s.overlay && s.overlay.enabled) || {};
+  sizeSetting = (s.overlay && s.overlay.size) || 'auto';
+  Object.keys(boxes).forEach(apply);
   if (!dragging && s.overlay && s.overlay.panels) { panels = { ...s.overlay.panels }; Object.keys(boxes).forEach(apply); }
   draw();
 });
@@ -322,6 +331,7 @@ window.overlay.getSettings().then((s) => {
   if (PREVIEW_ONLY) return;
   if (s && s.overlay && s.overlay.panels) panels = { ...panels, ...s.overlay.panels };
   enabled = (s && s.overlay && s.overlay.enabled) || {};
+  sizeSetting = (s && s.overlay && s.overlay.size) || 'auto';
   Object.keys(boxes).forEach(apply);
 });
 window.addEventListener('resize', () => Object.keys(boxes).forEach(apply));

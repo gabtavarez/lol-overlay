@@ -6,6 +6,8 @@ const { createEngine } = require('./engine');
 const { createLcuEngine } = require('./lcuEngine');
 const { discoverCredentials, lcuGetJson } = require('./lcu');
 const { readWindowMode, setBorderless } = require('./windowMode');
+const champFlags = require('../data/champion-flags.json');
+const reactiveItems = require('../data/reactive-items.json');
 const { createSettingsStore } = require('./settings');
 const { loadMeta } = require('./meta');
 const { pickState } = require('./router');
@@ -859,7 +861,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   let src = 'opgg';
   if (source === 'ugg' && vs) note = i18n.t('O U.GG não separa a build por confronto: mostrando o OP.GG.');
   if (source === 'lola') {
-    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getTier: () => settings.get().buildTier || 'EMERALD_PLUS', getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
+    if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getTier: () => buildTier(), getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
     const enemyL = vs ? champById(vs) : null;
     if (enemyL) vsName = enemyL.name;
     lola.ensure(champ.id, role, notify, enemyL ? enemyL.id : null);
@@ -935,7 +937,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
     let ref = null;
     if (src === 'lola' && build) ref = { source: 'OP.GG', core: build.core || [], keystone: build.runes && build.runes.perks ? build.runes.perks[0] : null, boots: (build.boots || [])[0] || null };
     else if (src === 'opgg' && !vs && source !== 'lola') {
-      if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getTier: () => settings.get().buildTier || 'EMERALD_PLUS', getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
+      if (!lola) lola = createLolalytics({ log: (m) => logger.log(m), fetchImpl: browserFetch, getTier: () => buildTier(), getStyles: () => (runeStyles || []).map((st) => ({ id: st.id, slots: (st.slots || []).map((sl) => sl.runes || []) })) });
       lola.ensure(champ.id, role, notify);
       const l = lola.get(champ.id, role);
       if (l && l.cores && l.cores[0]) ref = { source: 'Lolalytics', core: l.cores[0].ids, keystone: l.runes[0] ? l.runes[0].perks[0] : null, boots: l.boots[0] ? l.boots[0].ids[0] : null };
@@ -952,7 +954,7 @@ function labFor({ id, role: wanted, vs, mode = 'play', source = 'opgg' } = {}) {
   const runeName = (x) => (runeIndex[x] && runeIndex[x].name) || String(x);
   return {
     champion: { id: champ.id, name: champ.name }, role, vs: src === 'ugg' ? null : vs || null, vsName: src === 'ugg' ? null : vsName, tip, mode, pending, source: src, note,
-    tier: settings.get().buildTier || 'EMERALD_PLUS', patch: (opts && opts.patch) || null, chosen: chosenFor(champ, role) ? { source: chosenFor(champ, role).source, label: chosenFor(champ, role).label } : null,
+    tier: buildTier(), patch: (opts && opts.patch) || null, chosen: chosenFor(champ, role) ? { source: chosenFor(champ, role).source, label: chosenFor(champ, role).label } : null,
     slots: slots.map((sl) => ({ pos: sl.pos, label: sl.label, options: sl.options.map((o) => ({ items: named(o.ids), play: o.play, wr: o.wr, pick: o.pick })) })),
     other, totalGames,
     sample, sampleOf: vs ? 1 : Math.min(LAB_SAMPLE, opponents.length),
@@ -981,6 +983,28 @@ const ITEM_CLASS = (it) => {
   if (t.includes('Health') || t.includes('Armor') || t.includes('SpellBlock')) return 'tank';
   return 'other';
 };
+/** Detalhes para a dica ao passar o mouse: item (por id) ou runa (pelo caminho do ícone). */
+const tipPlain = (x) => String(x || '').replace(/<br\s*\/?>/gi, '\n').replace(/<(li|p)>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+function tipFor(kind, key) {
+  if (kind === 'item') {
+    const it = dd && dd.item(Number(key));
+    if (!it) return null;
+    const lines = tipPlain(it.description).split('\n').map((l) => l.trim()).filter(Boolean);
+    return { kind, name: it.name, gold: (it.gold && it.gold.total) || 0, lines: lines.slice(0, 10) };
+  }
+  if (kind === 'rune') {
+    const want = String(key || '').toLowerCase();
+    for (const st of runeStyles || []) {
+      for (const slot of st.slots || []) {
+        for (const r of slot.runes || []) {
+          if (r.icon && want.endsWith(String(r.icon).toLowerCase())) return { kind, name: r.name, lines: [tipPlain(r.shortDesc || r.longDesc)].filter(Boolean) };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function itemList() {
   if (!dd) return { items: [], version: null };
   const plain = (x) => String(x || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
@@ -1112,6 +1136,20 @@ function prefetchChampSelect(state, done) {
   const opp = state.enemies.find((e) => e.champion && e.position === role);
   if (opp) for (const c of picks.slice(0, 4)) remote.ensureMatchup({ id: c.id }, opp.champion, role, done);
   for (const a of state.allies) if (a.champion && a.position) remote.ensureSynergy(a.champion, a.position, role, done);
+}
+
+/**
+ * Faixa de elo das estatísticas de build. "AUTO" segue o seu elo solo:
+ * Ferro a Prata usam todos os elos, Mestre+ usa Diamante+ (a amostra de Mestre+ é pequena demais),
+ * sem elo (ou cliente fechado) fica em Esmeralda+.
+ */
+const AUTO_TIER = { IRON: 'ALL', BRONZE: 'ALL', SILVER: 'ALL', GOLD: 'GOLD', PLATINUM: 'PLATINUM_PLUS', EMERALD: 'EMERALD_PLUS', DIAMOND: 'DIAMOND_PLUS', MASTER: 'DIAMOND_PLUS', GRANDMASTER: 'DIAMOND_PLUS', CHALLENGER: 'DIAMOND_PLUS' };
+function buildTier() {
+  const chosen = (settings && settings.get().buildTier) || 'AUTO';
+  if (chosen !== 'AUTO') return chosen;
+  const p = lcuEngine && lcuEngine.getProfile();
+  const rk = (p && p.summoner && p.summoner.rank) || lastRank;
+  return (rk && AUTO_TIER[rk.tier]) || 'EMERALD_PLUS';
 }
 
 /** Seu elo solo (lido do cliente; sem ele, Ouro como referência). */
@@ -1316,7 +1354,8 @@ function decorateLcu(state) {
     const profile = lcuEngine && lcuEngine.getProfile();
     const mRiot = settings.get().myRiotId;
     const recent = mRiot && remote.getMatches(mRiot, currentRegion());
-    const mainRole = mainRoleOf({ matches: recent && recent.list, roles: state.home.roles });
+    // rota principal: a que você escolheu (tour ou Configurações), senão a que mais aparece no seu histórico
+    const mainRole = settings.get().mainRole || mainRoleOf({ matches: recent && recent.list, roles: state.home.roles });
     state.home.fit = profile && tl ? championFit({ mastery: profile.mastery, dd, tierList: tl.data, mainRole, roleStats: profile.roleStats }) : [];
     const s = profile && profile.summoner;
     if (s && s.gameName && s.tagLine && settings.get().myRiotId !== `${s.gameName}#${s.tagLine}`) settings.update({ myRiotId: `${s.gameName}#${s.tagLine}` });
@@ -1592,6 +1631,13 @@ function registerIpc() {
         coreOf: (name, role) => { const id = ddId(name); const b = id && remote.getBuild({ id }, role); return b ? b.core : []; },
         itemName: (itemId) => ((dd && dd.item(itemId)) || {}).name || String(itemId),
         tier: myTier(),
+        checks: {
+          isHealer: (id) => (champFlags.healers || []).includes(id),
+          apShare: (id) => (champFlags.apShare || {})[id],
+          antiHeal: new Set(Object.values(reactiveItems.antiheal || {}).flat()),
+          stat: (itemId) => ((dd && dd.item(itemId)) || {}).stats,
+          isBoots: (itemId) => (((dd && dd.item(itemId)) || {}).tags || []).includes('Boots'),
+        },
       });
       return { ok: true, detail, review };
     } catch (err) {
@@ -1715,6 +1761,7 @@ function registerIpc() {
     if (lcuEngine) lcuEngine.tick();
     return next;
   });
+  ipcMain.handle('tip:get', (_e, kind, key) => { try { return tipFor(String(kind), key); } catch { return null; } });
   ipcMain.handle('game:borderless', async () => {
     try {
       await setBorderless(lcuEngine && lcuEngine.getCreds());
@@ -1773,7 +1820,7 @@ app.whenReady().then(() => {
     cacheDir: path.join(userData, 'remote'),
     isEnabled: () => !USE_MOCK && settings.get().remoteData.enabled,
     onStatus: (text, level) => setStatus(text, level),
-    getTier: () => settings.get().buildTier,
+    getTier: () => buildTier(),
   });
 
   if (!DEVTOOLS_ALLOWED) Menu.setApplicationMenu(null); // sem menu padrão do Electron (View > Toggle DevTools etc.)
@@ -1825,6 +1872,8 @@ app.whenReady().then(() => {
   liveEngine.start();
   lcuEngine.start();
   if (settings.get().startWithWindows) applyLoginItem(true);
+  // elo automático: quem nunca trocou a faixa (ficou no padrão antigo Esmeralda+) passa a seguir o próprio elo
+  if (!settings.get().tierMigrated) settings.update({ tierMigrated: true, ...(settings.get().buildTier === 'EMERALD_PLUS' ? { buildTier: 'AUTO' } : {}) });
   loadDataDragon();
 
   if (app.isPackaged && !USE_MOCK) {

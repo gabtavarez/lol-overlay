@@ -113,6 +113,54 @@ function setHero(head, champId) {
   if (img.dataset.src !== src) { img.dataset.src = src; img.hidden = true; img.src = src; }
 }
 
+/**
+ * Carregando em blocos no formato do conteúdo que vem (no lugar de só um texto "Carregando…").
+ * kind: 'build' (cabeçalho + fileiras de ícones) | 'list' (linhas com ícone) | 'grid' (ícones em grade).
+ */
+function skel(kind = 'list', n = 5) {
+  const line = (w) => h('span', { class: 'sk-line', style: `width:${w}%` });
+  const sq = (cls = 'sk-sq') => h('span', { class: cls });
+  let rows = [];
+  if (kind === 'build') {
+    rows = [
+      h('div', { class: 'sk-row' }, sq('sk-sq big'), h('div', { class: 'sk-col' }, line(40), line(25))),
+      h('div', { class: 'sk-row' }, ...Array.from({ length: 6 }, () => sq())),
+      h('div', { class: 'sk-row' }, ...Array.from({ length: 4 }, () => sq('sk-sq round'))),
+      h('div', { class: 'sk-col' }, line(90), line(70)),
+    ];
+  } else if (kind === 'grid') {
+    rows = [h('div', { class: 'sk-grid' }, ...Array.from({ length: n * 6 }, () => sq()))];
+  } else {
+    rows = Array.from({ length: n }, (_, i) => h('div', { class: 'sk-row' }, sq('sk-sq round'), h('div', { class: 'sk-col' }, line(55 - (i % 3) * 10), line(30 + (i % 2) * 15))));
+  }
+  return h('div', { class: `skel skel-${kind}`, 'aria-busy': 'true', 'aria-label': t('Carregando') }, ...rows);
+}
+
+/** Tela vazia: o N do logo, o traço do pincel, um título e o que fazer. */
+function emptyState(title, text) {
+  return h('div', { class: 'empty' },
+    h('img', { class: 'empty-logo', src: 'logo-n.png', alt: '' }),
+    h('span', { class: 'empty-brush', 'aria-hidden': 'true' }),
+    h('b', { text: title }),
+    text ? h('p', { class: 'muted', text }) : null);
+}
+
+/** Início: a arte do último campeão que você jogou no topo, com a sequência das últimas partidas. */
+function drawHomeHero(tilt, v) {
+  const recent = (tilt && tilt.recent) || [];
+  const last = recent[0];
+  setHero($('home-head'), last && last.id);
+  const box = $('home-streak');
+  if (!recent.length) { box.hidden = true; return; }
+  const st = tilt.streak || {};
+  const label = st.count >= 2 ? tr(st.type === 'win' ? '{n} vitórias seguidas' : '{n} derrotas seguidas', { n: st.count })
+    : tr(last.win ? 'Última: vitória com {champ}' : 'Última: derrota com {champ}', { champ: last.name || '' });
+  box.replaceChildren(
+    h('span', { class: `hs-label ${st.count >= 2 ? (st.type === 'win' ? 'up' : 'down') : ''}`, text: label }),
+    h('span', { class: 'hs-dots', 'aria-hidden': 'true' }, ...recent.slice(0, 10).map((g) => h('i', { class: g.win ? 'w' : 'l', title: g.name || '' }))));
+  box.hidden = false;
+}
+
 /** Carregando: o traço do N sendo pintado. */
 function brushLoader() {
   return h('div', { class: 'brush-load', role: 'progressbar', 'aria-label': t('Carregando') });
@@ -351,7 +399,7 @@ function rolePicker(root, onChange = null) {
 function drawGuide() {
   if (!guide) {
     $('guide-tabs').replaceChildren();
-    els.guideBody.replaceChildren(h('p', { class: 'muted', text: 'Carregando dados do OP.GG…' }));
+    els.guideBody.replaceChildren(skel('build'), h('p', { class: 'muted small', text: 'Carregando dados do OP.GG…' }));
     setImportEnabled(false);
     return;
   }
@@ -435,7 +483,7 @@ function drawGuide() {
   if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
   right.append(drawBuildPath(g));
   parts.push(h('div', { class: 'g-grid' }, left, right));
-  const myRole = (lastState && (lastState.myRole || lastState.myPosition)) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : 'middle');
+  const myRole = (lastState && (lastState.myRole || lastState.myPosition)) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : (lastState && lastState.home && lastState.home.mainRole) || 'middle');
   if (myRole && !['aram', 'arena'].includes(myRole) && !(lastState && lastState.mode)) {
     const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
     const lane = foes.find((e) => e.position === myRole) || foes.find((e) => !e.position && e.predicted === myRole && e.confidence >= 50);
@@ -633,7 +681,7 @@ function drawGameBuild() {
     rp.replaceChildren(rolePicker({ roleOverride: lastState && lastState.roleOverride }, () => {})); // o próximo estado do jogo já vem com a rota nova
   } else if (rp) rp.hidden = true;
   if (!d || !d.guide) {
-    box.replaceChildren(h('p', { class: 'muted pad', text: d && d.error ? tr('Sem dados do OP.GG: {err}', { err: d.error }) : tr('Carregando a build do OP.GG…') }));
+    box.replaceChildren(...(d && d.error ? [] : [skel('build')]), h('p', { class: 'muted pad', text: d && d.error ? tr('Sem dados do OP.GG: {err}', { err: d.error }) : tr('Carregando a build do OP.GG…') }));
     return;
   }
   const g = d.guide;
@@ -842,13 +890,14 @@ function renderHome(state) {
     : h('div', { id: 'side-avatar', class: 'avatar' }));
 
   renderTilt(home.tilt, v);
+  drawHomeHero(home.tilt, v);
 
   const champs = home.top || [];
   $('home-champs').replaceChildren(...(champs.length
     ? champs.map((c) => h('div', { class: 'hc' },
       v ? h('img', { src: champIcon(v, c.id), alt: c.name }) : h('span', { class: 'ic' }),
       h('div', {}, h('div', { class: 'hc-name', text: c.name }), h('div', { class: 'muted small', text: t('Maestria {lvl} · {pts} pts', { lvl: c.level, pts: fmtPts(c.points) }) }))))
-    : [h('p', { class: 'muted pad', text: state.client === 'open' ? (home.loading ? 'Carregando sua maestria…' : 'Sem dados de maestria.') : 'Abra o cliente do LoL para ver sua maestria.' })]));
+    : [state.client === 'open' ? (home.loading ? skel('list', 4) : emptyState(t('Sem dados de maestria'), t('Jogue algumas partidas e eles aparecem aqui.'))) : emptyState(t('O cliente do LoL está fechado'), t('Abra o cliente para ver sua maestria e as sugestões de campeão.'))]));
 
   const roles = home.roles || [];
   const max = Math.max(1, ...roles.map((r) => r.games));
@@ -905,11 +954,25 @@ window.overlay.onAutoImport((r) => {
     imported.runes = true;
     imported.spells = true;
     drawGuide();
+    celebrate($('imp-all'));
   }
 });
 
+/** Confirmação de importação: o botão vira "✓ Importado" com um pulso rosa e volta sozinho. */
+function celebrate(btn) {
+  if (!btn || !(btn instanceof HTMLElement)) return;
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+  btn.textContent = `✓ ${t('Importado')}`;
+  btn.classList.remove('imp-ok');
+  void btn.offsetWidth; // reinicia a animação
+  btn.classList.add('imp-ok');
+  clearTimeout(btn._okTimer);
+  btn._okTimer = setTimeout(() => { btn.classList.remove('imp-ok'); btn.textContent = btn.dataset.label; delete btn.dataset.label; }, 1800);
+}
+
 async function doImport(what) {
   if (!shownId) return;
+  const clicked = what === 'both' ? $('imp-all') : what === 'items' ? $('imp-items') : null;
   els.impMsg.textContent = t('Importando…');
   const edited = what !== 'items' && runeEdits.get(guideRuneKey);
   const res = edited ? await importWithEditedRunes(shownId, edited, what, (w) => window.overlay.importBuild(shownId, w, variant, runePage))
@@ -919,6 +982,8 @@ async function doImport(what) {
     if (res.done.includes('runas')) imported.runes = true;
     if (res.done.includes(t('feitiços'))) imported.spells = true;
     drawGuide();
+    if (what === 'both' || what === 'items') celebrate(clicked);
+    else document.querySelectorAll('.badge.on').forEach((b) => { b.classList.add('imp-ok'); setTimeout(() => b.classList.remove('imp-ok'), 1000); });
   }
 }
 /** Runas editadas pelo usuário + o resto (feitiços/itens) do OP.GG. */
@@ -998,12 +1063,14 @@ function fillSettings() {
   $('set-update').checked = settings.autoUpdate !== false;
   $('set-errors').checked = settings.errorReports === true;
   $('set-import').checked = settings.autoImport !== false;
-  $('set-tier').value = settings.buildTier || 'EMERALD_PLUS';
+  $('set-tier').value = settings.buildTier || 'AUTO';
+  $('set-mainrole').value = settings.mainRole || '';
   $('set-riotid').value = settings.myRiotId || '';
   drawFlashPick($('set-flash'), settings.flashKey || 'F', (k) => { $('set-flash').dataset.k = k; });
   $('set-startup').checked = settings.startWithWindows === true;
   $('set-lang').value = settings.language || 'pt';
   $('set-overlay-mode').value = (settings.overlay && settings.overlay.mode) || 'tab';
+  $('set-overlay-size').value = String((settings.overlay && settings.overlay.size) || 'auto');
   $('set-discord').checked = settings.discordRpc === true;
   $('set-discord-id').value = settings.discordClientId || '';
   showDiscordStatus();
@@ -1040,12 +1107,13 @@ async function saveSettings() {
     errorReports: $('set-errors').checked,
     autoImport: $('set-import').checked,
     buildTier: $('set-tier').value,
+    mainRole: $('set-mainrole').value,
     myRiotId: $('set-riotid').value.trim(),
     flashKey: $('set-flash').dataset.k || settings.flashKey || 'F',
     startWithWindows: $('set-startup').checked,
     discordRpc: $('set-discord').checked,
     discordClientId: $('set-discord-id').value.trim(),
-    overlay: { mode: $('set-overlay-mode').value },
+    overlay: { mode: $('set-overlay-mode').value, size: $('set-overlay-size').value === 'auto' ? 'auto' : Number($('set-overlay-size').value) },
     picker: {
       weights,
       pool: { [els.setRole.value]: splitList(els.setPool.value) },
@@ -1256,7 +1324,7 @@ function drawTierList() {
     const msg = tl && tl.error ? tr('Não consegui carregar: {err}', { err: tl.error })
       : tl && tl.loading ? tr('Montando a tier list de {elo} ({n} campeões, ~30 s na primeira vez)…', { elo: t(TL_ELO_PT[tlElo]), n: tl.loading })
         : 'Carregando a tier list do OP.GG…';
-    body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: msg })));
+    body.replaceChildren(h('section', { class: 'panel' }, ...(tl && tl.error ? [] : [skel('list', 8)]), h('p', { class: 'muted', text: msg })));
     return;
   }
   const meta = [`Patch ${String(tl.patch || '').split('.').slice(0, 2).join('.')}`, `${TL_ELO_PT[tl.tier] || 'Esmeralda+'} · Global`, 'OP.GG'];
@@ -1271,7 +1339,7 @@ function drawTierList() {
   if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q));
   const order = (a, b) => (sort === 'tier' ? a.tier - b.tier || b.winRate - a.winRate : b[sort] - a[sort]);
   rows.sort(order);
-  if (!rows.length) { body.replaceChildren(h('section', { class: 'panel' }, h('p', { class: 'muted', text: 'Nenhum campeão encontrado.' }))); return; }
+  if (!rows.length) { body.replaceChildren(h('section', { class: 'panel' }, emptyState(t('Nenhum campeão encontrado'), t('Tente outro nome ou outra rota.')))); return; }
 
   // Seu pool (estrela na página do campeão) aparece fixo no topo
   const mine = rows.filter((r) => r.id && inPool(r.id, r.name, r.role));
@@ -1474,7 +1542,7 @@ function drawChamp() {
 
   if (!d || !d.guide) {
     const msg = d && d.error ? tr('Sem dados do OP.GG: {err}', { err: d.error }) : tr('Carregando a build do OP.GG…');
-    box.replaceChildren(top, seg || '', h('section', { class: 'card' }, h('p', { class: 'muted pad', text: msg })));
+    box.replaceChildren(top, seg || '', h('section', { class: 'card' }, ...(d && d.error ? [] : [skel('build')]), h('p', { class: 'muted pad', text: msg })));
     return;
   }
   const g = d.guide;
@@ -1600,7 +1668,7 @@ async function loadHistory(force = false) {
       h('span', { class: 'why', text: g && me.stats.opScore ? `${me.stats.opScore}` : '' }));
     row.addEventListener('click', () => { histSel = it.key; drawHistList(); showHistoryItem(it); });
     return row;
-  }) : [h('p', { class: 'muted pad', text: opgg.error || 'Nenhuma partida encontrada.' })]));
+  }) : [opgg.error ? h('p', { class: 'muted pad', text: opgg.error }) : emptyState(t('Nenhuma partida ainda'), t('Suas partidas aparecem aqui depois de jogar.'))]));
   if (!histSel && histItems[0]) { histSel = histItems[0].key; showHistoryItem(histItems[0]); }
   drawHistList();
 }
@@ -1671,7 +1739,7 @@ function scoreboard(detail) {
 async function showHistoryItem(it) {
   if (it.kind === 'local') return showHistory(it.local.id);
   const box = $('hist-detail');
-  box.replaceChildren(h('p', { class: 'muted pad', text: 'Carregando a partida no OP.GG…' }));
+  box.replaceChildren(skel('list', 5), h('p', { class: 'muted pad', text: 'Carregando a partida no OP.GG…' }));
   const res = await window.overlay.opggReview(it.g.id, it.g.createdAt);
   if (histSel !== it.key) return;
   if (!res.ok) { box.replaceChildren(h('p', { class: 'muted pad', text: tr('Não consegui abrir a partida: {err}', { err: res.error }) })); return; }
@@ -2050,7 +2118,7 @@ function drawSkins() {
   const s = d && d.summoner;
   $('sk-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : t('Sua coleção');
   if (!d || pf.loading) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: 'Lendo sua coleção no cliente…' }))); return; }
-  if (!d.mastery && !d.collection) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver suas skins.' }))); return; }
+  if (!d.mastery && !d.collection) { body.replaceChildren(pfCard(null, d.error ? h('p', { class: 'muted pad', text: d.error }) : emptyState(t('O cliente do LoL está fechado'), t('Abra o cliente para ver suas skins.')))); return; }
   const animKey = `skins:${d.version}`;
   body.classList.toggle('pf-anim', animKey !== pf.skAnimKey);
   pf.skAnimKey = animKey;
@@ -2066,7 +2134,7 @@ function drawProfile() {
   $('pf-who').textContent = s ? `${s.gameName}${s.tagLine ? `#${s.tagLine}` : ''}` : t('Seu perfil');
   $('pf-title').textContent = t({ mastery: 'Sua maestria', style: 'Seu estilo de jogo', collection: 'Sua coleção' }[pf.tab]);
   if (!d || pf.loading) { body.replaceChildren(pfCard(null, brushLoader(), h('p', { class: 'muted pad', text: 'Lendo maestria, histórico e coleção no cliente…' }))); return; }
-  if (!d.mastery) { body.replaceChildren(pfCard(null, h('p', { class: 'muted pad', text: d.error || 'Abra o cliente do LoL para ver o perfil.' }))); return; }
+  if (!d.mastery) { body.replaceChildren(pfCard(null, d.error ? h('p', { class: 'muted pad', text: d.error }) : emptyState(t('O cliente do LoL está fechado'), t('Abra o cliente para ver seu perfil.')))); return; }
   // anima só quando troca de aba ou chegam dados novos (clicar numa bolha não repete a animação)
   const animKey = `${pf.tab}:${pf.cls}:${d.version}:${d.mastery.total}`;
   body.classList.toggle('pf-anim', animKey !== pf.animKey);
@@ -2320,7 +2388,7 @@ function skinGallery(d) {
       sel('sk-rar', rarities.map((r) => [r, r === 'all' ? 'Toda raridade' : r]), f.rar, (v) => { f.rar = v; }),
       sel('sk-sort', [['rarity', 'Raridade'], ['champion', 'Campeão'], ['recent', 'Mais recentes']], f.sort, (v) => { f.sort = v; }),
       legacy, h('span', { class: 'muted small', text: `${list.length} skin${list.length === 1 ? '' : 's'}` })),
-    list.length ? h('div', { class: 'skin-grid' }, ...tiles) : h('p', { class: 'muted pad', text: 'Nenhuma skin com esses filtros.' }),
+    list.length ? h('div', { class: 'skin-grid' }, ...tiles) : emptyState(t('Nenhuma skin com esses filtros'), t('Tire um filtro para ver mais.')),
     more);
 }
 
@@ -2494,7 +2562,7 @@ function drawLab(a) {
   const source = seg(LAB_SOURCES, st.source, (k) => { st.source = k; labSource = k; st.sel = 0; fetchLab(a); drawLab(a); });
   const top = h('div', { class: 'lab-top' }, h('div', { class: 'lbl', style: 'margin:0' }, h('span', { text: 'Builds' })), source, h('span', { class: 'spacer' }), mode);
   if (!d || (!d.cores.length && d.pending)) {
-    el.replaceChildren(top, chips, h('p', { class: 'muted small lab-note', text: d && d.vs ? tr('Buscando as builds contra {champ}…', { champ: d.vsName }) : 'Buscando as builds com win rate…' }));
+    el.replaceChildren(top, chips, skel('list', 3), h('p', { class: 'muted small lab-note', text: d && d.vs ? tr('Buscando as builds contra {champ}…', { champ: d.vsName }) : 'Buscando as builds com win rate…' }));
     return;
   }
   if (!d.cores.length) {
@@ -2667,7 +2735,7 @@ function drawItems() {
     b.addEventListener('click', () => { itv.cls = k; drawItems(); });
     return b;
   }));
-  if (!d || !d.items.length) { $('it-grid').replaceChildren(h('p', { class: 'muted pad', text: 'Carregando os itens…' })); $('it-detail').replaceChildren(); return; }
+  if (!d || !d.items.length) { $('it-grid').replaceChildren(skel('grid', 4), h('p', { class: 'muted pad', text: 'Carregando os itens…' })); $('it-detail').replaceChildren(); return; }
   const pv = String(d.version || '').split('.').slice(0, 2).join('.');
   $('it-meta').replaceChildren(h('span', { text: "Summoner's Rift" }), document.createTextNode(` · ${tr('patch {v}', { v: pv })} · ${tr('{n} itens', { n: d.items.length })}`));
   const q = $('it-q').value.trim().toLowerCase();
@@ -2680,7 +2748,7 @@ function drawItems() {
       h('div', { class: 'it-tt' }, h('b', { text: x.name }), h('span', { class: 'muted small', text: `${x.gold.toLocaleString('pt-BR')} g` })));
     tile.addEventListener('click', () => { itv.sel = x.id; drawItems(); });
     return tile;
-  }) : [h('p', { class: 'muted pad', text: 'Nenhum item com esses filtros.' })]));
+  }) : [emptyState(t('Nenhum item com esses filtros'), t('Tire um filtro para ver mais.'))]));
   drawItemDetail(itemById(itv.sel));
 }
 function drawItemDetail(x) {
@@ -2782,10 +2850,22 @@ async function maybeOnboard() {
       title: 'Segure TAB durante a partida', text: 'O overlay aparece por cima do jogo com a próxima compra, o ouro de cada rota e os timers. Solte o TAB e ele some. Dá para trocar o modo em Configurações.' },
     { art: h('div', { class: 'ob-art' }, h('div', { class: 'ob-flow' }, h('span', { text: 'Champ select' }), h('b', { text: '→' }), h('span', { text: 'Runas + feitiços + itens' }))),
       title: 'Trave o campeão, o resto vem sozinho', text: 'Quando você trava o campeão, o Nexo importa runas, feitiços e o conjunto de itens no cliente. Os itens aparecem na loja do jogo, em Arsenais, como "Nexo · Campeão".' },
+    { role: true, title: 'Qual é a sua rota principal?', text: 'Ela vira o padrão da tier list e das sugestões quando o jogo não define a sua rota. Seus mains vêm da sua maestria, sozinhos. Dá para mudar em Configurações.' },
     { art: h('div', { class: 'ob-art' }, h('img', { src: 'logo.png', alt: '', class: 'ob-logo' })),
       title: 'Grátis, com Pro opcional', text: 'Build, importação, overlay e tier list são grátis e funcionam sem conta. O Pro libera o laboratório de builds, a troca de rota, picks e bans, Skins e Itens. Entre com uma conta para usar o Pro em até 2 PCs.', last: true },
   ];
   let i = 0;
+  let pickedRole = s.mainRole || '';
+  const roleArt = () => {
+    const opts = [['', t('Automática')], ...['top', 'jungle', 'middle', 'bottom', 'utility'].map((r) => [r, t(ROLE_LABEL[r])])];
+    const grid = h('div', { class: 'ob-roles', role: 'radiogroup', 'aria-label': t('Rota principal') }, ...opts.map(([r, label]) => {
+      const b = h('button', { type: 'button', class: `ob-role${r === pickedRole ? ' on' : ''}`, role: 'radio', 'aria-checked': String(r === pickedRole) },
+        r ? h('img', { src: roleIconUrl(r), alt: '' }) : h('span', { class: 'ob-role-auto', text: 'A' }), h('span', { text: label }));
+      b.addEventListener('click', () => { pickedRole = r; draw(); });
+      return b;
+    }));
+    return h('div', { class: 'ob-art ob-art-roles' }, grid);
+  };
   const body = h('div', { class: 'ob-body' });
   const dots = h('div', { class: 'ob-dots', 'aria-hidden': 'true' });
   const back = h('button', { class: 'btn ghost', type: 'button', text: 'Voltar' });
@@ -2795,7 +2875,7 @@ async function maybeOnboard() {
   const card = h('div', { class: 'pro-ask-card ob-card' }, skip, body, dots, actions);
   const box = h('div', { class: 'pro-ask', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('Boas-vindas ao Nexo') }, card);
   const finish = (login) => {
-    window.overlay.setSettings({ onboarded: true });
+    window.overlay.setSettings({ onboarded: true, mainRole: pickedRole });
     window.overlay.accountAsked();
     window.overlay.seenWhatsNew();
     box.remove(); onboarding = false;
@@ -2803,7 +2883,7 @@ async function maybeOnboard() {
   };
   const draw = () => {
     const st = steps[i];
-    body.replaceChildren(st.art, h('h2', { text: st.title }), h('p', { class: 'muted', text: st.text }));
+    body.replaceChildren(st.role ? roleArt() : st.art, h('h2', { text: st.title }), h('p', { class: 'muted', text: st.text }));
     dots.replaceChildren(...steps.map((_, k) => h('span', { class: k === i ? 'on' : '' })));
     back.hidden = i === 0;
     if (st.last) {
@@ -2904,3 +2984,54 @@ $('set-net').addEventListener('click', async () => {
   res.some((r) => !r.ok) ? h('p', { class: 'muted small', text: 'Se uma fonte falha e as outras não: firewall, antivírus, VPN ou DNS bloqueando aquele site. Se todas falham: sem internet para o app.' }) : null);
 });
 clearSetsButton('set-clear-all', false, 'Clique de novo: apaga TODOS');
+
+/* ---------- dica ao passar o mouse em item ou runa ---------- */
+// Vale para qualquer ícone de item (…/img/item/ID.png) ou de runa (…/perk-images/…) no app, sem marcar cada lugar.
+(() => {
+  const tip = h('div', { class: 'hover-tip', role: 'tooltip', hidden: true });
+  document.body.append(tip);
+  const cache = new Map();
+  let timer = null;
+  let cur = null;
+  const keyOf = (el) => {
+    if (!(el instanceof HTMLImageElement)) return null;
+    const src = el.currentSrc || el.src || '';
+    const item = src.match(/\/img\/item\/(\d+)\.png/);
+    if (item) return ['item', item[1]];
+    const rune = src.match(/(perk-images\/.+\.png)$/i);
+    if (rune) return ['rune', decodeURIComponent(rune[1])];
+    return null;
+  };
+  const place = (x, y) => {
+    const r = tip.getBoundingClientRect();
+    const left = Math.min(window.innerWidth - r.width - 12, x + 16);
+    const top = y + 18 + r.height > window.innerHeight ? y - r.height - 12 : y + 18;
+    tip.style.left = `${Math.max(8, left)}px`;
+    tip.style.top = `${Math.max(8, top)}px`;
+  };
+  const show = (data, x, y) => {
+    if (!data) return;
+    tip.replaceChildren(
+      h('div', { class: 'ht-head' }, h('b', { text: data.name }), data.gold ? h('span', { class: 'ht-gold', text: `${data.gold} g` }) : null),
+      ...(data.lines || []).map((l) => h('p', { text: l })));
+    tip.hidden = false;
+    place(x, y);
+  };
+  const hide = () => { clearTimeout(timer); cur = null; tip.hidden = true; };
+  document.addEventListener('mouseover', (e) => {
+    const k = keyOf(e.target);
+    if (!k) return;
+    const id = k.join(':');
+    if (cur === id) return;
+    cur = id;
+    clearTimeout(timer);
+    const { clientX: x, clientY: y } = e;
+    timer = setTimeout(async () => {
+      if (!cache.has(id)) cache.set(id, await window.overlay.getTip(k[0], k[1]).catch(() => null));
+      if (cur === id) show(cache.get(id), x, y);
+    }, 260);
+  });
+  document.addEventListener('mouseout', (e) => { if (keyOf(e.target)) hide(); });
+  document.addEventListener('mousemove', (e) => { if (!tip.hidden) place(e.clientX, e.clientY); });
+  window.addEventListener('scroll', hide, true);
+})();

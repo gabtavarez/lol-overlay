@@ -22,18 +22,18 @@
   </header>
 
   <aside id="side">
-    <button id="nav-home" class="nav on" type="button"><i data-ico="home"></i><span>Início</span></button>
-    <button id="nav-select" class="nav" type="button"><i data-ico="user"></i><span>Champ select</span><em class="live" hidden>AO VIVO</em></button>
-    <button id="nav-game" class="nav" type="button"><i data-ico="sword"></i><span>Partida</span><em class="live" hidden>AO VIVO</em></button>
-    <button id="nav-profile" class="nav" type="button"><i data-ico="user"></i><span>Perfil</span></button>
-    <button id="nav-skins" class="nav" type="button"><i data-ico="essence"></i><span>Skins</span></button>
-    <button id="nav-items" class="nav" type="button"><i data-ico="bag"></i><span>Itens</span></button>
-    <button id="nav-tier" class="nav" type="button"><i data-ico="list"></i><span>Tier list</span></button>
-    <button id="nav-history" class="nav" type="button"><i data-ico="clock"></i><span>Histórico</span></button>
-    <button id="nav-patches" class="nav" type="button"><i data-ico="doc"></i><span>Patch notes</span></button>
+    <button id="nav-home" class="nav on" type="button"><i data-ico="nhome"></i><span>Início</span></button>
+    <button id="nav-select" class="nav" type="button"><i data-ico="nselect"></i><span>Champ select</span><em class="live" hidden>AO VIVO</em></button>
+    <button id="nav-game" class="nav" type="button"><i data-ico="ngame"></i><span>Partida</span><em class="live" hidden>AO VIVO</em></button>
+    <button id="nav-profile" class="nav" type="button"><i data-ico="nprofile"></i><span>Perfil</span></button>
+    <button id="nav-skins" class="nav" type="button"><i data-ico="nskins"></i><span>Skins</span></button>
+    <button id="nav-items" class="nav" type="button"><i data-ico="nitems"></i><span>Itens</span></button>
+    <button id="nav-tier" class="nav" type="button"><i data-ico="ntier"></i><span>Tier list</span></button>
+    <button id="nav-history" class="nav" type="button"><i data-ico="nhistory"></i><span>Histórico</span></button>
+    <button id="nav-patches" class="nav" type="button"><i data-ico="npatch"></i><span>Patch notes</span></button>
     <span class="grow"></span>
     <button id="nav-pro" class="nav nav-pro" type="button"><img class="nav-logo" src="logo-n.png" alt=""><span>Pro</span></button>
-    <button id="gear" class="nav" type="button"><i data-ico="gear"></i><span>Configurações</span></button>
+    <button id="gear" class="nav" type="button"><i data-ico="ngear"></i><span>Configurações</span></button>
     <div id="side-me" class="side-me">
       <div id="side-avatar" class="avatar"></div>
       <div class="side-me-text"><div id="side-name" class="strong">Invocador</div><div id="side-sub" class="muted small">Cliente fechado</div></div>
@@ -58,10 +58,11 @@
     </div>
     <!-- Início -->
     <main id="waiting" class="view">
-      <div class="page-head">
+      <div id="home-head" class="page-head">
         <div>
           <div id="home-hello" class="eyebrow">Bem-vindo</div>
           <h1 id="waiting-text">Aguardando…</h1>
+          <div id="home-streak" class="home-streak" hidden></div>
         </div>
         <div id="home-chips" class="chips"></div>
       </div>
@@ -411,13 +412,24 @@
           <h2>Builds e app</h2>
           <label class="field">Elo das builds (OP.GG)
             <select id="set-tier">
+              <option value="AUTO">Automático (o seu elo)</option>
               <option value="ALL">Todos os elos</option>
               <option value="GOLD">Ouro</option>
               <option value="PLATINUM_PLUS">Platina+</option>
-              <option value="EMERALD_PLUS">Esmeralda+ (padrão)</option>
+              <option value="EMERALD_PLUS">Esmeralda+</option>
               <option value="DIAMOND_PLUS">Diamante+</option>
               <option value="MASTER_PLUS">Mestre+</option>
               <option value="CHALLENGER">Desafiante</option>
+            </select>
+          </label>
+          <label class="field">Sua rota principal
+            <select id="set-mainrole">
+              <option value="">Automática (pelo seu histórico)</option>
+              <option value="top">Topo</option>
+              <option value="jungle">Selva</option>
+              <option value="middle">Meio</option>
+              <option value="bottom">Atirador</option>
+              <option value="utility">Suporte</option>
             </select>
           </label>
           <label class="field">Seu Riot ID (histórico do OP.GG sem o cliente aberto)
@@ -433,6 +445,16 @@
             <select id="set-overlay-mode">
               <option value="tab">Só enquanto seguro TAB</option>
               <option value="always">Sempre visível</option>
+            </select>
+          </label>
+          <label class="field">Tamanho do overlay
+            <select id="set-overlay-size">
+              <option value="auto">Automático (pela resolução da tela)</option>
+              <option value="0.9">90%</option>
+              <option value="1">100%</option>
+              <option value="1.15">115%</option>
+              <option value="1.3">130%</option>
+              <option value="1.5">150%</option>
             </select>
           </label>
           <label class="check"><input type="checkbox" id="set-import"> Importar runas, feitiços e itens ao travar o campeão</label>

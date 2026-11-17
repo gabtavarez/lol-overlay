@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.54.0",
+    "title": "Seu elo e compras espertas",
+    "items": [
+      "Builds pelo seu elo; componente certo e anticura na hora certa.",
+      "Dica de itens e runas no mouse; pós-partida aponta falta de anticura e RM.",
+      "Tour pergunta sua rota; overlay se ajusta à resolução da tela.",
+      "Ícones no traço do N, Início com seu último campeão e carregamento em blocos."
+    ],
+    "en": {
+      "title": "Your rank and smarter buys",
+      "items": [
+        "Builds for your rank; right component and anti-heal at the right time.",
+        "Hover tips on items and runes; post-game flags missing anti-heal and MR.",
+        "The tour asks your role; the overlay scales to your screen.",
+        "Brush-stroke icons, Home with your last champion and block loading."
+      ]
+    },
+    "es": {
+      "title": "Tu elo y compras listas",
+      "items": [
+        "Builds de tu elo; componente correcto y antisanación a tiempo.",
+        "Info de objetos y runas al pasar el ratón; el post-partida señala faltas.",
+        "El tour pregunta tu rol; el overlay se ajusta a tu pantalla.",
+        "Íconos con el trazo de la N, Inicio con tu último campeón y carga en bloques."
+      ]
+    }
+  },
+  {
     "version": "0.53.1",
     "title": "Matchup com ícones",
     "items": [

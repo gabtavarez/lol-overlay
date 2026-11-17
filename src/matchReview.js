@@ -9,7 +9,7 @@ const ROLE = { TOP: 'top', JUNGLE: 'jungle', MID: 'middle', ADC: 'bottom', SUPPO
 const { targetsFor } = require('./goals');
 const { gradeMatch } = require('./grades');
 
-function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id), tier = null } = {}) {
+function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id), tier = null, checks = null } = {}) {
   const players = detail.teams.flatMap((t) => t.players);
   const me = players.find((p) => p.target);
   if (!me) return null;
@@ -59,6 +59,25 @@ function reviewMatch(detail, { coreOf = () => [], itemName = (id) => String(id),
     const built = core.filter((id) => me.items.includes(id));
     if (!built.length) bad.push({ title: tr('Fora da build do meta'), text: tr('nenhum item core ({list})', { list: core.map(itemName).join(', ') }) });
     else if (built.length >= 2) good.push({ title: tr('Build do meta'), text: `${built.map(itemName).join(', ')}` });
+  }
+  // build contra o time inimigo: anticura, resistência e botas (itens finais da partida)
+  if (checks && enemyTeam && detail.duration > 1200) {
+    const foes = enemyTeam.players.filter((p) => p.id);
+    const mine = me.items || [];
+    const sum = (key) => mine.reduce((acc, id) => acc + (((checks.stat(id) || {})[key]) || 0), 0);
+    const healers = foes.filter((p) => checks.isHealer(p.id));
+    if (healers.length) {
+      const names = healers.slice(0, 3).map((p) => p.champion).join(', ');
+      if (mine.some((id) => checks.antiHeal.has(Number(id)))) good.push({ title: tr('Anticura na build'), text: tr('contra {champs}', { champs: names }) });
+      else if (role !== 'utility') bad.push({ title: tr('Faltou anticura'), text: tr('{champs} curam e nenhum item seu cortava a cura', { champs: names }) });
+    }
+    if (role !== 'utility') {
+      const ap = foes.filter((p) => (checks.apShare(p.id) ?? 0.5) >= 0.6).length;
+      const ad = foes.filter((p) => (checks.apShare(p.id) ?? 0.5) <= 0.4).length;
+      if (ap >= 3 && sum('FlatSpellBlockMod') === 0) bad.push({ title: tr('Sem resistência mágica'), text: tr('{n} inimigos de dano mágico e nenhum item com RM', { n: ap }) });
+      if (ad >= 3 && sum('FlatArmorMod') === 0) bad.push({ title: tr('Sem armadura'), text: tr('{n} inimigos de dano físico e nenhum item com armadura', { n: ad }) });
+    }
+    if (me.id !== 'Cassiopeia' && !mine.some((id) => checks.isBoots(id))) bad.push({ title: tr('Terminou sem botas'), text: tr('partida de {m} min sem botas', { m: Math.round(min) }) });
   }
   const teamDamage = myTeam ? myTeam.players.reduce((sum, p) => sum + (p.stats.damage || 0), 0) : 0;
   const objDiff = myTeam && enemyTeam ? (myTeam.dragons - enemyTeam.dragons) + 2 * (myTeam.barons - enemyTeam.barons) + 0.5 * (myTeam.towers - enemyTeam.towers) : null;

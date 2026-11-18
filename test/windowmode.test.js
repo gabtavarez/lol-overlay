@@ -33,3 +33,19 @@ test('setBorderless: falha se o cliente não guardou', async () => {
   const get = async () => ({ General: { WindowMode: 0 } });
   await assert.rejects(setBorderless({ port: 1 }, { request, get }), /não guardou/);
 });
+
+const { blockOverlay, shownMode } = require('../src/windowMode');
+
+test('blockOverlay: o estado ao vivo do Windows vale mais que a configuração salva', () => {
+  // trocou para "Sem bordas" dentro do jogo: o cliente ainda diz tela cheia, o Windows não
+  assert.strictEqual(blockOverlay({ inGame: true, windowMode: 'fullscreen', liveState: 2 }), false);
+  assert.strictEqual(blockOverlay({ inGame: true, windowMode: 'borderless', liveState: 3 }), true);
+  assert.strictEqual(blockOverlay({ inGame: true, windowMode: 'fullscreen', liveState: null }), true);
+  assert.strictEqual(blockOverlay({ inGame: false, windowMode: 'fullscreen', liveState: 3 }), false);
+});
+
+test('shownMode: na partida corrige o aviso de tela cheia', () => {
+  assert.strictEqual(shownMode({ inGame: true, windowMode: 'fullscreen', liveState: 2 }), 'borderless');
+  assert.strictEqual(shownMode({ inGame: true, windowMode: 'windowed', liveState: 3 }), 'fullscreen');
+  assert.strictEqual(shownMode({ inGame: false, windowMode: 'fullscreen', liveState: 5 }), 'fullscreen');
+});

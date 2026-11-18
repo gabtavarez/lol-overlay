@@ -5,7 +5,7 @@ const { DataDragon } = require('./ddragon');
 const { createEngine } = require('./engine');
 const { createLcuEngine } = require('./lcuEngine');
 const { discoverCredentials, lcuGetJson } = require('./lcu');
-const { readWindowMode, setBorderless } = require('./windowMode');
+const { readWindowMode, setBorderless, blockOverlay, shownMode } = require('./windowMode');
 const champFlags = require('../data/champion-flags.json');
 const reactiveItems = require('../data/reactive-items.json');
 const { createSettingsStore } = require('./settings');
@@ -103,6 +103,8 @@ let windowMode = null;
 let windowModeAt = 0;
 let windowModePhase = null;
 let fullscreenLogged = false;
+// Estado real da tela pelo Windows (lido junto com o TAB): null = sem a informação.
+let liveScreen = null;
 
 /** Relê o modo de tela pelo cliente quando a fase muda (lobby, champ select, partida), no máximo a cada 15 s. */
 function refreshWindowMode(force = false) {
@@ -147,7 +149,7 @@ function publish() {
     if (roleOverride && lcuState.sessionId && roleOverride.session !== lcuState.sessionId) roleOverride = null; // novo champ select
     lastRole = (!lcuState.mode && roleOverride && roleOverride.role) || lcuState.mode || lcuState.myPosition || (MODE_ROLES.includes(lastRole) ? '' : lastRole);
   }
-  if (lastState) { lastState.myRole = lastRole || ''; lastState.roleOverride = roleOverride ? roleOverride.role : null; lastState.windowMode = windowMode; }
+  if (lastState) { lastState.myRole = lastRole || ''; lastState.roleOverride = roleOverride ? roleOverride.role : null; lastState.windowMode = shownMode({ inGame: liveState.phase === 'ingame', windowMode, liveState: liveScreen }); }
   const wmPhase = `${lcuState.phase}|${liveState.phase}`;
   if (wmPhase !== windowModePhase && lcuEngine && lcuEngine.getCreds()) { windowModePhase = wmPhase; refreshWindowMode(true); }
   // Só manda para as janelas quando o estado mudou de fato: evita reconstruir a tela inteira
@@ -278,8 +280,8 @@ function updateOverlayVisibility() {
   // coach de rota fica sempre na tela em partida; os outros painéis só com TAB (ou modo sempre)
   const coachPinned = COACH_ON && inGame && (ov.enabled || {}).coach !== false && ov.coachPinned !== false;
   // tela cheia exclusiva: nada fica por cima do jogo e mostrar o overlay só minimiza o LoL
-  const fullscreen = inGame && windowMode === 'fullscreen' && !moveMode && !previewing;
-  if (fullscreen && !fullscreenLogged) { fullscreenLogged = true; logger.log('overlay: desligado na partida (jogo em tela cheia)'); }
+  const fullscreen = blockOverlay({ inGame, windowMode, liveState: liveScreen }) && !moveMode && !previewing;
+  if (fullscreen && !fullscreenLogged) { fullscreenLogged = true; logger.log(`overlay: desligado na partida (jogo em tela cheia; cliente=${windowMode} windows=${liveScreen})`); }
   const full = !fullscreen && (moveMode || previewing || (inGame && (tabDown || always)));
   const show = full || (!fullscreen && coachPinned);
   if (full !== lastFull) { lastFull = full; send('overlay-full', full); }
@@ -377,11 +379,14 @@ function startUiohook() {
 function startKeyPoller() {
   if (process.platform !== 'win32') return;
   const script = [
-    "Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class K { [DllImport(\"user32.dll\")] public static extern short GetAsyncKeyState(int k); }'",
-    '$p = $null',
+    "Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class K { [DllImport(\"user32.dll\")] public static extern short GetAsyncKeyState(int k); [DllImport(\"shell32.dll\")] public static extern int SHQueryUserNotificationState(out int s); }'",
+    '$p = $null; $q = $null; $i = 0',
     'while ($true) {',
     '  $d = ([K]::GetAsyncKeyState(9) -band 0x8000) -ne 0',
     '  if ($d -ne $p) { $p = $d; Write-Output ([int]$d); [Console]::Out.Flush() }',
+    // a cada ~1 s: tela cheia exclusiva de verdade (3) ou não, pelo Windows
+    '  if ($i % 40 -eq 0) { $s = 0; try { [void][K]::SHQueryUserNotificationState([ref]$s) } catch { $s = -1 }; if ($s -ne $q) { $q = $s; Write-Output (\'F\' + $s); [Console]::Out.Flush() } }',
+    '  $i++',
     '  Start-Sleep -Milliseconds 25',
     '}',
   ].join('\n');
@@ -390,9 +395,11 @@ function startKeyPoller() {
     hook.poller = 'iniciando';
     keyPoller.stdout.on('data', (buf) => {
       hook.poller = 'ok';
-      const last = String(buf).trim().split(/\s+/).pop();
-      if (last === '1') setTab('poll', true);
-      if (last === '0') setTab('poll', false);
+      for (const tok of String(buf).trim().split(/\s+/)) {
+        if (tok === '1') setTab('poll', true);
+        else if (tok === '0') setTab('poll', false);
+        else if (/^F-?\d+$/.test(tok)) setLiveScreen(Number(tok.slice(1)));
+      }
     });
     keyPoller.stderr.on('data', (buf) => {
       const msg = String(buf).replace(/#< CLIXML/g, '').replace(/<[^>]+>/g, ' ').trim(); // ruído de progresso do PowerShell
@@ -411,6 +418,16 @@ function startKeyPoller() {
   } catch (err) {
     hook.poller = `falhou: ${err.message}`;
   }
+}
+
+function setLiveScreen(v) {
+  const next = v > 0 ? v : null;
+  if (next === liveScreen) return;
+  liveScreen = next;
+  fullscreenLogged = false;
+  logger.log(`tela pelo Windows: ${next === 3 ? 'tela cheia exclusiva' : next === null ? 'sem informação' : `normal (${next})`}`);
+  publish();
+  updateOverlayVisibility();
 }
 
 /** Modo mover: o overlay fica visível e aceita o mouse para ser arrastado. */

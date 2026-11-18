@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.55.1",
+    "title": "Overlay no TAB corrigido",
+    "items": [
+      "Quem trocou para Sem bordas durante a partida voltava a ver o overlay só na próxima.",
+      "Agora o app confere a tela pelo Windows e mostra o overlay no TAB na hora."
+    ],
+    "en": {
+      "title": "TAB overlay fixed",
+      "items": [
+        "Switching to Borderless mid-game only brought the overlay back next game.",
+        "The app now checks the screen with Windows and shows the TAB overlay right away."
+      ]
+    },
+    "es": {
+      "title": "Overlay del TAB corregido",
+      "items": [
+        "Cambiar a Sin bordes en partida solo traía el overlay en la siguiente.",
+        "Ahora la app revisa la pantalla con Windows y muestra el overlay al instante."
+      ]
+    }
+  },
+  {
     "version": "0.55.0",
     "title": "Tutorial com configuração",
     "items": [

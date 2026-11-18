@@ -31,4 +31,25 @@ async function setBorderless(creds, { request = lcuRequest, get = lcuGetJson } =
   return now;
 }
 
-module.exports = { modeFrom, readWindowMode, setBorderless, MODES };
+/**
+ * Estado real da tela agora, pelo Windows (SHQueryUserNotificationState): 3 = app Direct3D em tela
+ * cheia exclusiva na frente. A configuração do cliente só atualiza depois da partida, então quem troca
+ * para "Sem bordas" dentro do jogo continuaria marcado como tela cheia.
+ */
+const QUNS_D3D_FULLSCREEN = 3;
+
+/** Overlay deve ficar desligado? O sinal ao vivo do Windows vale mais que a configuração salva. */
+function blockOverlay({ inGame, windowMode, liveState }) {
+  if (!inGame) return false;
+  if (Number.isInteger(liveState)) return liveState === QUNS_D3D_FULLSCREEN;
+  return windowMode === 'fullscreen';
+}
+
+/** Modo para mostrar ao usuário: na partida, corrige a configuração salva com o sinal ao vivo. */
+function shownMode({ inGame, windowMode, liveState }) {
+  if (!inGame || !Number.isInteger(liveState)) return windowMode;
+  if (liveState === QUNS_D3D_FULLSCREEN) return 'fullscreen';
+  return windowMode === 'fullscreen' ? 'borderless' : windowMode;
+}
+
+module.exports = { modeFrom, readWindowMode, setBorderless, blockOverlay, shownMode, QUNS_D3D_FULLSCREEN, MODES };

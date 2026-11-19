@@ -3,7 +3,7 @@ const { objectiveTimers, SPELL_CD } = require('./timers');
 const { fetchAllGameData } = require('./liveClient');
 const { buildState } = require('./state');
 const { recommend } = require('./recommender');
-const { buyAdvice, createBootMemory } = require('./buys');
+const { buyAdvice, createBootMemory, createCommitMemory } = require('./buys');
 const { createAlertTracker } = require('./alerts');
 const { withMatchup } = require('./matchup');
 
@@ -19,6 +19,7 @@ function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatch
   const alerts = createAlertTracker();
   let lastGameTime = 0;
   const bootMemory = createBootMemory();
+  const commitMemory = createCommitMemory();
 
   async function tick() {
     if (busy) return;
@@ -35,7 +36,7 @@ function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatch
         try {
           const me = { id: state.me.championId };
           const opp = state.laneOpponent ? { id: state.laneOpponent.championId } : null;
-          if (state.gameTime + 5 < lastGameTime) { alerts.reset(); bootMemory.reset(); } // nova partida
+          if (state.gameTime + 5 < lastGameTime) { alerts.reset(); bootMemory.reset(); commitMemory.reset(); } // nova partida
           lastGameTime = state.gameTime;
           bootMemory.apply(state.me, getDd());
           const build = withMatchup(
@@ -43,7 +44,7 @@ function createEngine({ baseUrl, getDd, onState, getBuild = () => null, getMatch
             opp && getMatchup(me, opp, state.myRole),
             state.laneOpponent && state.laneOpponent.champion,
           );
-          state.advice.buys = buyAdvice({ state, build, dd: getDd() });
+          state.advice.buys = buyAdvice({ state, build, dd: getDd(), memory: commitMemory });
           state.advice.alerts = alerts.update(state, getDd());
           state.advice.gold = goldCompare(state, getDd());
           state.advice.timers = objectiveTimers(state);

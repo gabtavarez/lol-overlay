@@ -137,6 +137,72 @@ function situationalComponent(dd, id, owned, gold, need) {
   return { id: best.id, name: best.name, cost: best.cost, fits: fits(best) };
 }
 
+/** A receita de `target` (em qualquer nível) usa `comp`? */
+function buildsFrom(dd, target, comp, depth = 0) {
+  const it = dd.item(target);
+  if (!it || depth > 3) return false;
+  return (it.from || []).some((p) => Number(p) === comp || buildsFrom(dd, Number(p), comp, depth + 1));
+}
+
+const NO_COMMIT = new Set(['starter', 'boots', 'ward', 'elixir']);
+/**
+ * Compromisso com o item começado: ao comprar um componente do item que estava sugerido, esse item
+ * fica em 1º até ser fechado (ou o componente sair do inventário). Sem compra, o 1º lugar só troca
+ * com folga de pontos, para a sugestão não ficar alternando enquanto você junta ouro.
+ */
+const SWITCH_MARGIN = 8;
+function createCommitMemory() {
+  let committed = null; // { id, reason, tag, vs, comp }
+  let lastTop = []; // [{ id, reason, tag, vs }] da última sugestão
+  let lastOwned = null;
+  return {
+    reset() { committed = null; lastTop = []; lastOwned = null; },
+    /** Reordena a lista final (todas as sugestões, já ordenadas por nota). */
+    apply(list, { dd, owned, ownedSet }) {
+      // componente novo no inventário (compra desde o último ciclo)
+      if (lastOwned) {
+        const before = [...lastOwned];
+        const fresh = [];
+        for (const id of owned) { const i = before.indexOf(id); if (i >= 0) before.splice(i, 1); else fresh.push(id); }
+        for (const comp of fresh) {
+          const it = dd.item(comp);
+          if (!it || !(it.into || []).length || isBoots(dd, comp)) continue;
+          const target = lastTop.find((x) => !NO_COMMIT.has(x.tag) && buildsFrom(dd, x.id, comp));
+          if (target) { committed = { ...target, comp }; break; }
+        }
+      }
+      lastOwned = [...owned];
+      if (committed && (ownedSet.has(committed.id) || !ownedSet.has(committed.comp))) committed = null;
+
+      let out = list;
+      if (committed) {
+        let mine = out.find((x) => x.id === committed.id);
+        if (!mine) {
+          const it = dd.item(committed.id);
+          if (it) {
+            const used = [];
+            const missing = missingGold(dd, committed.id, owned, used);
+            mine = { id: committed.id, name: it.name, cost: (it.gold && it.gold.total) || 0, missing, needGold: missing === null ? null : missing,
+              parts: used.map((x) => (dd.item(x) || {}).name).filter(Boolean), canBuy: false, score: 0, reason: committed.reason, tag: committed.tag, good: goodAgainst(committed.tag, committed.id), vs: committed.vs || [], swap: null };
+          }
+        }
+        if (mine) {
+          const top = out.find((x) => x.id !== mine.id);
+          const note = tr(' · você já começou: termine antes de trocar');
+          mine = { ...mine, committed: true, score: Math.max(mine.score, top ? top.score : 0), reason: mine.reason.includes(note) ? mine.reason : `${mine.reason}${note}` };
+          out = [mine, ...out.filter((x) => x.id !== mine.id)];
+        }
+      } else if (lastTop[0] && out[0] && out[0].id !== lastTop[0].id && !NO_COMMIT.has(out[0].tag)) {
+        // sem compra nova: o antigo 1º lugar só cai se o novo for bem melhor
+        const prev = out.find((x) => x.id === lastTop[0].id);
+        if (prev && out[0].score - prev.score < SWITCH_MARGIN) out = [{ ...prev, score: out[0].score }, ...out.filter((x) => x.id !== prev.id)];
+      }
+      lastTop = out.slice(0, 3).map(({ id, reason, tag, vs }) => ({ id, reason, tag, vs }));
+      return out;
+    },
+  };
+}
+
 function firstAvailable(ids, dd, ownedSet) {
   return (ids || []).find((id) => dd.item(id) && !ownedSet.has(id)) || null;
 }
@@ -264,7 +330,7 @@ function shieldSources(e, dd, flags) {
   return out;
 }
 
-function buyAdvice({ state, build, dd, flags = defaultFlags }) {
+function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
   if (!dd || !state || !state.me) return { items: [], notes: [tr('Aguardando dados do jogo…')] };
   const me = state.me;
   const enemies = state.enemies || [];
@@ -568,7 +634,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
     }
   }
 
-  const items = [...cands.entries()]
+  const ranked = [...cands.entries()]
     .map(([id, c]) => {
       const it = dd.item(id);
       const used = [];
@@ -590,8 +656,8 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
         swap: c.swap || null,
       };
     })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 3);
+    .sort((a, b) => b.score - a.score);
+  const items = (memory ? memory.apply(ranked, { dd, owned, ownedSet }) : ranked).slice(0, 3);
 
   let recall = null;
   // Ferramenta de Treino: ouro "infinito" e sem por que voltar à base. Só diz o que comprar.
@@ -632,4 +698,4 @@ function buyAdvice({ state, build, dd, flags = defaultFlags }) {
 }
 
 module.exports = {
-  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory, situationalComponent };
+  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory, createCommitMemory, situationalComponent };

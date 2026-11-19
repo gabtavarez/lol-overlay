@@ -9,6 +9,7 @@ window.LOCALES.es = {
   " · hora de fechar a bota": " · hora de completar las botas",
   " · rota ganha: acelere o dano": " · línea ganada: acelera el daño",
   " · também na build do meta": " · también en la build meta",
+  " · você já começou: termine antes de trocar": " · ya lo empezaste: termínalo antes de cambiar",
   " · você já tem a bota básica": " · ya tienes las botas básicas",
   "(abre minimizado)": "(se abre minimizado)",
   "(só a mensagem do erro, sem nome, Riot ID ou arquivos)": "(solo el mensaje de error, sin nombre, Riot ID ni archivos)",

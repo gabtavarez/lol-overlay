@@ -9,6 +9,7 @@ window.LOCALES.en = {
   " · hora de fechar a bota": " · time to finish your boots",
   " · rota ganha: acelere o dano": " · lane won: speed up your damage",
   " · também na build do meta": " · also in the meta build",
+  " · você já começou: termine antes de trocar": " · you already started it: finish before switching",
   " · você já tem a bota básica": " · you already have basic boots",
   "(abre minimizado)": "(opens minimized)",
   "(só a mensagem do erro, sem nome, Riot ID ou arquivos)": "(only the error message, no name, Riot ID or files)",

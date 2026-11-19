@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.55.2",
+    "title": "Compra sem troca no meio",
+    "items": [
+      "Comprou uma peça do item sugerido? Ele fica em 1º até você fechar.",
+      "A sugestão não alterna mais entre itens enquanto você junta ouro."
+    ],
+    "en": {
+      "title": "No mid-buy switches",
+      "items": [
+        "Bought a part of the suggested item? It stays first until you finish it.",
+        "Suggestions no longer flip between items while you save gold."
+      ]
+    },
+    "es": {
+      "title": "Sin cambios a mitad de compra",
+      "items": [
+        "¿Compraste una pieza del ítem sugerido? Queda primero hasta que lo cierres.",
+        "La sugerencia ya no alterna entre ítems mientras juntas oro."
+      ]
+    }
+  },
+  {
     "version": "0.55.1",
     "title": "Overlay no TAB corrigido",
     "items": [

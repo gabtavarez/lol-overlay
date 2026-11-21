@@ -5,6 +5,7 @@ window.LOCALES.es = {
   " (aprox.)": " (aprox.)",
   " (usando cache antigo)": " (usando caché antigua)",
   " e outros": " y otros",
+  " · a build do meta usa {item}": " · la build del meta usa {item}",
   " · depois do 1º item": " · después del 1.er objeto",
   " · hora de fechar a bota": " · hora de completar las botas",
   " · rota ganha: acelere o dano": " · línea ganada: acelera el daño",

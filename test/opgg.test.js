@@ -346,3 +346,14 @@ test('compras: 1º item do meta antes de defesa completa quando ninguém está f
   assert.equal(out.items[0].id, 3146);
   assert.match(out.items[0].reason, /1º item/);
 });
+
+test('compras: suporte contra suporte fed fica na bota do meta', () => {
+  const build = { core: [3146], boots: [3020], later: [], starter: [] };
+  const me = { ...player('Blitzcrank', 'Blitzcrank', ['Tank', 'Support']), level: 5, gold: 900, scores: { kills: 0, deaths: 1, assists: 3 }, items: [{ id: 1001, name: 'Boots', tags: ['Boots'], slot: 0, count: 1 }] };
+  const morg = player('Morgana', 'Morgana', ['Mage', 'Support'], { level: 7, scores: { kills: 3, deaths: 1, assists: 1 }, position: 'UTILITY' });
+  const enemies = [morg, player('Jinx', 'Jinx', ['Marksman']), player('Darius', 'Darius', ['Fighter']), player('LeeSin', 'Lee Sin', ['Fighter']), player('Ziggs', 'Ziggs', ['Mage'])];
+  const out = buyAdvice({ state: { me, enemies, gameTime: 450, myRole: 'utility', laneOpponent: { champion: 'Morgana' } }, build, dd });
+  const boots = out.items.find((i) => i.tag === 'boots');
+  assert.ok(boots, 'sugere bota');
+  assert.equal(boots.id, 3020, boots.reason);
+});

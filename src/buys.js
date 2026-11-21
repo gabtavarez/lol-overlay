@@ -219,14 +219,25 @@ function who(list, key, n = 2) {
  */
 const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3047, 3111], assassin: [3158, 3047], tank: [3047, 3111], support: [3158, 3020] };
 
-function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls = 'ad' }) {
+function chooseBoots(args) {
+  const b = pickBoots(args);
+  if (!b) return null;
+  const { build, dd, cls = 'ad' } = args;
   const meta = (build && build.boots && build.boots.find((id) => dd.item(id))) || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id));
+  // bota reativa no lugar da do meta: diz qual é a do meta, para você escolher
+  return meta && meta !== b.id && dd.item(meta) ? { ...b, reason: `${b.reason}${tr(' · a build do meta usa {item}', { item: dd.item(meta).name })}` } : b;
+}
+
+function pickBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls = 'ad', role = '' }) {
+  const meta = (build && build.boots && build.boots.find((id) => dd.item(id))) || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id));
+  // suporte: o oponente de rota pega os abates e sobe de nível naturalmente; perder a "rota" não pede bota defensiva
+  const support = role === 'utility';
   const mercs = firstAvailable(reactive.bootsMr, dd, ownedSet);
   const steel = firstAvailable(reactive.bootsArmor, dd, ownedSet);
   const opp = t.find((x) => x.lane) || t.find((x) => x.e.champion === laneOpponentName) || null;
   const my = me.scores || { kills: 0, deaths: 0 };
-  const losing = (opp && (opp.fed || opp.e.scores.kills - opp.e.scores.deaths >= 3 || (opp.e.level || 1) - (me.level || 1) >= 2))
-    || (my.deaths - my.kills >= 3);
+  const losing = !support && ((opp && (opp.fed || opp.e.scores.kills - opp.e.scores.deaths >= 3 || (opp.e.level || 1) - (me.level || 1) >= 2))
+    || (my.deaths - my.kills >= 3));
   const cc = t.filter((x) => (flags.hardCc || []).includes(x.e.championId));
   const ccWeight = cc.reduce((s, x) => s + x.w, 0);
   const names = (list) => list.slice(0, 3).map((x) => x.e.champion).join(', ');
@@ -234,7 +245,7 @@ function chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, lane
   if (mercs && (ccWeight >= 3 || (cc.length >= 3 && apShare >= 0.45))) {
     return { id: mercs, score: losing ? 70 : 64, reason: tr('Muito controle de grupo ({champs}): tenacidade', { champs: names(cc) }) };
   }
-  if (opp && !losing) {
+  if (opp && !losing && !support) {
     if ((flags.autoAttackers || []).includes(opp.e.championId) && steel) return { id: steel, score: 63, reason: tr('{champ} vive de ataque básico: Aço', { champ: opp.e.champion }) };
     if (opp.d.ap >= 0.6 && (flags.hardCc || []).includes(opp.e.championId) && mercs) return { id: mercs, score: 63, reason: tr('{champ} (AP com controle de grupo): Mercúrio', { champ: opp.e.champion }) };
   }
@@ -501,7 +512,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
       ids([...t].filter((x) => x.d.ad >= 0.5).sort((a, b) => b.w * b.d.ad - a.w * a.d.ad)));
   }
   if (!hasBoots && owned.length >= 1) {
-    const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls });
+    const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls, role: state.myRole || '' });
     if (b) {
       // Timing: botas entram depois do 1º item (ou ~8 min) e sobem se você já tem a bota básica.
       const due = legendaries >= 1 || state.gameTime >= 480;

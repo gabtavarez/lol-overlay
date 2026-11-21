@@ -5,6 +5,7 @@ window.LOCALES.en = {
   " (aprox.)": " (approx.)",
   " (usando cache antigo)": " (using old cache)",
   " e outros": " and others",
+  " · a build do meta usa {item}": " · the meta build uses {item}",
   " · depois do 1º item": " · after your 1st item",
   " · hora de fechar a bota": " · time to finish your boots",
   " · rota ganha: acelere o dano": " · lane won: speed up your damage",

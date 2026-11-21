@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.55.3",
+    "title": "Bota do meta no suporte",
+    "items": [
+      "Suporte não troca mais a bota do meta só porque o suporte inimigo pegou abates.",
+      "Quando a bota sugerida é outra, o motivo diz qual é a bota da build do meta."
+    ],
+    "en": {
+      "title": "Meta boots for supports",
+      "items": [
+        "Supports no longer swap meta boots just because the enemy support got kills.",
+        "When another boot is suggested, the reason names the meta build's boots."
+      ]
+    },
+    "es": {
+      "title": "Botas del meta en soporte",
+      "items": [
+        "El soporte ya no cambia las botas del meta porque el soporte rival hizo kills.",
+        "Si se sugiere otra bota, el motivo dice cuál es la bota de la build del meta."
+      ]
+    }
+  },
+  {
     "version": "0.55.2",
     "title": "Compra sem troca no meio",
     "items": [

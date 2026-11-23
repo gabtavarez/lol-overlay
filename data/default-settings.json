@@ -21,9 +21,9 @@
     },
     "enabled": {
       "buys": true,
-      "info": true,
+      "info": false,
       "gold": true,
-      "timers": true,
+      "timers": false,
       "kit": true,
       "goals": true,
       "coach": true

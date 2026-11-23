@@ -1227,3 +1227,12 @@ h2 { font-size: 14.5px; }
 .bp-reason { font-size: 11px; color: var(--muted); }
 .bp-gold { font-size: 10.5px; color: var(--dim); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .bp-opt.afford .bp-gold { color: var(--good); }
+
+/* Tier list: buff/nerf do patch atual (notas oficiais) */
+.tl-tile.tl-buffed { background: linear-gradient(90deg, rgba(76, 200, 148, .10), transparent 70%); box-shadow: inset 2px 0 0 var(--good); }
+.tl-tile.tl-buffed .tl-ico img:first-child { box-shadow: 0 0 0 2px var(--good); }
+.tl-pv { position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); font-size: 8.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 0 4px; border-radius: 4px; line-height: 13px; }
+.tl-pv.buff { background: var(--good); color: #0d1a14; }
+.tl-pv.nerf { background: rgba(238, 107, 90, .22); color: var(--bad); }
+.tl-buff-toggle { cursor: pointer; border: 1px solid rgba(76, 200, 148, .4); color: var(--good); background: rgba(76, 200, 148, .08); font: inherit; }
+.tl-buff-toggle.on { background: var(--good); color: #0d1a14; }

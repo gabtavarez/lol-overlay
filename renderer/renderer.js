@@ -1313,6 +1313,8 @@ let tlElo = 'EMERALD_PLUS';
 const TL_ELO_PT = { ALL: 'Todos os elos', GOLD: 'Ouro', PLATINUM_PLUS: 'Platina+', EMERALD_PLUS: 'Esmeralda+', DIAMOND_PLUS: 'Diamante+', MASTER_PLUS: 'Mestre+', CHALLENGER: 'Desafiante' };
 try { tlElo = localStorage.getItem('tlElo') || tlElo; } catch { /* sem storage */ }
 const pc = (x) => `${(x * 100).toFixed(1)}%`;
+let tlBuffsOnly = false;
+const tlChange = (id) => (id && tl && tl.changes && tl.changes.map ? tl.changes.map[id] || null : null);
 
 function tlRoleButtons() {
   // Fora de Esmeralda+ a lista é montada campeão a campeão: uma rota por vez.
@@ -1337,7 +1339,13 @@ function tlTile(r, showRole) {
       h('div', { class: `tl-wr ${wrTone(r.winRate)}`, text: pc(r.winRate) }),
       h('div', { class: 'tl-sub', text: `Pick ${pc(r.pickRate)} · Ban ${pc(r.banRate)}` })),
     delta ? h('span', { class: `tl-delta ${delta > 0 ? 'up' : 'down'}`, text: `${delta > 0 ? '▲' : '▼'}${Math.abs(delta)}` }) : null);
+  const pv = tlChange(r.id);
+  if (pv === 'buff' || pv === 'nerf') {
+    tile.classList.add(pv === 'buff' ? 'tl-buffed' : 'tl-nerfed');
+    tile.querySelector('.tl-ico').append(h('span', { class: `tl-pv ${pv}`, text: pv === 'buff' ? t('Buff') : t('Nerf') }));
+  }
   tile.title = tr('{champ} · #{rank} na rota · {n} partidas · KDA {kda} · clique para ver build, counters e sinergias', { champ: r.name, rank: r.rank, n: r.games.toLocaleString(), kda: r.kda });
+  if (pv) tile.title += ` · ${pv === 'buff' ? tr('recebeu buff no patch {p}', { p: tl.changes.patch }) : pv === 'nerf' ? tr('recebeu nerf no patch {p}', { p: tl.changes.patch }) : tr('ajustado no patch {p}', { p: tl.changes.patch })}`;
   if (r.id) tile.addEventListener('click', () => openChamp(r.id, r.role));
   return tile;
 }
@@ -1354,13 +1362,17 @@ function drawTierList() {
   const meta = [`Patch ${String(tl.patch || '').split('.').slice(0, 2).join('.')}`, `${TL_ELO_PT[tl.tier] || 'Esmeralda+'} · Global`, 'OP.GG'];
   if (tl.loading) meta.push('atualizando…');
   if (tl.at) meta.push(`atualizada ${new Date(tl.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`);
-  $('tl-meta').replaceChildren(...meta.map((t) => h('span', { class: 'chip', text: t })));
+  const buffN = tl.changes && tl.changes.map ? Object.values(tl.changes.map).filter((v) => v === 'buff').length : 0;
+  const buffBtn = buffN ? h('button', { class: `chip tl-buff-toggle${tlBuffsOnly ? ' on' : ''}`, type: 'button', text: tr('▲ Buffados no patch ({n})', { n: buffN }) }) : null;
+  if (buffBtn) buffBtn.addEventListener('click', () => { tlBuffsOnly = !tlBuffsOnly; drawTierList(); });
+  $('tl-meta').replaceChildren(...[buffBtn, ...meta.map((t) => h('span', { class: 'chip', text: t }))].filter(Boolean));
 
   const q = $('tl-search').value.trim().toLowerCase();
   const sort = $('tl-sort').value;
   let rows = [];
   for (const [role, list] of Object.entries(tl.data)) if (tlRole === 'all' || role === tlRole) rows.push(...list.map((r) => ({ ...r, role })));
   if (q) rows = rows.filter((r) => r.name.toLowerCase().includes(q));
+  if (tlBuffsOnly) rows = rows.filter((r) => tlChange(r.id) === 'buff');
   const order = (a, b) => (sort === 'tier' ? a.tier - b.tier || b.winRate - a.winRate : b[sort] - a[sort]);
   rows.sort(order);
   if (!rows.length) { body.replaceChildren(h('section', { class: 'panel' }, emptyState(t('Nenhum campeão encontrado'), t('Tente outro nome ou outra rota.')))); return; }

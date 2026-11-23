@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.57.0",
+    "title": "Buffs do patch na tier list",
+    "items": [
+      "A tier list destaca em verde quem recebeu buff no patch atual.",
+      "Novo filtro: ver só os campeões buffados no patch.",
+      "Para quem instala agora, Rota e Timers vêm desligados no overlay."
+    ],
+    "en": {
+      "title": "Patch buffs in the tier list",
+      "items": [
+        "The tier list highlights in green who got buffed this patch.",
+        "New filter: show only champions buffed this patch.",
+        "For new installs, Lane and Timers start turned off in the overlay."
+      ]
+    },
+    "es": {
+      "title": "Buffs del parche en la tier list",
+      "items": [
+        "La tier list resalta en verde a quien recibió buff en el parche.",
+        "Nuevo filtro: ver solo los campeones con buff en el parche.",
+        "En instalaciones nuevas, Línea y Timers vienen apagados en el overlay."
+      ]
+    }
+  },
+  {
     "version": "0.56.1",
     "title": "Mouse sem travadinhas",
     "items": [

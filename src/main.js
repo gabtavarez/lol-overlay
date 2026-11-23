@@ -865,6 +865,28 @@ function rolesOf(champ) {
   return out.sort((a, b) => b.roleRate - a.roleRate);
 }
 
+/** Buff/nerf de cada campeão no patch atual (notas oficiais): { patch, map: { id: 'buff'|'nerf'|'ajuste' } }. */
+let patchVerdictCache = null; // { ver, value, loading }
+function patchVerdicts(notify) {
+  if (!dd) return null;
+  if (patchVerdictCache && patchVerdictCache.ver === dd.version) return patchVerdictCache.value;
+  patchVerdictCache = { ver: dd.version, value: null };
+  (async () => {
+    const versions = await patchNotes.list();
+    const minor = shortVer(dd.version).split('.')[1];
+    const v = versions.find((x) => x.split('.')[1] === minor) || versions[0];
+    const note = v && await patchNotes.note(v);
+    if (!note) return null;
+    const map = {};
+    for (const e of note.sections.filter((x) => x.kind === 'champions').flatMap((x) => x.entities)) if (e.id) map[e.id] = e.verdict;
+    return { patch: note.version, map };
+  })().catch(() => null).then((value) => {
+    if (patchVerdictCache && patchVerdictCache.ver === dd.version) patchVerdictCache.value = value;
+    if (value) notify();
+  });
+  return null;
+}
+
 /** Mudanças do campeão no patch atual (notas oficiais), em cache por sessão. undefined = ainda buscando. */
 const champPatchCache = new Map();
 async function champPatch(id) {
@@ -1583,7 +1605,7 @@ function registerIpc() {
       const c = dd && dd.championByRaw(null, r.champion);
       return { ...r, id: c ? c.id : null, name: c ? c.name : r.champion };
     });
-    const base = { at: e ? e.at : null, patch: dd ? dd.version : null, tier, error: e ? null : remote.tierListError() };
+    const base = { at: e ? e.at : null, patch: dd ? dd.version : null, tier, error: e ? null : remote.tierListError(), changes: patchVerdicts(done) };
     if (!e) return { ...base, data: null };
     if (tier === 'EMERALD_PLUS') {
       const data = {};

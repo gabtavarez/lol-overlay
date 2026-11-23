@@ -46,7 +46,7 @@ function sampleState(version) {
         boots: { due: true, hasBasic: true,
           primary: { id: 3020, name: 'Sapatos do Feiticeiro', reason: 'Bota da build do meta', missing: 800, needGold: 0, canBuy: true },
           alt: { id: 3111, name: 'Passos de Mercúrio', reason: 'Zed e Lissandra com controle de grupo: tenacidade', strong: true, missing: 850, needGold: 0, canBuy: true } },
-        recall: 'Você tem 1240 g: volte e feche a bota: Sapatos do Feiticeiro (ou Passos de Mercúrio).',
+        recall: 'Você tem 1240 g: volte e compre a bota.',
         matchup: { vs: 'Zed', tip: 'Guarde o E para quando ele usar a sombra (W).' }, notes: [],
       },
       alerts: [{ text: 'Darius: corta a sua cura' }],

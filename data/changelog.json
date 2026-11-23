@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.56.1",
+    "title": "Mouse sem travadinhas",
+    "items": [
+      "O overlay não usa mais um hook global de mouse: o cursor não trava no TAB.",
+      "Arrastar os painéis ficou mais leve e o clique só vale sobre eles."
+    ],
+    "en": {
+      "title": "No more mouse stutter",
+      "items": [
+        "The overlay no longer uses a global mouse hook: no cursor lag on TAB.",
+        "Dragging panels is lighter and clicks only land on the panels."
+      ]
+    },
+    "es": {
+      "title": "Mouse sin tirones",
+      "items": [
+        "El overlay ya no usa un hook global de mouse: el cursor no se traba con TAB.",
+        "Arrastrar paneles es más liviano y el clic solo cuenta sobre ellos."
+      ]
+    }
+  },
+  {
     "version": "0.56.0",
     "title": "Hora da bota em destaque",
     "items": [

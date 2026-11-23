@@ -195,6 +195,30 @@ function apply(name) {
   el.style.left = `${p.x}px`;
   el.style.top = `${p.y}px`;
   el.style.transform = `scale(${(p.scale * globalScale()).toFixed(3)})`;
+  reportHits();
+}
+
+/**
+ * Áreas clicáveis (painéis visíveis) para o processo principal. Ele confere o cursor só enquanto o
+ * overlay está aberto com TAB e libera o clique só sobre os painéis. Sem isso, o Electron precisaria
+ * de um hook global de mouse, que trava o cursor do Windows sempre que o app fica ocupado.
+ */
+let hitsQueued = false;
+let lastHits = '';
+function reportHits() {
+  if (hitsQueued) return;
+  hitsQueued = true;
+  requestAnimationFrame(() => {
+    hitsQueued = false;
+    const rects = Object.values(boxes).filter((el) => !el.hidden).map((el) => {
+      const r = el.getBoundingClientRect();
+      return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)];
+    }).filter((r) => r[2] > 0 && r[3] > 0);
+    const key = JSON.stringify(rects);
+    if (key === lastHits) return;
+    lastHits = key;
+    if (window.overlay.setHitRects) window.overlay.setHitRects(rects);
+  });
 }
 
 function draw() {
@@ -248,6 +272,7 @@ function draw() {
     renderGoals(st.advice.goals);
     renderCoach(st.advice.coach);
   }
+  reportHits();
   if (PREVIEW_ONLY) {
     for (const [name, el] of Object.entries(boxes)) el.hidden = name !== PREVIEW_ONLY;
     $('edit-bar').hidden = true;
@@ -266,14 +291,15 @@ function current(name) {
   return { x: r.left, y: r.top, scale: p.scale };
 }
 
+if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(reportHits); Object.values(boxes).forEach((el) => ro.observe(el)); }
+
 for (const [name, el] of Object.entries(boxes)) {
-  el.addEventListener('pointerenter', () => { if (full || moving) window.overlay.setInteractive(true); }); // coach fixo (sem TAB) não rouba o clique do jogo
-  el.addEventListener('pointerleave', () => { if (!dragging) window.overlay.setInteractive(false); });
 
   el.querySelector('.drag').addEventListener('pointerdown', (e) => {
     const start = current(name);
     const off = { dx: e.clientX - start.x, dy: e.clientY - start.y };
     dragging = true;
+    window.overlay.setInteractive(true); // trava o clique no overlay até soltar
     e.target.setPointerCapture(e.pointerId);
     const move = (ev) => {
       const r = el.getBoundingClientRect();
@@ -286,6 +312,7 @@ for (const [name, el] of Object.entries(boxes)) {
     };
     const up = () => {
       dragging = false;
+      window.overlay.setInteractive(false);
       e.target.removeEventListener('pointermove', move);
       e.target.removeEventListener('pointerup', up);
       save();
@@ -298,6 +325,7 @@ for (const [name, el] of Object.entries(boxes)) {
     const start = current(name);
     const x0 = e.clientX;
     dragging = true;
+    window.overlay.setInteractive(true); // trava o clique no overlay até soltar
     e.target.setPointerCapture(e.pointerId);
     e.stopPropagation();
     const move = (ev) => {
@@ -307,6 +335,7 @@ for (const [name, el] of Object.entries(boxes)) {
     };
     const up = () => {
       dragging = false;
+      window.overlay.setInteractive(false);
       e.target.removeEventListener('pointermove', move);
       e.target.removeEventListener('pointerup', up);
       save();

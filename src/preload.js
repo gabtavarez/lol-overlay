@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('overlay', {
   onChampDetailUpdated: (cb) => ipcRenderer.on('champ-detail-updated', (_e, p) => cb(p)),
   onGuideUpdated: (cb) => ipcRenderer.on('guide-updated', (_e, p) => cb(p)),
   setInteractive: (on) => ipcRenderer.send('overlay:interactive', Boolean(on)),
+  setHitRects: (rects) => ipcRenderer.send('overlay:hit-rects', rects),
   winMinimize: () => ipcRenderer.invoke('win:minimize'),
   winToggleMax: () => ipcRenderer.invoke('win:toggle-max'),
   winClose: () => ipcRenderer.invoke('win:close'),

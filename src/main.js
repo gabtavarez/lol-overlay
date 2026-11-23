@@ -103,6 +103,7 @@ let windowMode = null;
 let windowModeAt = 0;
 let windowModePhase = null;
 let fullscreenLogged = false;
+let topAsserted = false;
 // Estado real da tela pelo Windows (lido junto com o TAB): null = sem a informação.
 let liveScreen = null;
 
@@ -267,7 +268,7 @@ function createOverlayWindow() {
   });
   lockDownWindow(overlayWin);
   overlayWin.setAlwaysOnTop(true, 'screen-saver');
-  overlayWin.setIgnoreMouseEvents(true, { forward: true });
+  overlayWin.setIgnoreMouseEvents(true);
   overlayWin.loadFile(path.join(__dirname, '..', 'renderer', 'overlay.html'), { query: { lang: appLang() } });
 }
 
@@ -290,14 +291,54 @@ function updateOverlayVisibility() {
     placeOverlayOnActiveDisplay();
     overlayWin.showInactive();
     logger.log(`overlay: mostrado (tab=${tabDown} jogo=${inGame} sempre=${always} editar=${moveMode} teste=${previewing})`);
-  } else if (show && visible && tabDown) {
-    // o jogo ao ganhar foco pode empurrar janelas "sempre no topo" para trás: reafirma
+  } else if (show && visible && tabDown && !topAsserted) {
+    // o jogo ao ganhar foco pode empurrar janelas "sempre no topo" para trás: reafirma uma vez por TAB
+    // (repetir a cada atualização mexe na ordem das janelas o tempo todo e dá travadinhas)
     overlayWin.setAlwaysOnTop(true, 'screen-saver');
     overlayWin.moveTop();
   } else if (!show && visible) {
     overlayWin.hide();
     logger.log('overlay: oculto');
   }
+  topAsserted = tabDown && show;
+  // clique só sobre os painéis, e só com o overlay aberto (TAB ou modo sempre visível)
+  if (full && show && !moveMode) startHitPoll(); else stopHitPoll();
+}
+
+/**
+ * Clique sobre os painéis sem hook global de mouse. O "forward" do Electron instala um hook de
+ * baixo nível no Windows: todo movimento do mouse passa pelo app e, quando o app fica ocupado, o
+ * cursor do sistema trava. Aqui o app só lê a posição do cursor (~30x/s) enquanto o overlay está aberto.
+ */
+const hit = { rects: [], dragLock: false, inside: false, timer: null };
+function setOverlayMouse(on) {
+  if (!overlayWin || overlayWin.isDestroyed()) return;
+  hit.inside = on;
+  overlayWin.setIgnoreMouseEvents(!on);
+}
+function hitTick() {
+  if (!overlayWin || overlayWin.isDestroyed() || moveMode) return;
+  let inside = hit.dragLock;
+  if (!inside && hit.timer) {
+    const b = overlayWin.getBounds();
+    const p = screen.getCursorScreenPoint();
+    const x = p.x - b.x;
+    const y = p.y - b.y;
+    inside = hit.rects.some(([rx, ry, rw, rh]) => x >= rx && x <= rx + rw && y >= ry && y <= ry + rh);
+  }
+  if (inside !== hit.inside) setOverlayMouse(inside);
+}
+function startHitPoll() {
+  if (hit.timer) return;
+  hit.timer = setInterval(hitTick, 33);
+  hitTick();
+}
+function stopHitPoll() {
+  if (!hit.timer) return;
+  clearInterval(hit.timer);
+  hit.timer = null;
+  hit.dragLock = false;
+  if (!moveMode && hit.inside) setOverlayMouse(false);
 }
 
 /** O overlay cobre o monitor onde está o mouse (normalmente o do jogo), não só o principal. */
@@ -433,7 +474,7 @@ function setLiveScreen(v) {
 /** Modo mover: o overlay fica visível e aceita o mouse para ser arrastado. */
 function toggleMoveMode() {
   moveMode = !moveMode;
-  overlayWin.setIgnoreMouseEvents(!moveMode, { forward: true });
+  setOverlayMouse(moveMode);
   send('move-mode', moveMode);
   updateOverlayVisibility();
   return moveMode;
@@ -1746,8 +1787,11 @@ function registerIpc() {
       if (liveEngine) liveEngine.tick();
     }
   });
-  ipcMain.on('overlay:interactive', (_e, on) => {
-    if (!moveMode && overlayWin && !overlayWin.isDestroyed()) overlayWin.setIgnoreMouseEvents(!on, { forward: true });
+  // arrastando um painel: mantém o clique no overlay até soltar, mesmo se o cursor sair do painel
+  ipcMain.on('overlay:interactive', (_e, on) => { hit.dragLock = Boolean(on); hitTick(); });
+  ipcMain.on('overlay:hit-rects', (_e, rects) => {
+    if (!Array.isArray(rects)) return;
+    hit.rects = rects.slice(0, 20).filter((r) => Array.isArray(r) && r.length === 4 && r.every(Number.isFinite));
   });
 
   ipcMain.handle('diag:get', () => ({

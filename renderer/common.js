@@ -44,14 +44,41 @@ function goodTag(good, vs, version) {
 }
 
 /** Lista "Compras" com até 3 itens, motivo e ouro faltando. */
+/** Decisão da bota: a do meta em destaque e a 2ª opção com o motivo. */
+function bootPick(boots, version) {
+  if (!boots || !boots.primary) return null;
+  const gold = (o) => (o.canBuy ? t('Já dá ({g} g)', { g: o.missing }) : o.needGold != null ? t('Faltam {n} g', { n: o.needGold }) : '');
+  const icon = (o, cls) => (version ? h('img', { class: cls, src: itemIcon(version, o.id), alt: o.name }) : h('div', { class: cls }));
+  const p = boots.primary;
+  const a = boots.alt;
+  return h('div', { class: `bootpick${boots.due ? ' due' : ''}` },
+    h('div', { class: 'bp-head' },
+      h('span', { class: 'bp-title', text: boots.due ? t('Hora da bota') : t('Bota') }),
+      h('span', { class: 'bp-sub', text: boots.due ? (boots.hasBasic ? t('você já tem a bota básica') : t('feche antes do próximo item')) : t('decida depois do 1º item') })),
+    h('div', { class: `bp-opt main${p.canBuy ? ' afford' : ''}` },
+      icon(p, 'bp-icon'),
+      h('div', { class: 'bp-body' },
+        h('div', { class: 'bp-name' }, h('b', { text: p.name }), h('span', { class: 'bp-tag', text: t('Meta') })),
+        h('div', { class: 'bp-reason', text: p.reason })),
+      h('div', { class: 'bp-gold', text: gold(p) })),
+    a ? h('div', { class: `bp-opt alt${a.strong ? ' strong' : ''}` },
+      icon(a, 'bp-icon sm'),
+      h('div', { class: 'bp-body' },
+        h('div', { class: 'bp-name' }, h('b', { text: a.name }), h('span', { class: 'bp-tag', text: a.strong ? t('Considere') : t('2ª opção') })),
+        h('div', { class: 'bp-reason', text: a.reason })),
+      h('div', { class: 'bp-gold', text: gold(a) })) : null,
+  );
+}
+
 function renderBuyList(container, buys, version) {
   const items = (buys && buys.items) || [];
+  const boot = bootPick(buys && buys.boots, version);
   if (!items.length) {
-    container.replaceChildren(h('p', { class: 'muted', text: (buys && buys.notes && buys.notes[0]) || 'Sem sugestões agora.' }));
+    container.replaceChildren(...[boot, h('p', { class: 'muted', text: (buys && buys.notes && buys.notes[0]) || 'Sem sugestões agora.' })].filter(Boolean));
     return;
   }
-  container.replaceChildren(
-    ...items.map((it, i) =>
+  // bota na hora certa vem antes dos itens; antes disso, fica embaixo
+  const list = items.map((it, i) =>
       h('div', { class: `buy${i === 0 ? ' best' : ''}${it.canBuy ? ' afford' : ''}` },
         version ? h('img', { class: 'buy-icon', src: itemIcon(version, it.id), alt: it.name }) : h('div', { class: 'buy-icon' }),
         h('div', { class: 'buy-body' },
@@ -66,8 +93,8 @@ function renderBuyList(container, buys, version) {
         ),
         h('div', { class: 'buy-score', text: String(it.score) }),
       ),
-    ),
   );
+  container.replaceChildren(...(boot && buys.boots.due ? [boot, ...list] : boot ? [...list, boot] : list));
 }
 
 /** Aviso de recall, nota de matchup e alertas de itens inimigos (texto puro). */

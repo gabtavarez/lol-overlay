@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.56.0",
+    "title": "Hora da bota em destaque",
+    "items": [
+      "A bota ganhou um bloco próprio no overlay, em destaque na hora de fechar.",
+      "A bota do meta vem sempre em 1º, com uma 2ª opção e o motivo dela.",
+      "O aviso de voltar à base lembra de fechar a bota quando dá."
+    ],
+    "en": {
+      "title": "Boots time, highlighted",
+      "items": [
+        "Boots got their own block in the overlay, highlighted when it's time.",
+        "Meta boots always come first, with a 2nd option and its reason.",
+        "The recall tip reminds you to finish your boots when you can."
+      ]
+    },
+    "es": {
+      "title": "Hora de las botas, destacada",
+      "items": [
+        "Las botas tienen su propio bloque en el overlay, destacado a tiempo.",
+        "Las botas del meta van primero, con una 2ª opción y su motivo.",
+        "El aviso de volver a base recuerda cerrar las botas cuando alcanza."
+      ]
+    }
+  },
+  {
     "version": "0.55.3",
     "title": "Bota do meta no suporte",
     "items": [

@@ -19,16 +19,21 @@ const dd = { item: (id) => items[id] || null };
 const flags = { healers: [], apOverrides: [], adOverrides: [], hardCc: ['Leona', 'Nautilus', 'Lissandra'] };
 const enemy = (champion, tags, k, d, a, position = '') => ({ champion, championId: champion, tags, level: 6, position, scores: { kills: k, deaths: d, assists: a }, items: [] });
 const me = (k, d) => ({ champion: 'Lux', tags: ['Mage'], level: 6, gold: 1300, items: [{ id: 1056 }], scores: { kills: k, deaths: d, assists: 0 } });
-const bootOf = (adv) => adv.items.find((i) => i.tag === 'boots');
+const bootOf = (adv) => adv.boots.primary;
+const altOf = (adv) => adv.boots.alt;
 
-test('bota: ofensiva se a rota está controlada; defensiva se perdendo; Mercúrio contra muito CC', () => {
+test('bota: a do meta sempre em 1º; 2ª opção defensiva se perdendo ou contra muito CC', () => {
   const build = { boots: [3020], core: [], damageType: 'AP' };
   const calm = buyAdvice({ dd, flags, build, state: { gameTime: 700, me: me(2, 0), enemies: [enemy('Ahri', ['Mage'], 0, 2, 0, 'MIDDLE'), enemy('Garen', ['Fighter'], 1, 1, 0)], laneOpponent: { champion: 'Ahri' } } });
   assert.equal(bootOf(calm).id, 3020);
   const losing = buyAdvice({ dd, flags, build, state: { gameTime: 700, me: me(0, 4), enemies: [enemy('Zed', ['Assassin'], 5, 0, 1), enemy('Lux2', ['Mage'], 0, 1, 0)], laneOpponent: { champion: 'Zed' } } });
-  assert.equal(bootOf(losing).id, 3047);
+  assert.equal(bootOf(losing).id, 3020);
+  assert.equal(altOf(losing).id, 3047);
+  assert.ok(altOf(losing).strong);
   const cc = buyAdvice({ dd, flags, build, state: { gameTime: 700, me: me(1, 1), enemies: [enemy('Leona', ['Tank'], 0, 1, 2), enemy('Nautilus', ['Tank'], 0, 1, 1), enemy('Lissandra', ['Mage'], 1, 1, 0)] } });
-  assert.equal(bootOf(cc).id, 3111);
+  assert.equal(bootOf(cc).id, 3020);
+  assert.equal(altOf(cc).id, 3111);
+  assert.match(altOf(cc).reason, /controle de grupo/);
 });
 
 const { missingGold } = require('../src/buys');
@@ -147,8 +152,9 @@ test('botas: com bota básica sugere a final; anti-cura não dispara por Lâmina
     gameTime: 600, me: { champion: 'Ahri', championId: 'Ahri', tags: ['Mage'], level: 8, gold: 900, items: [{ id: 1056 }, { id: 1001 }], scores: { kills: 1, deaths: 1, assists: 0 } },
     enemies: [E('Talon', ['Assassin']), E('Smolder', ['Marksman'])] } });
   const ids = adv.items.map((i) => i.id);
-  assert.ok(ids.includes(3020), `bota final esperada: ${ids}`);
-  assert.equal(adv.items.find((i) => i.id === 3020).missing, 800);
+  assert.equal(adv.boots.primary.id, 3020);
+  assert.equal(adv.boots.primary.missing, 800);
+  assert.ok(adv.boots.due);
   assert.ok(!ids.includes(3916), 'sem anti-cura por Doran');
 });
 

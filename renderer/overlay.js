@@ -40,10 +40,13 @@ function sampleState(version) {
       buys: {
         items: [
           { id: 3157, name: 'Ampulheta de Zhonya', reason: 'Zhonya na marca do ult de Zed: anula o combo', good: { key: 'burst', label: 'Assassinos' }, vs: ['Zed'], score: 88, missing: 1250, needGold: 10, canBuy: false, parts: ['Tomo Amplificador'] },
-          { id: 3020, name: 'Sapatos do Feiticeiro', reason: 'Rota sob controle: bota ofensiva do meta · hora de fechar a bota', score: 76, missing: 800, needGold: 0, canBuy: true, parts: ['Botas'] },
+          { id: 3165, name: 'Morellonomicon', reason: 'Anticura contra Soraka', score: 76, missing: 2200, needGold: 960, canBuy: false, parts: [] },
           { id: 4645, name: 'Chama Sombria', reason: 'Build do meta · 41% dos jogadores', score: 70, missing: 2900, needGold: 1660, canBuy: false },
         ],
-        recall: 'Você tem 1240 g: volte e compre a bota.',
+        boots: { due: true, hasBasic: true,
+          primary: { id: 3020, name: 'Sapatos do Feiticeiro', reason: 'Bota da build do meta', missing: 800, needGold: 0, canBuy: true },
+          alt: { id: 3111, name: 'Passos de Mercúrio', reason: 'Zed e Lissandra com controle de grupo: tenacidade', strong: true, missing: 850, needGold: 0, canBuy: true } },
+        recall: 'Você tem 1240 g: volte e feche a bota: Sapatos do Feiticeiro (ou Passos de Mercúrio).',
         matchup: { vs: 'Zed', tip: 'Guarde o E para quando ele usar a sombra (W).' }, notes: [],
       },
       alerts: [{ text: 'Darius: corta a sua cura' }],

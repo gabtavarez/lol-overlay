@@ -353,7 +353,7 @@ test('compras: suporte contra suporte fed fica na bota do meta', () => {
   const morg = player('Morgana', 'Morgana', ['Mage', 'Support'], { level: 7, scores: { kills: 3, deaths: 1, assists: 1 }, position: 'UTILITY' });
   const enemies = [morg, player('Jinx', 'Jinx', ['Marksman']), player('Darius', 'Darius', ['Fighter']), player('LeeSin', 'Lee Sin', ['Fighter']), player('Ziggs', 'Ziggs', ['Mage'])];
   const out = buyAdvice({ state: { me, enemies, gameTime: 450, myRole: 'utility', laneOpponent: { champion: 'Morgana' } }, build, dd });
-  const boots = out.items.find((i) => i.tag === 'boots');
+  const boots = out.boots && out.boots.primary;
   assert.ok(boots, 'sugere bota');
   assert.equal(boots.id, 3020, boots.reason);
 });

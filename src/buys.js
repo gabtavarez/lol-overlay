@@ -219,13 +219,28 @@ function who(list, key, n = 2) {
  */
 const DEFAULT_BOOTS = { ap: [3020], adc: [3006], ad: [3047, 3111], assassin: [3158, 3047], tank: [3047, 3111], support: [3158, 3020] };
 
-function chooseBoots(args) {
-  const b = pickBoots(args);
-  if (!b) return null;
-  const { build, dd, cls = 'ad' } = args;
-  const meta = (build && build.boots && build.boots.find((id) => dd.item(id))) || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id));
-  // bota reativa no lugar da do meta: diz qual é a do meta, para você escolher
-  return meta && meta !== b.id && dd.item(meta) ? { ...b, reason: `${b.reason}${tr(' · a build do meta usa {item}', { item: dd.item(meta).name })}` } : b;
+/**
+ * Decisão da bota em destaque: a do meta em 1º, sempre, e uma 2ª opção com motivo.
+ * A 2ª é a reativa (quando há razão forte), senão a defensiva do tipo de dano que mais pesa,
+ * senão a 2ª bota mais usada na build.
+ */
+function bootChoice(args) {
+  const { build, dd, ownedSet, cls = 'ad', apShare = 0, adShare = 0 } = args;
+  const metaList = (build && build.boots ? build.boots : []).filter((id) => dd.item(id) && isBoots(dd, id));
+  const meta = metaList[0] || (DEFAULT_BOOTS[cls] || []).find((id) => dd.item(id)) || null;
+  const react = pickBoots(args);
+  const primaryId = meta || (react && react.id);
+  if (!primaryId) return null;
+  const mercs = firstAvailable(reactive.bootsMr, dd, ownedSet);
+  const steel = firstAvailable(reactive.bootsArmor, dd, ownedSet);
+  let alt = null;
+  if (react && react.id !== primaryId) alt = { id: react.id, reason: react.reason, strong: react.score >= 63 };
+  else if (apShare >= adShare && apShare >= 0.5 && mercs && mercs !== primaryId) alt = { id: mercs, reason: tr('{n}% do dano inimigo é mágico: tenacidade e RM', { n: Math.round(apShare * 100) }), strong: false };
+  else if (adShare >= 0.5 && steel && steel !== primaryId) alt = { id: steel, reason: tr('{n}% do dano inimigo é físico: armadura', { n: Math.round(adShare * 100) }), strong: false };
+  else if (metaList[1] && metaList[1] !== primaryId) alt = { id: metaList[1], reason: tr('2ª bota mais usada na build'), strong: false };
+  else if (mercs && mercs !== primaryId) alt = { id: mercs, reason: tr('Mais segura contra controle de grupo'), strong: false };
+  const primaryReason = meta ? (build && build.boots && build.boots.length ? tr('Bota da build do meta') : tr('Bota padrão da classe')) : react.reason;
+  return { primary: { id: primaryId, reason: primaryReason }, alt };
 }
 
 function pickBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls = 'ad', role = '' }) {
@@ -511,15 +526,19 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
       carryAd && carryAd.fed ? tr('Armadura: {champ} está fed', { champ: foco }) : monoAD ? tr('Time inimigo quase todo AD ({n}): armadura é prioridade', { n: adCount }) : tr('Armadura: dano inimigo mais AD · foco: {champs}', { champs: foco }),
       ids([...t].filter((x) => x.d.ad >= 0.5).sort((a, b) => b.w * b.d.ad - a.w * a.d.ad)));
   }
-  if (!hasBoots && owned.length >= 1) {
-    const b = chooseBoots({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls, role: state.myRole || '' });
-    if (b) {
-      // Timing: botas entram depois do 1º item (ou ~8 min) e sobem se você já tem a bota básica.
-      const due = legendaries >= 1 || state.gameTime >= 480;
-      const bonus = (due ? 18 : 0) + (hasBasicBoots ? 10 : 0);
-      const bootVs = isMr(b.id) ? ids(t.filter((x) => x.d.ap >= 0.5 || (flags.hardCc || []).includes(x.e.championId)))
-        : isSteel(b.id) ? ids(t.filter((x) => x.d.ad >= 0.5)) : [];
-      add(b.id, b.score + bonus, `${b.reason}${hasBasicBoots ? tr(' · você já tem a bota básica') : due ? tr(' · hora de fechar a bota') : ''}`, 'boots', bootVs);
+  // Bota: decisão à parte, em destaque no overlay (não disputa espaço com os itens lendários)
+  let boots = null;
+  if (!hasBoots && (owned.length >= 1 || (state.gameTime || 0) >= 120)) {
+    const bc = bootChoice({ me, t, apShare, adShare, build, dd, ownedSet, flags, laneOpponentName, cls, role: state.myRole || '' });
+    if (bc) {
+      const due = legendaries >= 1 || state.gameTime >= 480 || hasBasicBoots;
+      const row = (o) => {
+        const it = dd.item(o.id);
+        const missing = missingGold(dd, o.id, owned, []);
+        return { id: o.id, name: it.name, reason: o.reason, strong: Boolean(o.strong), missing, needGold: missing === null ? null : Math.max(0, missing - me.gold), canBuy: missing !== null && me.gold >= missing,
+          vs: isMr(o.id) ? ids(t.filter((x) => x.d.ap >= 0.5 || (flags.hardCc || []).includes(x.e.championId))) : isSteel(o.id) ? ids(t.filter((x) => x.d.ad >= 0.5)) : [] };
+      };
+      boots = { due, hasBasic: hasBasicBoots, primary: row(bc.primary), alt: bc.alt && dd.item(bc.alt.id) ? row(bc.alt) : null };
     }
   }
 
@@ -683,6 +702,9 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
     recall = tr('Você tem {g} g: volte e compre {item} agora · corta a cura de {champs}.', { g: me.gold, item: (dd.item(healComp) || {}).name || '', champs: healWho });
   } else if (buyable && me.gold >= 1300) {
     recall = tr('Você tem {g} g: volte e feche {item}.', { g: me.gold, item: buyable.name });
+  } else if (boots && boots.hasBasic && boots.primary.canBuy && state.gameTime >= 360) {
+    recall = boots.alt ? tr('Você tem {g} g: volte e feche a bota: {item} (ou {alt}).', { g: me.gold, item: boots.primary.name, alt: boots.alt.name })
+      : tr('Você tem {g} g: volte e feche a bota: {item}.', { g: me.gold, item: boots.primary.name });
   } else if (me.gold >= (need && need !== 'dmg' ? 900 : 1300) && items[0]) {
     // componente rumo ao item principal: o que a situação pede (defesa perdendo, dano ganhando), senão o mais caro
     const sit = need ? situationalComponent(dd, items[0].id, owned, me.gold, need) : null;
@@ -705,8 +727,8 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
   if (full) notes.push(sell ? tr(sell.cheap ? 'Inventário cheio: venda {item} para o próximo item' : 'Inventário cheio: troque {item} para o próximo item', { item: sell.name }) : tr('Inventário cheio'));
   if (off.length) notes.push(tr('Build fora do padrão: {list} (contado pelos itens)', { list: off.map((x) => `${x.e.champion} ${x.d.offbuild}`).join(', ') }));
   const threatsOut = t.slice(0, 3).map((x) => ({ champion: x.e.champion, kda: kdaText(x.e), w: Math.round(x.w * 100) / 100, fed: x.fed, lane: x.lane }));
-  return { items, notes, cls, full, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
+  return { items, boots, notes, cls, full, recall, matchup: (build && build.matchup) || null, threats: threatsOut };
 }
 
 module.exports = {
-  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory, createCommitMemory, situationalComponent };
+  goodAgainst, liveProfile, itemResists, critItems, shieldSources, buyAdvice, missingGold, classOf, isBoots, createBootMemory, createCommitMemory, situationalComponent, bootChoice };

@@ -209,6 +209,9 @@ function renderGuide(state, picks) {
     shownId = pickId;
     guide = null;
     variant = 0;
+    bsel = 'v0';
+    showRuneTree = false;
+    showSkillGrid = false;
     runePage = 0;
     imported.runes = false;
     imported.spells = false;
@@ -396,116 +399,312 @@ function rolePicker(root, onChange = null) {
   return h('label', { class: 'role-pick-wrap' }, h('span', { text: 'Rota' }), sel);
 }
 
+/* ---------- guia do champ select: uma build por vez, o resto em "Mais detalhes" ---------- */
+let bsel = 'v0'; // build escolhida nos cartões: v<i> (variantes do guia), wr (maior vitória), otp (one-trick)
+let moreOpen = false; // "Mais builds e detalhes" aberto
+let showRuneTree = false;
+let showSkillGrid = false;
+const wrBuild = new Map(); // `${id}:${role}` -> dados do laboratório (maior win rate, geral)
+const nonBoot = (g) => (g.fullBuild || []).filter((it) => !(g.boots || []).some((b) => b.id === it.id));
+const itImg = (id, cls = 'it-icon', name = '') => icon(ddVerImg(`item/${id}.png`), cls, name, '');
+
+function guideRole(g) {
+  return (lastState && (lastState.myRole || lastState.myPosition)) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : (lastState && lastState.home && lastState.home.mainRole) || 'middle');
+}
+/** Build de maior win rate (geral) para o cartão "Maior vitória"; busca uma vez por campeão/rota. */
+function wrFor(id, role) {
+  const k = `${id}:${role}`;
+  if (wrBuild.has(k)) return wrBuild.get(k);
+  wrBuild.set(k, null);
+  window.overlay.getLab({ id, role, vs: null, mode: 'wr', source: 'opgg' }).then((d) => {
+    if (d && !d.locked && d.cores && d.cores.length) { wrBuild.set(k, d); if (shownId === id) drawGuide(); } else if (d && d.pending) wrBuild.delete(k);
+  }).catch(() => {});
+  return null;
+}
+function otpPick() {
+  if (otp.id !== shownId) {
+    otp = { id: shownId, data: null };
+    const id = shownId;
+    window.overlay.getOtp(id).then((d) => { if (otp.id === id) { otp.data = d; drawGuide(); } });
+    return null;
+  }
+  const list = (otp.data && otp.data.list) || [];
+  const idx = list.findIndex((p) => p.build && p.build.items && p.build.items.length >= 3);
+  return idx >= 0 ? { idx, p: list[idx] } : null;
+}
+
+/** Runas escolhidas, compactas: runa principal grande + as outras + fragmentos. */
+function runesCompact(tree, key) {
+  const edited = runeEdits.get(key);
+  const t = edited && typeof treeFromPage === 'function' ? treeFromPage(edited) : tree;
+  if (!t) return null;
+  const sel = (rows) => rows.flatMap((row) => row.filter((r) => r.selected));
+  const key0 = sel([t.primary[0] || []])[0];
+  const minors = [...sel(t.primary.slice(1)), ...sel(t.secondary)];
+  const shards = sel(t.shards || []);
+  const ic = (r, cls) => { const el = icon(ddImg(r.icon), cls, ''); tipOn(el, r.name, r.desc); return el; };
+  return h('div', { class: 'rc' },
+    key0 ? ic(key0, 'rc-key') : null,
+    h('div', { class: 'rc-rest' },
+      h('div', { class: 'rc-row' }, ...minors.map((r) => ic(r, 'rc-minor'))),
+      h('div', { class: 'rc-row' }, ...shards.map((r) => ic(r, 'rc-shard')), key0 ? h('span', { class: 'rc-name', text: key0.name }) : null)));
+}
+
+function skillKeys(order) {
+  if (!order || !order.length) return null;
+  const cnt = {};
+  const prio = [];
+  for (const x of skillOrder18(order)) if (x !== 'R' && (cnt[x] = (cnt[x] || 0) + 1) === 5) prio.push(x);
+  for (const x of ['Q', 'W', 'E']) if (!prio.includes(x)) prio.push(x);
+  return h('div', { class: 'sk-keys' }, ...prio.slice(0, 3).flatMap((k, i) => [i ? h('span', { class: 'sk-arr', text: '›' }) : null, h('span', { class: `sk-cap${i === 0 ? ' first' : ''}`, text: k })]).filter(Boolean));
+}
+
+/** Caminho de compras em uma linha: início › itens (picos marcados). */
+function pathLine(starter, items, isBoot = () => false) {
+  let legend = 0;
+  const steps = [];
+  if (starter && starter.length) {
+    steps.push(h('div', { class: 'bp-step' },
+      h('div', { class: 'bp-icons' }, ...starter.map((it) => h('div', { class: 'it' }, itImg(it.id, 'it-icon', it.name), it.count > 1 ? h('span', { class: 'cnt', text: `x${it.count}` }) : null))),
+      h('span', { class: 'bp-cap', text: t('Início') })));
+  }
+  items.forEach((it) => {
+    const boot = isBoot(it);
+    const spike = !boot && (it.gold || 2200) >= 2200 && ++legend <= 2;
+    const el = h('div', { class: `bp-step${spike ? ' spike' : ''}` },
+      h('div', { class: 'bp-icons' }, itImg(it.id, 'it-icon', it.name)),
+      h('span', { class: 'bp-cap', text: it.gold ? `${it.gold.toLocaleString('pt-BR')} g` : boot ? t('Botas') : '' }),
+      spike ? h('span', { class: 'bp-spike', text: legend === 1 ? t('1º pico') : t('2º pico') }) : null);
+    tipOn(el, it.name, spike ? tr('{n}º item lendário: pico de força — bom momento para lutar.', { n: legend }) : boot ? t('Botas') : '');
+    if (steps.length) steps.push(h('span', { class: 'bp-arr', text: '›' }));
+    steps.push(el);
+  });
+  return h('div', { class: 'bp' }, ...steps);
+}
+
 function drawGuide() {
+  $('guide-tabs').replaceChildren();
   if (!guide) {
-    $('guide-tabs').replaceChildren();
-    els.guideBody.replaceChildren(skel('build'), h('p', { class: 'muted small', text: 'Carregando dados do OP.GG…' }));
+    els.guideBody.replaceChildren(skel('build'), h('p', { class: 'muted small pad', text: t('Carregando a build…') }));
     setImportEnabled(false);
     return;
   }
   const root = guide;
-  const g = (root.variants && root.variants[variant] && root.variants[variant].guide) || root;
   if (root.error) {
-    $('guide-tabs').replaceChildren();
-    els.guideBody.replaceChildren(h('p', { class: 'muted', text: root.error }));
+    els.guideBody.replaceChildren(h('p', { class: 'muted pad', text: root.error }));
     setImportEnabled(false);
     return;
   }
-  // abas: build geral x matchup (ou itens alternativos)
-  $('guide-tabs').replaceChildren(...((root.variants || []).length > 1 ? root.variants.map((v, i) => {
-    const b = h('button', { class: i === variant ? 'on' : '', type: 'button' },
-      v.vsId && version ? h('img', { class: 'tab-ic', src: champIcon(version, v.vsId), alt: '' }) : null, h('span', { text: v.label }));
-    b.title = v.sub || '';
-    b.addEventListener('click', () => { variant = i; imported.runes = false; imported.spells = false; drawGuide(); });
-    return b;
-  }) : []));
+  const vars = root.variants && root.variants.length ? root.variants : [{ label: t('Mais jogada'), sub: '', guide: root }];
+  const g0 = (vars[variant] && vars[variant].guide) || root;
+  const role = guideRole(g0);
+  const modeGame = Boolean(lastState && lastState.mode) || ['aram', 'arena'].includes(role);
+  const wr = !modeGame && !root.chosen ? wrFor(shownId, role) : null;
+  const op = !modeGame ? otpPick() : null;
+  if (bsel === 'wr' && !wr) bsel = `v${variant}`;
+  if (bsel === 'otp' && !op) bsel = `v${variant}`;
+  if (bsel.startsWith('v') && Number(bsel.slice(1)) !== variant) bsel = `v${variant}`;
 
-  const parts = [];
+  /* cartões: cada um é uma build inteira */
+  const card = (key, label, sub, ids, opts = {}) => {
+    const on = bsel === key;
+    const b = h('button', { class: `bv-card${on ? ' on' : ''}`, type: 'button', 'aria-pressed': String(on) },
+      h('span', { class: 'bv-top' }, opts.vsId && version ? h('img', { class: 'bv-vs', src: champIcon(version, opts.vsId), alt: '' }) : null,
+        h('b', { text: label }), opts.small ? h('span', { class: 'bv-warn', text: t('poucos jogos'), title: t('Amostra pequena: win rate menos confiável') }) : null),
+      h('span', { class: 'bv-its' }, ...ids.slice(0, 3).map((id) => itImg(id, 'bv-it'))),
+      h('span', { class: 'bv-sub' }, opts.wr != null ? h('b', { class: wrTone(opts.wr), text: pctTxt(opts.wr) }) : null, h('span', { text: sub || '' })));
+    b.addEventListener('click', () => {
+      if (key.startsWith('v')) { variant = Number(key.slice(1)); imported.runes = false; imported.spells = false; }
+      bsel = key;
+      els.impMsg.textContent = '';
+      drawGuide();
+    });
+    return b;
+  };
+  const cards = vars.map((v, i) => card(`v${i}`, v.label, v.sub, nonBoot(v.guide || root).map((it) => it.id), { vsId: v.vsId }));
+  if (wr) {
+    const c = wr.cores[0];
+    cards.push(card('wr', t('Maior vitória'), tr('{n} jogos', { n: (c.play || 0).toLocaleString('pt-BR') }), c.items.map((it) => it.id), { wr: c.wr, small: (c.play || 0) < 100 }));
+  }
+  if (op) {
+    const p = op.p;
+    cards.push(card('otp', t('One-trick'), `${p.riotId.split('#')[0]}${p.tier ? ` · ${tierName(p.tier)}` : ''}`, p.build.items.slice(0, 3)));
+  }
+  const parts = [h('div', { class: 'bv-cards' }, ...cards)];
+
+  /* rota e matchup (compactos) */
   const sub = [];
-  if (root.variants && root.variants[variant] && root.variants[variant].sub) sub.push(h('span', { text: root.variants[variant].sub }));
+  if (lastState && lastState.phase === 'champselect' && !lastState.mode) sub.push(rolePicker(root));
   if (root.opponents && root.opponents.length) {
-    // escolha do oponente do matchup com o ícone de cada campeão (no lugar da lista só com nomes)
     const cur = root.matchupMode || 'auto';
     const pickMu = async (value) => {
       if (value === cur) return;
       await window.overlay.setMatchup(value);
       variant = value === 'none' ? 0 : 1;
+      bsel = `v${variant}`;
       guide = await window.overlay.getGuide(shownId);
       drawGuide();
     };
-    const icon = (id) => (id && version ? h('img', { src: champIcon(version, id), alt: '' }) : null);
+    const ico = (id) => (id && version ? h('img', { src: champIcon(version, id), alt: '' }) : null);
     const chip = (value, label, id, title) => {
-      const b = h('button', { type: 'button', class: `mu-chip${value === cur ? ' on' : ''}`, 'aria-pressed': String(value === cur), title: title || label }, icon(id), label ? h('span', { text: label }) : null);
+      const b = h('button', { type: 'button', class: `mu-chip${value === cur ? ' on' : ''}`, 'aria-pressed': String(value === cur), title: title || label }, ico(id), label ? h('span', { text: label }) : null);
       b.addEventListener('click', () => pickMu(value));
       return b;
     };
-    const autoId = cur === 'auto' ? root.opponentId : null;
-    const picker = h('div', { class: 'mu-pick', role: 'group', 'aria-label': t('Matchup contra') },
-      chip('auto', t('Automático'), autoId, root.opponent ? `${t('Automático')} (${root.opponent})` : t('Automático')),
+    sub.push(h('span', { class: 'spacer' }), h('span', { text: t('Contra') }), h('div', { class: 'mu-pick', role: 'group', 'aria-label': t('Matchup contra') },
+      chip('auto', t('Automático'), cur === 'auto' ? root.opponentId : null, root.opponent ? `${t('Automático')} (${root.opponent})` : t('Automático')),
       ...root.opponents.map((o) => chip(o.id, '', o.id, o.name)),
-      chip('none', t('Nenhum'), null));
-    sub.push(h('span', { class: 'spacer' }), h('span', { text: 'Matchup contra' }), picker);
-    if (root.pending) sub.push(h('span', { text: root.pending }));
+      chip('none', t('Nenhum'), null)));
   }
-  if (lastState && lastState.phase === 'champselect' && !lastState.mode) sub.unshift(rolePicker(root));
   if (sub.length) parts.push(h('div', { class: 'g-sub' }, ...sub));
-  if (root.chosen) parts.push(h('div', { class: 'g-tip chosen-tip', text: tr('Usando a sua build do laboratório ({label}). Para voltar à do OP.GG, use "Voltar ao padrão" no bloco Builds.', { label: root.chosen.label || 'OP.GG' }) }));
+  if (root.chosen) {
+    const back = h('button', { class: 'link', type: 'button', text: t('Voltar ao padrão') });
+    back.addEventListener('click', async () => { await window.overlay.chooseLab({ id: shownId, role: root.chosen.role || role, patch: null }); guide = await window.overlay.getGuide(shownId); variant = 0; bsel = 'v0'; drawGuide(); });
+    parts.push(h('div', { class: 'g-tip chosen-tip' }, h('span', { text: tr('Usando a sua build ({label}).', { label: root.chosen.label || t('Maior vitória') }) }), back));
+  }
   if (root.roleNote) parts.push(h('div', { class: 'g-tip', text: root.roleNote }));
 
-  if (g.matchup && g.matchup.tip) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
-  if ((g.changes || []).length) {
-    const KIND = { items: 'Itens', spells: 'Feitiços', runes: 'Runas', shards: 'Fragmento', skills: 'Habilidades' };
-    parts.push(h('div', { class: 'g-changes' },
-      h('div', { class: 'lbl' }, h('span', { text: tr('O que muda — {v}', { v: (root.variants[variant] || {}).label || 'matchup' }) })),
-      ...g.changes.map((c) => h('div', { class: `g-ch k-${c.kind}` },
-        h('span', { class: 'g-ch-k', text: KIND[c.kind] || c.kind }),
-        h('span', { class: 'g-ch-t', text: c.text.replace(new RegExp(`^(${['Itens', 'Feitiços', '2ª árvore', 'Habilidades'].map((w) => tr(w)).join('|')}): `), '') }),
-        h('span', { class: `g-ch-s ${c.source === 'OP.GG' ? 'src-op' : 'src-rule'}`, text: c.source === 'OP.GG' ? 'OP.GG' : tr('regra do app'), title: c.source === 'OP.GG' ? 'Dados do OP.GG para este confronto' : 'Regra do app (composição inimiga / matchup difícil)' })))));
+  /* build escolhida */
+  let pathEl;
+  let runesEl;
+  let spellsEl;
+  let skillsEl;
+  let why = '';
+  let g = g0;
+  if (bsel === 'wr') {
+    const d = wr;
+    const c = d.cores[0];
+    const bootIds = new Set(d.boots.flatMap((o) => o.items.map((it) => it.id)));
+    const st = d.starters[0];
+    const bt = d.boots[0];
+    const items = [c.items[0], ...(bt && !c.items.some((it) => bootIds.has(it.id)) ? bt.items : []), ...c.items.slice(1)];
+    pathEl = pathLine(st ? st.items.map((it) => ({ ...it, count: 1 })) : [], items, (it) => bootIds.has(it.id));
+    const r0 = d.runes[0];
+    runesEl = r0 ? h('div', { class: 'rc' }, ...(r0.icons || []).slice(0, 1).map((x) => icon(ddImg(x.icon), 'rc-key', x.name)),
+      h('div', { class: 'rc-rest' }, h('div', { class: 'rc-row' }, ...(r0.icons || []).slice(1).map((x) => icon(ddImg(x.icon), 'rc-minor', x.name))))) : null;
+    const sp = d.spells[0];
+    spellsEl = sp ? h('div', { class: 'spells' }, ...sp.ids.map((sid, i) => (sp.keys && sp.keys[i] ? icon(ddVerImg(`spell/${sp.keys[i]}.png`), 'sp-icon', sp.names[i]) : h('span', { text: sp.names[i] })))) : null;
+    skillsEl = d.skills[0] ? skillKeys(d.skills[0].order) : null;
+    why = t('a que mais vence entre as builds com jogos suficientes');
+  } else if (bsel === 'otp') {
+    const b = op.p.build;
+    pathEl = pathLine([], b.items.slice(0, 6).map((id) => ({ id, name: '' })));
+    runesEl = b.keystoneIcon ? h('div', { class: 'rc' }, icon(ddImg(b.keystoneIcon), 'rc-key', b.keystoneName), h('span', { class: 'rc-name', text: b.keystoneName || '' })) : null;
+    spellsEl = h('div', { class: 'spells' }, ...b.spellKeys.map((k) => icon(ddVerImg(`spell/${k}.png`), 'sp-icon', k)));
+    why = tr('última partida de {who}', { who: op.p.riotId.split('#')[0] });
+  } else {
+    pathEl = pathLine(g.starterCounts, g.fullBuild, (it) => g.boots.some((b) => b.id === it.id));
+    const pages = root.runePages || [];
+    const page = pages[runePage] || pages[0] || null;
+    guideRuneKey = `g:${shownId}:${variant}:${g.runesForMatchup ? 'mu' : runePage}`;
+    const tree = g.runesForMatchup ? g.runeTree : (page && page.runeTree) || g.runeTree;
+    runesEl = h('div', {},
+      tree ? runesCompact(tree, guideRuneKey) : g.runes ? h('p', { class: 'muted small', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }) : null,
+      !g.runesForMatchup && pages.length > 1 ? runePageTabs(pages) : null);
+    if (tree) {
+      const tg = h('button', { class: 'link small', type: 'button', text: showRuneTree ? t('Fechar árvore') : t('Editar runas') });
+      tg.addEventListener('click', () => { showRuneTree = !showRuneTree; drawGuide(); });
+      runesEl.append(tg);
+      if (showRuneTree) runesEl._tree = editableRunes(tree, guideRuneKey, () => { imported.runes = false; drawGuide(); });
+    }
+    spellsEl = g.spells.length ? drawSpells(g) : null;
+    if (g.skills.length) {
+      skillsEl = h('div', {}, skillKeys(g.skills));
+      const tg = h('button', { class: 'link small', type: 'button', text: showSkillGrid ? t('Esconder nível a nível') : t('Ver nível a nível') });
+      tg.addEventListener('click', () => { showSkillGrid = !showSkillGrid; drawGuide(); });
+      skillsEl.append(tg);
+    }
+    why = g.starterCounts.length ? t('compre na ordem; os picos são os melhores momentos para lutar') : '';
   }
 
-  const left = h('div', { class: 'g-sec' });
-  const pages = root.runePages || [];
-  const page = pages[runePage] || pages[0] || null;
-  guideRuneKey = `g:${shownId}:${variant}:${g.runesForMatchup ? 'mu' : runePage}`;
-  const drawRunes = (tree) => editableRunes(tree, guideRuneKey, () => { imported.runes = false; drawGuide(); });
-  if (g.runesForMatchup && g.runeTree) {
-    // runas ajustadas para o matchup (OP.GG do confronto ou regra própria): mostra só essa página
-    left.append(head(`${tr('Runas')} · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'),
-      h('p', { class: 'muted small rp-one', text: tr('Ajustadas para {v}', { v: (root.variants[variant] || {}).label || tr('o matchup') }) }), drawRunes(g.runeTree));
-  } else if (page && page.runeTree) {
-    const st = page.stats || {};
-    left.append(head(`${tr('Runas')} · ${page.view.primaryStyleName} + ${page.view.subStyleName}`, 'runes'), runePageTabs(pages) || '');
-    if (pages.length < 2 && (st.pickRate || st.winRate)) left.append(h('p', { class: 'muted small rp-one', text: `${Math.round((st.pickRate || 0) * 100)}% pick${st.winRate ? ` · ${(st.winRate * 100).toFixed(1)}% WR` : ''}` }));
-    left.append(drawRunes(page.runeTree));
-  } else if (g.runeTree) left.append(head(`${tr('Runas')} · ${g.runes.primaryStyleName} + ${g.runes.subStyleName}`, 'runes'), drawRunes(g.runeTree));
-  else if (g.runes) left.append(head('Runas', 'runes'), h('p', { class: 'muted', text: `${g.runes.primaryStyleName} + ${g.runes.subStyleName}` }));
-  const right = h('div', { class: 'g-sec' });
-  if (g.spells.length) right.append(head('Feitiços', 'spells'), drawSpells(g), h('div', { style: 'height:22px' }));
-  right.append(drawBuildPath(g));
-  parts.push(h('div', { class: 'g-grid' }, left, right));
-  const myRole = (lastState && (lastState.myRole || lastState.myPosition)) || (g.role && !['aram', 'arena'].includes(g.role) ? g.role : (lastState && lastState.home && lastState.home.mainRole) || 'middle');
-  if (myRole && !['aram', 'arena'].includes(myRole) && !(lastState && lastState.mode)) {
-    const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
-    const lane = foes.find((e) => e.position === myRole) || foes.find((e) => !e.position && e.predicted === myRole && e.confidence >= 50);
-    parts.push(buildLab({
-      id: shownId, role: myRole, defaultVs: lane ? lane.champion.id : null, skillIcons: g.skillIcons, runeKey: guideRuneKey,
-      vsOptions: foes.map((e) => ({ id: e.champion.id, name: e.champion.name })),
-      onRunes: (pg) => { runeEdits.set(guideRuneKey, pg); imported.runes = false; drawGuide(); },
-    }));
+  const pathSec = h('div', { class: 'g-blk' }, h('div', { class: 'g-blk-h' }, h('h3', { text: t('Ordem de compra') }), h('span', { class: 'muted small', text: why })), pathEl);
+  if (g.matchup && g.matchup.tip && bsel.startsWith('v')) parts.push(h('div', { class: 'g-tip' }, h('b', { text: `vs ${g.matchup.vs}` }), document.createTextNode(g.matchup.tip)));
+  if ((g.changes || []).length && bsel.startsWith('v')) {
+    parts.push(h('div', { class: 'g-adj' }, h('span', { class: 'muted small', text: t('Ajustes para o confronto:') }),
+      ...g.changes.map((c) => h('span', { class: `g-adj-i k-${c.kind}`, text: c.text }))));
   }
-  if (g.skills.length) {
-    // ordem em que cada habilidade chega ao nível máximo (5)
-    const cnt = {};
-    const order = [];
-    for (const x of skillOrder18(g.skills)) if (x !== 'R' && (cnt[x] = (cnt[x] || 0) + 1) === 5) order.push(x);
-    for (const x of ['Q', 'W', 'E']) if (!order.includes(x)) order.push(x);
-    const skillMu = (g.changes || []).some((c) => c.kind === 'skills');
-    parts.push(h('div', { class: 'g-full' }, head(`${tr('Ordem de habilidades')} · ${order.slice(0, 3).join(' › ')}${skillMu ? ` · ${tr('ajustada {v}', { v: ((root.variants[variant] || {}).label || '').toLowerCase() })}` : ''}`), drawSkills(g)));
+  parts.push(pathSec);
+  const cell = (title, body, extra) => h('div', { class: 'g-cell' }, h('h3', { text: title }), body || h('span', { class: 'muted small', text: '—' }), extra || null);
+  parts.push(h('div', { class: 'g-trio' },
+    cell(t('Runas'), runesEl),
+    cell(t('Feitiços'), spellsEl),
+    cell(t('Habilidades'), skillsEl, bsel.startsWith('v') ? null : null)));
+  if (runesEl && runesEl._tree) parts.push(h('div', { class: 'g-blk' }, runesEl._tree));
+  if (showSkillGrid && bsel.startsWith('v') && g.skills.length) parts.push(h('div', { class: 'g-blk' }, drawSkills(g)));
+
+  /* situacionais: no máximo 4 */
+  const sits = bsel.startsWith('v') ? (g.situational || []).slice(0, 4) : [];
+  if (sits.length) {
+    parts.push(h('div', { class: 'g-blk' },
+      h('div', { class: 'g-blk-h' }, h('h3', { text: t('Se a partida pedir') }), h('span', { class: 'muted small', text: t('o overlay avisa a hora certa na partida') })),
+      h('div', { class: 'sit-list four' }, ...sits.map((it) => {
+        const el = h('div', { class: 'sit' }, itImg(it.id),
+          h('div', { class: 'sit-body' }, h('div', { class: 'sit-name', text: it.name }), goodTag(it.good || { key: 'meta', label: 'Alternativa do meta' }, it.vs, version)));
+        tipOn(el, it.name, it.why);
+        return el;
+      }))));
   }
-  if (root.oppKit) parts.push(abilityBlock(root.oppKit, 'g-full'));
-  parts.push(otpBlock());
+
+  /* o resto fica recolhido: laboratório (todas as builds), one-tricks e recargas do oponente */
+  const more = h('details', { class: 'g-more' });
+  if (moreOpen) more.open = true;
+  more.append(h('summary', { text: t('Mais builds e detalhes') }));
+  const fillMore = () => {
+    if (more.dataset.filled) return;
+    more.dataset.filled = '1';
+    if (!modeGame && role) {
+      const foes = ((lastState && lastState.enemies) || []).filter((e) => e.champion);
+      const lane = foes.find((e) => e.position === role) || foes.find((e) => !e.position && e.predicted === role && e.confidence >= 50);
+      more.append(buildLab({
+        id: shownId, role, defaultVs: lane ? lane.champion.id : null, skillIcons: g0.skillIcons, runeKey: guideRuneKey,
+        vsOptions: foes.map((e) => ({ id: e.champion.id, name: e.champion.name })),
+        onRunes: (pg) => { runeEdits.set(guideRuneKey, pg); imported.runes = false; drawGuide(); },
+      }));
+    }
+    more.append(otpBlock());
+    if (root.oppKit) more.append(abilityBlock(root.oppKit, 'g-full'));
+  };
+  more.addEventListener('toggle', () => { moreOpen = more.open; if (more.open) fillMore(); });
+  if (more.open) fillMore();
+  parts.push(more);
+
   els.guideBody.replaceChildren(...parts);
-  setImportEnabled(Boolean(g.runes || g.spells.length));
+  const canV = bsel.startsWith('v') && Boolean(g.runes || g.spells.length);
+  $('imp-all').disabled = !(canV || bsel === 'wr' || bsel === 'otp');
+  $('imp-items').disabled = !canV;
+}
+
+/** Importar conforme o cartão escolhido: variante do guia, maior vitória (vira a sua build) ou one-trick. */
+async function importSelected(what) {
+  if (bsel === 'wr') {
+    const role = guideRole(guide || {});
+    const d = wrBuild.get(`${shownId}:${role}`);
+    if (!d) return;
+    const c = d.cores[0];
+    els.impMsg.textContent = t('Importando…');
+    const r0 = d.runes[0];
+    const res = await window.overlay.chooseLab({ id: shownId, role: d.role || role, source: d.source || 'opgg', label: t('Maior vitória'), importNow: true, patch: {
+      core: c.items.map((it) => it.id), boots: d.boots[0] ? d.boots[0].items.map((it) => it.id) : null, starter: d.starters[0] ? d.starters[0].items.map((it) => it.id) : null,
+      spells: (d.spells[0] || {}).ids || null, skills: d.skills[0] ? d.skills[0].order : null,
+      runes: r0 ? { primaryStyleId: r0.primaryStyleId, subStyleId: r0.subStyleId, perks: r0.perks } : null, later: null,
+    } });
+    els.impMsg.textContent = res && res.imported && res.imported.ok ? tr('Importado: {what}.', { what: (res.imported.done || []).join(', ') }) : res && res.imported ? tr('Não consegui importar: {err}', { err: res.imported.error }) : t('Build aplicada: o Importar e o overlay vão usar esta.');
+    guide = await window.overlay.getGuide(shownId);
+    variant = 0; bsel = 'v0';
+    drawGuide();
+    celebrate($('imp-all'));
+    return;
+  }
+  if (bsel === 'otp') {
+    const op = otpPick();
+    if (!op) return;
+    els.impMsg.textContent = t('Importando…');
+    const r = await window.overlay.importOtp(shownId, op.idx);
+    els.impMsg.textContent = r.ok ? tr('Build de {who}: {what} importados.', { who: op.p.riotId.split('#')[0], what: r.done.join(', ') }) : tr('Não consegui importar: {err}', { err: r.error });
+    if (r.ok) celebrate($('imp-all'));
+    return;
+  }
+  doImport(what);
 }
 
 /** Recarga das habilidades do oponente (Meraki / Data Dragon). */
@@ -998,7 +1197,7 @@ async function importWithEditedRunes(champId, page, what, importRest) {
   }
   return { ok: true, done };
 }
-$('imp-all').addEventListener('click', () => doImport('both'));
+$('imp-all').addEventListener('click', () => importSelected('both'));
 $('imp-items').addEventListener('click', () => doImport('items'));
 
 /* ---------- configurações ---------- */

@@ -1,5 +1,33 @@
 [
   {
+    "version": "0.58.0",
+    "title": "Champion select mais simples",
+    "items": [
+      "Builds em cartões: mais jogada, contra o oponente, maior vitória e one-trick.",
+      "Clique num cartão e a tela inteira mostra aquela build; o Importar segue junto.",
+      "Runas, feitiços e habilidades em uma linha, sem a árvore inteira.",
+      "Tabelas e detalhes extras ficaram em \"Mais builds e detalhes\"."
+    ],
+    "en": {
+      "title": "Simpler champion select",
+      "items": [
+        "Builds as cards: most played, vs your opponent, highest win rate and one-trick.",
+        "Click a card and the whole screen shows that build; Import follows it.",
+        "Runes, spells and skills in one row, without the full tree.",
+        "Tables and extra details moved to \"More builds and details\"."
+      ]
+    },
+    "es": {
+      "title": "Selección de campeón más simple",
+      "items": [
+        "Builds en tarjetas: más jugada, contra tu rival, mayor victoria y one-trick.",
+        "Haz clic en una tarjeta y toda la pantalla muestra esa build; Importar la sigue.",
+        "Runas, hechizos y habilidades en una fila, sin el árbol completo.",
+        "Tablas y detalles extra quedaron en \"Más builds y detalles\"."
+      ]
+    }
+  },
+  {
     "version": "0.57.0",
     "title": "Buffs do patch na tier list",
     "items": [

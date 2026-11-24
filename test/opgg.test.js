@@ -44,6 +44,9 @@ const DD_ITEMS = {
   3102: { name: "Banshee's Veil", gold: { base: 800, total: 2600 }, tags: [] },
   3111: { name: "Mercury's Treads", gold: { base: 400, total: 1100 }, from: [1001], tags: ['Boots'] },
   3135: { name: 'Void Staff', gold: { base: 800, total: 3000 }, tags: [] },
+  3070: { name: 'Tear of the Goddess', gold: { base: 400, total: 400 }, into: [3004], tags: [] },
+  3004: { name: 'Manamune', gold: { base: 1100, total: 2900 }, from: [3070, 1036], tags: [] },
+  1036: { name: 'Long Sword', gold: { base: 350, total: 350 }, tags: [] },
 };
 const dd = { item: (id) => DD_ITEMS[id] || null };
 
@@ -356,4 +359,14 @@ test('compras: suporte contra suporte fed fica na bota do meta', () => {
   const boots = out.boots && out.boots.primary;
   assert.ok(boots, 'sugere bota');
   assert.equal(boots.id, 3020, boots.reason);
+});
+
+test('compras: não sugere a Lágrima de novo depois de fechar a Manamune', () => {
+  const build = { core: [3070, 3004, 3146], boots: [3020], later: [], starter: [] };
+  const me = { ...player('Ezreal', 'Ezreal', ['Marksman']), level: 11, gold: 500, scores: { kills: 2, deaths: 1, assists: 3 }, items: [{ id: 3004, name: 'Manamune', tags: [], slot: 0, count: 1 }] };
+  const enemies = [player('Jinx', 'Jinx', ['Marksman']), player('Darius', 'Darius', ['Fighter']), player('LeeSin', 'Lee Sin', ['Fighter']), player('Ziggs', 'Ziggs', ['Mage']), player('Morgana', 'Morgana', ['Mage', 'Support'])];
+  const out = buyAdvice({ state: { me, enemies, gameTime: 1300, myRole: 'bottom' }, build, dd });
+  const ids = out.items.map((i) => i.id);
+  assert.ok(!ids.includes(3070), `não devia sugerir a Lágrima: ${ids}`);
+  assert.ok(!ids.includes(3004), `não devia sugerir a Manamune: ${ids}`);
 });

@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.58.1",
+    "title": "Sem sugerir peça já usada",
+    "items": [
+      "Fechou a Manamune? O app não sugere mais a Lágrima de novo.",
+      "Vale para qualquer item: peças já dentro de um item seu saem da lista."
+    ],
+    "en": {
+      "title": "No more used parts",
+      "items": [
+        "Finished Manamune? The app no longer suggests Tear again.",
+        "Works for every item: parts already inside one of yours leave the list."
+      ]
+    },
+    "es": {
+      "title": "Sin sugerir piezas ya usadas",
+      "items": [
+        "¿Cerraste Manamune? La app ya no sugiere la Lágrima otra vez.",
+        "Vale para cualquier ítem: piezas ya dentro de uno tuyo salen de la lista."
+      ]
+    }
+  },
+  {
     "version": "0.58.0",
     "title": "Champion select mais simples",
     "items": [

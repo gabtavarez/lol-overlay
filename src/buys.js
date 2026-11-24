@@ -362,6 +362,14 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
   const enemies = state.enemies || [];
   const owned = ownedIds(me);
   const ownedSet = new Set(owned);
+  // o que já está "dentro" de um item seu (Lágrima dentro da Manamune, Manamune dentro da Muramana) não é sugerido de novo
+  const doneSet = new Set(ownedSet);
+  const addParts = (id, depth = 0) => {
+    const it = dd.item(id);
+    if (!it || depth > 4) return;
+    for (const p of it.from || []) { const n = Number(p); if (!doneSet.has(n)) { doneSet.add(n); addParts(n, depth + 1); } }
+  };
+  owned.forEach((id) => addParts(id));
   const cls = classOf(me, build, flags, state.myRole || me.position || '');
   const early = state.gameTime < 600;
   const cands = new Map(); // id -> { score, reason, tag }
@@ -370,7 +378,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
   // o "Build do meta" — senão a resposta ao inimigo fed some atrás do caminho padrão.
   const REACTIVE_OVER = (t) => t && !['core', 'starter'].includes(t);
   const add = (id, score, reason, tag, vs = []) => {
-    if (!id || ownedSet.has(id) || !dd.item(id)) return;
+    if (!id || doneSet.has(id) || !dd.item(id)) return;
     const prev = cands.get(id);
     if (!prev) { cands.set(id, { score, reason, tag, vs }); return; }
     const best = Math.max(score, prev.score);
@@ -403,7 +411,7 @@ function buyAdvice({ state, build, dd, flags = defaultFlags, memory = null }) {
   if (build) {
     path.push(...build.core, ...laterItems(build));
   }
-  const pathLeft = path.filter((id) => !ownedSet.has(id) && dd.item(id));
+  const pathLeft = path.filter((id) => !doneSet.has(id) && dd.item(id));
   const pickTxt = build && build.corePick ? ` · ${tr('{p}% dos jogadores', { p: Math.round(build.corePick * 100) })}` : '';
   pathLeft.slice(0, 3).forEach((id, i) => {
     add(id, 72 - i * 14, `${tr('Build do meta')}${i === 0 ? pickTxt : ''}`, 'core');
